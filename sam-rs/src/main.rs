@@ -1,6 +1,6 @@
 use onnxruntime::{
     environment::Environment,
-    ndarray::{Array, Ix1, Ix2, Ix3, Ix4},
+    ndarray::{array, stack, Array, Axis, Ix1, Ix2, Ix3, Ix4},
     tensor::OrtOwnedTensor,
     GraphOptimizationLevel,
 };
@@ -14,18 +14,22 @@ fn main() {
     let mut rgb_image = core::Mat::default();
     imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
 
+    let input_point = array![[500, 875]];
+    let input_label = array![1.0]; // Ensure element type is f32
+
     // Wrong
     let image_embeddings: Array<f32, Ix4> = Array::zeros((1, 256, 64, 64));
     let point_coords: Array<f32, Ix3> = Array::zeros((1, 2, 2));
-    let point_labels: Array<f32, Ix2> = Array::zeros((1, 2));
 
     //Should be right
+    let point_labels = stack![Axis(0), input_label.view(), array![-1.0].view()]
+        .t()
+        .to_owned();
     let mask_input: Array<f32, Ix4> = Array::zeros((1, 1, 256, 256));
     let has_mask_input: Array<f32, Ix1> = Array::zeros((1,));
     let orig_im_size: Array<f32, Ix1> =
         Array::from_shape_vec((2,), vec![image.rows() as f32, image.cols() as f32]).unwrap();
 
-    // Combine the inputs into a single vector
     let input_arrays: Vec<Array<f32, _>> = vec![
         image_embeddings.into_dyn(),
         point_coords.into_dyn(),
