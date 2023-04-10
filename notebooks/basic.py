@@ -7,15 +7,13 @@ import onnxruntime
 image = cv2.imread('images/truck.jpg')
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Loading model
-sam = build_sam_vit_h()
-predictor = SamPredictor(sam)
-
 # Inputs 
 input_point = np.array([[500, 875]])
 input_label = np.array([1])
 onnx_coord = np.concatenate([input_point, np.array([[0.0, 0.0]])], axis=0)[None, :, :]
 
+sam = build_sam_vit_h()
+predictor = SamPredictor(sam)
 predictor.set_image(image)
 image_embedding = predictor.get_image_embedding().cpu().numpy()
 

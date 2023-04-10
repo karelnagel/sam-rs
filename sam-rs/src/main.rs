@@ -7,7 +7,13 @@ use onnxruntime::{
 
 extern crate opencv;
 
-use opencv::{core, imgcodecs, imgproc, prelude::MatTraitConst};
+use opencv::{
+    core, imgcodecs, imgproc,
+    prelude::{Mat, MatTraitConst},
+};
+fn get_image_embeddings(image: &Mat) -> Array<f32, Ix4> {
+    Array::zeros((1, 256, 64, 64))
+}
 fn main() {
     // Image
     let image = imgcodecs::imread("images/truck.jpg", imgcodecs::IMREAD_COLOR).unwrap();
@@ -18,7 +24,8 @@ fn main() {
     let input_label = array![1.0]; // Ensure element type is f32
 
     // Wrong
-    let image_embeddings: Array<f32, Ix4> = Array::zeros((1, 256, 64, 64));
+
+    let image_embeddings = get_image_embeddings(&image);
 
     //Should be right
     let point_coords = stack![Axis(0), input_point.mapv(|x| x as f32), array![[0.0, 0.0]]]
