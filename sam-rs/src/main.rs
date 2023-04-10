@@ -1,6 +1,6 @@
 use onnxruntime::{
     environment::Environment,
-    ndarray::{array, stack, Array, Axis, Ix1, Ix2, Ix3, Ix4},
+    ndarray::{array, stack, Array, Axis, Ix1, Ix4},
     tensor::OrtOwnedTensor,
     GraphOptimizationLevel,
 };
@@ -25,7 +25,7 @@ fn main() {
 
     // Wrong
 
-    let image_embeddings = get_image_embeddings(&image);
+    let image_embeddings = get_image_embeddings(&rgb_image);
 
     //Should be right
     let point_coords = stack![Axis(0), input_point.mapv(|x| x as f32), array![[0.0, 0.0]]]
