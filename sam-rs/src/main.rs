@@ -1,72 +1,50 @@
-
 use onnxruntime::{
-    environment::Environment, ndarray::Array, tensor::OrtOwnedTensor, GraphOptimizationLevel,
-    LoggingLevel,
+    environment::Environment,
+    ndarray::{Array, Ix1, Ix2, Ix3, Ix4},
+    tensor::OrtOwnedTensor,
+    GraphOptimizationLevel,
 };
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
 
-type Error = Box<dyn std::error::Error>;
+extern crate opencv;
 
+use opencv::{core, imgcodecs, imgproc, prelude::MatTraitConst};
 fn main() {
-    println!("Hello, world!");
-    if let Err(e) = run() {
-        eprintln!("Error: {}", e);
-        std::process::exit(1);
-    }
-}
+    // Image
+    let image = imgcodecs::imread("images/truck.jpg", imgcodecs::IMREAD_COLOR).unwrap();
+    let mut rgb_image = core::Mat::default();
+    imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
 
-fn run() -> Result<(), Error> {
-    // Setup the example's log level.
-    // NOTE: ONNX Runtime's log level is controlled separately when building the environment.
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
-        .finish();
+    // Wrong
+    let image_embeddings: Array<f32, Ix4> = Array::zeros((1, 256, 64, 64));
+    let point_coords: Array<f32, Ix3> = Array::zeros((1, 2, 2));
+    let point_labels: Array<f32, Ix2> = Array::zeros((1, 2));
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    //Should be right
+    let mask_input: Array<f32, Ix4> = Array::zeros((1, 1, 256, 256));
+    let has_mask_input: Array<f32, Ix1> = Array::zeros((1,));
+    let orig_im_size: Array<f32, Ix1> =
+        Array::from_shape_vec((2,), vec![image.rows() as f32, image.cols() as f32]).unwrap();
 
-    let environment = Environment::builder()
-        .with_name("test")
-        // The ONNX Runtime's log level can be different than the one of the wrapper crate or the application.
-        .with_log_level(LoggingLevel::Info)
-        .build()?;
+    // Combine the inputs into a single vector
+    let input_arrays: Vec<Array<f32, _>> = vec![
+        image_embeddings.into_dyn(),
+        point_coords.into_dyn(),
+        point_labels.into_dyn(),
+        mask_input.into_dyn(),
+        has_mask_input.into_dyn(),
+        orig_im_size.into_dyn(),
+    ];
 
-    let mut session = environment
-        .new_session_builder()?
-        .with_optimization_level(GraphOptimizationLevel::Basic)?
-        .with_number_threads(1)?
-        // NOTE: The example uses SqueezeNet 1.0 (ONNX version: 1.3, Opset version: 8),
-        //       _not_ SqueezeNet 1.1 as downloaded by '.with_model_downloaded(ImageClassification::SqueezeNet)'
-        //       Obtain it with:
-        //          curl -LO "https://github.com/onnx/models/raw/master/vision/classification/squeezenet/model/squeezenet1.0-8.onnx"
-        .with_model_from_file("sam.onnx")?;
+    let environment = Environment::builder().build().unwrap();
 
-    let input0_shape: Vec<usize> = session.inputs[0].dimensions().map(|d| d.unwrap()).collect();
-    let output0_shape: Vec<usize> = session.outputs[0]
-        .dimensions()
-        .map(|d| d.unwrap())
-        .collect();
-
-    assert_eq!(input0_shape, [1, 3, 224, 224]);
-    assert_eq!(output0_shape, [1, 1000, 1, 1]);
-
-    // initialize input data with values in [0.0, 1.0]
-    let n: u32 = session.inputs[0]
-        .dimensions
-        .iter()
-        .map(|d| d.unwrap())
-        .product();
-    let array = Array::linspace(0.0_f32, 1.0, n as usize)
-        .into_shape(input0_shape)
+    let mut session: onnxruntime::session::Session = environment
+        .new_session_builder()
+        .unwrap()
+        .with_optimization_level(GraphOptimizationLevel::Basic)
+        .unwrap()
+        .with_number_threads(1)
+        .unwrap()
+        .with_model_from_file("sam.onnx")
         .unwrap();
-    let input_tensor_values = vec![array];
-
-    let outputs: Vec<OrtOwnedTensor<f32, _>> = session.run(input_tensor_values)?;
-
-    assert_eq!(outputs[0].shape(), output0_shape.as_slice());
-    for i in 0..5 {
-        println!("Score for class [{}] =  {}", i, outputs[0][[0, i, 0, 0]]);
-    }
-
-    Ok(())
+    let outputs: Vec<OrtOwnedTensor<f32, _>> = session.run(input_arrays).unwrap();
 }
