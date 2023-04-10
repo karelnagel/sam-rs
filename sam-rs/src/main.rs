@@ -19,9 +19,11 @@ fn main() {
 
     // Wrong
     let image_embeddings: Array<f32, Ix4> = Array::zeros((1, 256, 64, 64));
-    let point_coords: Array<f32, Ix3> = Array::zeros((1, 2, 2));
 
     //Should be right
+    let point_coords = stack![Axis(0), input_point.mapv(|x| x as f32), array![[0.0, 0.0]]]
+        .into_shape((1, 2, 2))
+        .unwrap(); // Reshape to add an extra dimension at the beginning
     let point_labels = stack![Axis(0), input_label.view(), array![-1.0].view()]
         .t()
         .to_owned();
