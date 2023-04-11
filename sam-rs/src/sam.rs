@@ -30,16 +30,16 @@ pub struct Output {
     pub low_res_masks: Tensor,
 }
 impl Sam {
-    /// SAM predicts object masks from an image and input prompts.
-
+    /// # SAM predicts object masks from an image and input prompts.
+    ///
     /// Arguments:
-    ///   image_encoder (ImageEncoderViT): The backbone used to encode the
+    ///   - image_encoder (ImageEncoderViT): The backbone used to encode the
     ///     image into image embeddings that allow for efficient mask prediction.
-    ///   prompt_encoder (PromptEncoder): Encodes various types of input prompts.
-    ///   mask_decoder (MaskDecoder): Predicts masks from the image embeddings
+    ///   - prompt_encoder (PromptEncoder): Encodes various types of input prompts.
+    ///   - mask_decoder (MaskDecoder): Predicts masks from the image embeddings
     ///     and encoded prompts.
-    ///   pixel_mean (list(float)): Mean values for normalizing pixels in the input image.
-    ///   pixel_std (list(float)): Std values for normalizing pixels in the input image.
+    ///   - pixel_mean (list(float)): Mean values for normalizing pixels in the input image.
+    ///   - pixel_std (list(float)): Std values for normalizing pixels in the input image.
     pub fn new(
         image_encoder: ImageEncoder,
         prompt_encoder: PromptEncoder,
@@ -63,42 +63,42 @@ impl Sam {
         }
     }
 
-    // Predicts masks end-to-end from provided images and prompts.
-    // If prompts are not known in advance, using SamPredictor is
-    // recommended over calling the model directly.
-
-    // Arguments:
-    //   batched_input (list(dict)): A list over input images, each a
-    //     dictionary with the following keys. A prompt key can be
-    //     excluded if it is not present.
-    //       'image': The image as a torch tensor in 3xHxW format,
-    //         already transformed for input to the model.
-    //       'original_size': (tuple(int, int)) The original size of
-    //         the image before transformation, as (H, W).
-    //       'point_coords': (torch.Tensor) Batched point prompts for
-    //         this image, with shape BxNx2. Already transformed to the
-    //         input frame of the model.
-    //       'point_labels': (torch.Tensor) Batched labels for point prompts,
-    //         with shape BxN.
-    //       'boxes': (torch.Tensor) Batched box inputs, with shape Bx4.
-    //         Already transformed to the input frame of the model.
-    //       'mask_inputs': (torch.Tensor) Batched mask inputs to the model,
-    //         in the form Bx1xHxW.
-    //   multimask_output (bool): Whether the model should predict multiple
-    //     disambiguating masks, or return a single mask.
-
-    // Returns:
-    //   (list(dict)): A list over input images, where each element is
-    //     as dictionary with the following keys.
-    //       'masks': (torch.Tensor) Batched binary mask predictions,
-    //         with shape BxCxHxW, where B is the number of input prompts,
-    //         C is determined by multimask_output, and (H, W) is the
-    //         original size of the image.
-    //       'iou_predictions': (torch.Tensor) The model's predictions
-    //         of mask quality, in shape BxC.
-    //       'low_res_logits': (torch.Tensor) Low resolution logits with
-    //         shape BxCxHxW, where H=W=256. Can be passed as mask input
-    //         to subsequent iterations of prediction.
+    /// Predicts masks end-to-end from provided images and prompts.
+    /// If prompts are not known in advance, using SamPredictor is
+    /// recommended over calling the model directly.
+    ///
+    /// Arguments:
+    ///   - batched_input (list(dict)): A list over input images, each a
+    ///     dictionary with the following keys. A prompt key can be
+    ///     excluded if it is not present.
+    ///       - `image`: The image as a torch tensor in 3xHxW format,
+    ///         already transformed for input to the model.
+    ///       - `original_size`: (tuple(int, int)) The original size of
+    ///         the image before transformation, as (H, W).
+    ///       - `point_coords`: (torch.Tensor) Batched point prompts for
+    ///         this image, with shape BxNx2. Already transformed to the
+    ///         input frame of the model.
+    ///       - `point_labels`: (torch.Tensor) Batched labels for point prompts,
+    ///         with shape BxN.
+    ///       - `boxes`: (torch.Tensor) Batched box inputs, with shape Bx4.
+    ///         Already transformed to the input frame of the model.
+    ///       - `mask_inputs`: (torch.Tensor) Batched mask inputs to the model,
+    ///         in the form Bx1xHxW.
+    ///   - multimask_output (bool): Whether the model should predict multiple
+    ///     disambiguating masks, or return a single mask.
+    ///
+    /// Returns:
+    ///   (list(dict)): A list over input images, where each element is
+    ///     as dictionary with the following keys.
+    ///       - `masks`: (torch.Tensor) Batched binary mask predictions,
+    ///         with shape BxCxHxW, where B is the number of input prompts,
+    ///         C is determined by multimask_output, and (H, W) is the
+    ///         original size of the image.
+    ///       - `iou_predictions`: (torch.Tensor) The model's predictions
+    ///         of mask quality, in shape BxC.
+    ///       - `low_res_logits`: (torch.Tensor) Low resolution logits with
+    ///         shape BxCxHxW, where H=W=256. Can be passed as mask input
+    ///         to subsequent iterations of prediction.
     pub fn forward(&self, batched_input: Vec<Input>, multimask_output: bool) -> Vec<Output> {
         let input_images = Tensor::stack(
             &batched_input
@@ -136,7 +136,7 @@ impl Sam {
                 &Size(size[1] as i32, size[2] as i32),
                 &image_record.original_size,
             );
-            // let masks = masks > self.mask_threshold; // Todo
+            // let masks = masks > self.mask_threshold; /// Todo
             outputs.push(Output {
                 masks,
                 iou_predictions,
@@ -169,10 +169,9 @@ impl Sam {
         let masks = masks.upsample_bilinear2d(output_size, false, None, None);
         masks
     }
-    
+
     /// Normalize pixel values and pad to a square input.
     pub fn preprocess(&self, x: Tensor) -> Tensor {
-        // Todo
         let x = (&x - &self.pixel_mean) / &self.pixel_std;
         let (h, w) = x.size2().unwrap();
 
