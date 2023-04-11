@@ -15,7 +15,8 @@ impl PromptEncoder {
             Tensor::zeros(&[1, 1, 1, 1], (tch::Kind::Float, tch::Device::Cpu)),
         )
     }
-    pub fn get_dense_pe(&self) -> u32 {
-        2
+    pub fn get_dense_pe(&self) -> Tensor {
+        // Todo
+        Tensor::zeros(&[1, 1, 1, 1], (tch::Kind::Float, tch::Device::Cpu))
     }
 }

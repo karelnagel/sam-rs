@@ -123,7 +123,7 @@ impl Sam {
                 Some(image_record.boxes.copy()),
                 Some(image_record.mask_inputs.copy()),
             );
-            let (low_res_masks, iou_predictions) = self.mask_decoder.decode(
+            let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
                 &curr_embedding.unsqueeze(0),
                 self.prompt_encoder.get_dense_pe(),
                 sparse_embeddings,
