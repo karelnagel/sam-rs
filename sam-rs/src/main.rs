@@ -1,3 +1,6 @@
+mod modeling;
+mod sam_predictor;
+
 use onnxruntime::{
     environment::Environment,
     ndarray::{array, stack, Array, Axis, Ix1, Ix4},
@@ -6,7 +9,6 @@ use onnxruntime::{
 };
 
 extern crate opencv;
-
 use opencv::{
     core, imgcodecs, imgproc,
     prelude::{Mat, MatTraitConst},
