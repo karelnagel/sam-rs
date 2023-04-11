@@ -673,6 +673,7 @@ dependencies = [
 name = "sam-rs"
 version = "0.1.0"
 dependencies = [
+ "ndarray",
  "onnxruntime",
  "opencv",
  "tch",
