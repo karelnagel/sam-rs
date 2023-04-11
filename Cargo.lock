@@ -665,7 +665,6 @@ dependencies = [
  "onnxruntime",
  "opencv",
  "sam-rs",
- "tch",
  "tracing",
  "tracing-subscriber",
 ]
