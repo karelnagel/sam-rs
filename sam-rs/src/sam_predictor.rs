@@ -23,7 +23,7 @@ pub enum ImageFormat {
 }
 
 #[derive(Clone, Copy)]
-pub struct Size(i32, i32);
+pub struct Size(pub i32, pub i32);
 #[derive(Clone)]
 pub struct Image(Array3<u8>);
 
@@ -228,9 +228,11 @@ impl SamPredictor {
             dense_embeddings,
             multimask_output,
         );
-        let masks =
-            self.model
-                .postprocess_masks(&low_res_masks, &self.input_size, &self.original_size);
+        let masks = self.model.postprocess_masks(
+            &low_res_masks,
+            &self.input_size.unwrap(),
+            &self.original_size.unwrap(),
+        );
         if !return_logits {
             panic!("Not implemented");
         }
