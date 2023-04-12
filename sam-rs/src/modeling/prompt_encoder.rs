@@ -260,7 +260,7 @@ impl PositionEmbeddingRandom {
     pub fn forward(&self, size: Size) -> Tensor {
         let Size(h, w) = size;
         let device = self.positional_encoding_gaussian_matrix.device();
-        let grid = Tensor::ones(&[h as i64, w as i64], (tch::Kind::Float, device));
+        let grid = Tensor::ones(&[h, w], (tch::Kind::Float, device));
         let mut y_embed = grid.cumsum(0, tch::Kind::Float) - 0.5;
         let mut x_embed = grid.cumsum(1, tch::Kind::Float) - 0.5;
         y_embed = y_embed / h as f64;

@@ -133,7 +133,7 @@ impl Sam {
             let size = image_record.image.size();
             let masks = self.postprocess_masks(
                 &low_res_masks,
-                &Size(size[1] as i32, size[2] as i32),
+                &Size(size[1], size[2]),
                 &image_record.original_size,
             );
             // let masks = masks > self.mask_threshold; /// Todo
@@ -158,14 +158,11 @@ impl Sam {
     ///   (torch.Tensor): Batched masks in BxCxHxW format, where (H, W)
     ///     is given by original_size.
     pub fn postprocess_masks(&self, masks: &Tensor, input: &Size, original: &Size) -> Tensor {
-        let output_size: &[i64; 2] = &[
-            self.image_encoder.img_size as i64,
-            self.image_encoder.img_size as i64,
-        ];
+        let output_size: &[i64; 2] = &[self.image_encoder.img_size, self.image_encoder.img_size];
         let masks = masks.upsample_bilinear2d(output_size, false, None, None);
-        let masks = masks.slice(2, 0, input.0 as i64, 1);
-        let masks = masks.slice(3, 0, input.1 as i64, 1);
-        let output_size: &[i64; 2] = &[original.0 as i64, original.1 as i64];
+        let masks = masks.slice(2, 0, input.0, 1);
+        let masks = masks.slice(3, 0, input.1, 1);
+        let output_size: &[i64; 2] = &[original.0, original.1];
         let masks = masks.upsample_bilinear2d(output_size, false, None, None);
         masks
     }
@@ -175,8 +172,8 @@ impl Sam {
         let x = (&x - &self.pixel_mean) / &self.pixel_std;
         let (h, w) = x.size2().unwrap();
 
-        let padh = self.image_encoder.img_size as i64 - h;
-        let padw = self.image_encoder.img_size as i64 - w;
+        let padh = self.image_encoder.img_size - h;
+        let padw = self.image_encoder.img_size - w;
         let x = x.constant_pad_nd(&[0, padw, 0, padh]);
         x
     }

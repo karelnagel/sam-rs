@@ -23,7 +23,8 @@ pub enum ImageFormat {
 }
 
 #[derive(Clone, Copy)]
-pub struct Size(pub i32, pub i32);
+pub struct Size(pub i64, pub i64);
+
 #[derive(Clone)]
 pub struct Image(Array3<u8>);
 
@@ -66,7 +67,7 @@ impl SamPredictor {
             input_image_torch = input_image_torch.to_device(device);
         }
         let shape = image.0.shape();
-        self.set_torch_image(input_image_torch, Size(shape[0] as i32, shape[1] as i32));
+        self.set_torch_image(input_image_torch, Size(shape[0] as i64, shape[1] as i64));
     }
 
     /// Calculates the image embeddings for the provided image, allowing
@@ -90,7 +91,7 @@ impl SamPredictor {
             );
         }
         self.original_size = Some(original_size);
-        self.input_size = Some(Size(shape[2] as i32, shape[3] as i32));
+        self.input_size = Some(Size(shape[2], shape[3]));
 
         let input_image = self.model.preprocess(transformed_image);
         self.features = Some(self.model.image_encoder.forward(&input_image));
