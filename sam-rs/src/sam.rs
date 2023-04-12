@@ -118,7 +118,7 @@ impl Sam {
                 image_record.point_coords.copy(),
                 image_record.point_labels.copy(),
             ));
-            let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.encode(
+            let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
                 points,
                 Some(image_record.boxes.copy()),
                 Some(image_record.mask_inputs.copy()),

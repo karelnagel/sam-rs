@@ -219,7 +219,7 @@ impl SamPredictor {
             None => None,
         };
         let (sparse_embeddings, dense_embeddings) =
-            self.model.prompt_encoder.encode(point, boxes, mask_input);
+            self.model.prompt_encoder.forward(point, boxes, mask_input);
 
         let (low_res_masks, iou_predictions) = self.model.mask_decoder.forward(
             self.features.as_ref().unwrap(),
