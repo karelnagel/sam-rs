@@ -2,9 +2,6 @@ use super::mask_decoder::Activation;
 use crate::sam_predictor::Size;
 use tch::{nn, Tensor};
 
-pub enum LayerNorm {
-    IDK,
-}
 /// This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 pub struct ImageEncoderViT {
     pub img_size: i64,
@@ -40,7 +37,7 @@ impl ImageEncoderViT {
         mlp_ratio: Option<f64>,
         out_chans: Option<i64>,
         qkv_bias: Option<bool>,
-        norm_layer: Option<LayerNorm>,
+        norm_layer: Option<nn::LayerNorm>,
         act_layer: Option<Activation>,
         use_abs_pos: Option<bool>,
         use_rel_pos: Option<bool>,
@@ -57,7 +54,6 @@ impl ImageEncoderViT {
         let mlp_ratio = mlp_ratio.unwrap_or(4.0);
         let out_chans = out_chans.unwrap_or(256);
         let qkv_bias = qkv_bias.unwrap_or(true);
-        let norm_layer = norm_layer.unwrap_or(LayerNorm::IDK);
         let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_abs_pos = use_abs_pos.unwrap_or(true);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
@@ -94,7 +90,7 @@ impl ImageEncoderViT {
                 num_heads,
                 Some(mlp_ratio),
                 Some(qkv_bias),
-                Some(&norm_layer),
+                &norm_layer,
                 Some(act_layer),
                 Some(use_rel_pos),
                 Some(rel_pos_zero_init),
@@ -177,7 +173,7 @@ impl Block {
         num_heads: i64,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
-        norm_layer: Option<&LayerNorm>,
+        norm_layer: &Option<nn::LayerNorm>,
         act_layer: Option<Activation>,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
@@ -186,7 +182,6 @@ impl Block {
     ) -> Self {
         let mlp_ration = mlp_ratio.unwrap_or(4.0);
         let qkv_bias = qkv_bias.unwrap_or(true);
-        let norm_layer = norm_layer.unwrap_or(&LayerNorm::IDK);
         let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
