@@ -23,6 +23,7 @@ pub struct MaskDecoder {
 }
 impl MaskDecoder {
     pub fn new(
+        vs: &nn::Path,
         transformer_dim: i64,
         transformer: TwoWayTransformer,
         num_multimask_outputs: i64,
@@ -30,19 +31,13 @@ impl MaskDecoder {
         iou_head_depth: i64,
         iou_head_hidden_dim: i64,
     ) -> Self {
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let iou_token = nn::embedding(&vs.root(), 1, transformer_dim, Default::default());
+        let iou_token = nn::embedding(vs, 1, transformer_dim, Default::default());
         let num_mask_tokens = num_multimask_outputs + 1;
-        let mask_tokens = nn::embedding(
-            &vs.root(),
-            num_mask_tokens,
-            transformer_dim,
-            Default::default(),
-        );
+        let mask_tokens = nn::embedding(vs, num_mask_tokens, transformer_dim, Default::default());
         // Todo it is wrong
         let output_upscaling = nn::seq()
             .add(nn::conv_transpose2d(
-                &vs.root(),
+                vs,
                 transformer_dim,
                 transformer_dim / 4,
                 2,
@@ -53,7 +48,7 @@ impl MaskDecoder {
                 },
             ))
             .add(nn::conv_transpose2d(
-                &vs.root(),
+                vs,
                 transformer_dim / 4,
                 transformer_dim / 8,
                 2,
@@ -68,7 +63,7 @@ impl MaskDecoder {
         let mut output_hypernetworks_mlps = Vec::new();
         for i in 0..num_mask_tokens {
             output_hypernetworks_mlps.push(MLP::new(
-                &vs.root(),
+                vs,
                 transformer_dim,
                 transformer_dim,
                 transformer_dim / 8,
@@ -77,7 +72,7 @@ impl MaskDecoder {
             ));
         }
         let iou_prediction_head = MLP::new(
-            &vs.root(),
+            vs,
             transformer_dim,
             iou_head_hidden_dim,
             num_mask_tokens,

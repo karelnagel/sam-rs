@@ -1,5 +1,6 @@
 use super::mask_decoder::Activation;
 use crate::{modeling::common::MLPBlock, sam_predictor::Size};
+use tch::nn::Path;
 use tch::{
     nn::{self, ConvConfig, LinearConfig, Module},
     Device, Kind, Tensor,
@@ -31,6 +32,7 @@ impl ImageEncoderViT {
     //         window_size (int): Window size for window attention blocks.
     //         global_attn_indexes (list): Indexes for blocks using global attention.
     pub fn new(
+        vs: &Path,
         img_size: Option<i64>,
         patch_size: Option<i64>,
         in_chans: Option<i64>,
@@ -65,8 +67,8 @@ impl ImageEncoderViT {
         let global_attn_indexes = global_attn_indexes.unwrap_or(&[]);
         let norm_layer = norm_layer.unwrap(); //Todo
 
-        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let patch_embed = PatchEmbed::new(
+            vs,
             Some(Size(patch_size, patch_size)),
             Some(Size(patch_size, patch_size)),
             None,
@@ -75,7 +77,7 @@ impl ImageEncoderViT {
         );
         let mut pos_embed = None;
         if use_abs_pos {
-            pos_embed = Some(vs.root().zeros(
+            pos_embed = Some(vs.zeros(
                 "pos_embed",
                 &[1, img_size / patch_size, img_size / patch_size, embed_dim],
             ));
@@ -90,6 +92,7 @@ impl ImageEncoderViT {
                 0
             };
             let block = Block::new(
+                vs,
                 embed_dim,
                 num_heads,
                 Some(mlp_ratio),
@@ -106,30 +109,10 @@ impl ImageEncoderViT {
         }
 
         let neck = nn::seq()
-            .add(nn::conv2d(
-                vs.root(),
-                embed_dim,
-                out_chans,
-                1,
-                Default::default(),
-            ))
-            .add(nn::layer_norm(
-                vs.root(),
-                vec![out_chans],
-                Default::default(),
-            ))
-            .add(nn::conv2d(
-                vs.root(),
-                out_chans,
-                out_chans,
-                3,
-                Default::default(),
-            ))
-            .add(nn::layer_norm(
-                vs.root(),
-                vec![out_chans],
-                Default::default(),
-            ));
+            .add(nn::conv2d(vs, embed_dim, out_chans, 1, Default::default()))
+            .add(nn::layer_norm(vs, vec![out_chans], Default::default()))
+            .add(nn::conv2d(vs, out_chans, out_chans, 3, Default::default()))
+            .add(nn::layer_norm(vs, vec![out_chans], Default::default()));
 
         Self {
             img_size,
@@ -179,6 +162,7 @@ impl Block {
     // input_size (tuple(int, int) or None): Input resolution for calculating the relative
     //     positional parameter size.
     pub fn new(
+        vs: &nn::Path,
         dim: i64,
         num_heads: i64,
         mlp_ratio: Option<f64>,
@@ -198,6 +182,7 @@ impl Block {
         let window_size = window_size.unwrap_or(0);
         let norm_layer = norm_layer.unwrap(); //Todo should create also
         let attn = Attention::new(
+            vs,
             dim,
             Some(num_heads),
             Some(qkv_bias),
@@ -205,7 +190,7 @@ impl Block {
             Some(rel_pos_zero_init),
             input_size,
         );
-        let mlp = MLPBlock::new(dim, dim * mlp_ratio as i64, Some(act_layer));
+        let mlp = MLPBlock::new(vs, dim, dim * mlp_ratio as i64, Some(act_layer));
         Self {
             norm1: norm_layer.clone(),
             attn,
@@ -241,6 +226,7 @@ impl Block {
         x
     }
 }
+
 ///Multi-head Attention block with relative position embeddings.
 pub struct Attention {
     num_heads: i64,
@@ -261,6 +247,7 @@ impl Attention {
     // input_size (tuple(int, int) or None): Input resolution for calculating the relative
     //     positional parameter size.
     pub fn new(
+        vs: &nn::Path,
         dim: i64,
         num_heads: Option<i64>,
         qkv_bias: Option<bool>,
@@ -275,9 +262,8 @@ impl Attention {
 
         let head_dim = dim / num_heads;
         let scale = (head_dim as f64).powf(-0.5);
-        let vs = nn::VarStore::new(Device::cuda_if_available());
         let qkv = nn::linear(
-            &vs.root(),
+            vs,
             dim,
             dim * 3,
             LinearConfig {
@@ -285,7 +271,7 @@ impl Attention {
                 ..Default::default()
             },
         );
-        let proj = nn::linear(&vs.root(), dim, dim, Default::default());
+        let proj = nn::linear(vs, dim, dim, Default::default());
 
         let mut rel_pos_h = None;
         let mut rel_pos_w = None;
@@ -295,8 +281,8 @@ impl Attention {
                 "Input size must be provided if using relative positional encoding."
             );
             let (H, W) = (input_size.unwrap().0, input_size.unwrap().1);
-            rel_pos_h = Some(vs.root().zeros("rel_pos_h", &[W, num_heads]));
-            rel_pos_w = Some(vs.root().zeros("rel_pos_w", &[H, num_heads]));
+            rel_pos_h = Some(vs.zeros("rel_pos_h", &[W, num_heads]));
+            rel_pos_w = Some(vs.zeros("rel_pos_w", &[H, num_heads]));
         }
 
         Self {
@@ -490,6 +476,7 @@ impl PatchEmbed {
     //         in_chans (int): Number of input image channels.
     //         embed_dim (int):  embed_dim (int): Patch embedding dimension.
     pub fn new(
+        vs: &nn::Path,
         kernel_size: Option<Size>,
         stride: Option<Size>,
         padding: Option<Size>,
@@ -501,9 +488,8 @@ impl PatchEmbed {
         let padding = padding.unwrap_or(Size(0, 0));
         let in_chans = in_chans.unwrap_or(3);
         let embed_dim = embed_dim.unwrap_or(768);
-        let vs = nn::VarStore::new(Device::Cpu);
         let proj = nn::conv2d(
-            &vs.root(),
+            vs,
             in_chans,
             embed_dim,
             kernel_size.0,

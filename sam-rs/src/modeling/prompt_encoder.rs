@@ -31,6 +31,7 @@ impl PromptEncoder {
     //   activation (nn.Module): The activation to use when encoding
     //     input masks.
     pub fn new(
+        vs: &nn::Path,
         embed_dim: i64,
         image_embedding_size: Size,
         input_image_size: Size,
@@ -39,15 +40,14 @@ impl PromptEncoder {
     ) -> Self {
         let pe_layer = PositionEmbeddingRandom::new(Some(embed_dim / 2), None);
         let num_point_embeddings: i64 = 4; // pos/neg point + 2 box corners
-        let vs = nn::VarStore::new(tch::Device::Cpu);
         let point_embeddings = (0..num_point_embeddings)
-            .map(|_| nn::embedding(&vs.root(), 1, embed_dim, Default::default()))
+            .map(|_| nn::embedding(vs, 1, embed_dim, Default::default()))
             .collect::<Vec<_>>();
-        let not_a_point_embed = nn::embedding(&vs.root(), 1, embed_dim, Default::default());
+        let not_a_point_embed = nn::embedding(vs, 1, embed_dim, Default::default());
         let mask_input_size = Size(4 * image_embedding_size.0, 4 * image_embedding_size.1);
         let mask_downscaling = nn::seq()
             .add(nn::conv2d(
-                &vs.root(),
+                vs,
                 1,
                 mask_in_chans / 4,
                 2,
@@ -58,13 +58,13 @@ impl PromptEncoder {
                 },
             ))
             .add(nn::layer_norm(
-                &vs.root(),
+                vs,
                 vec![mask_in_chans / 4],
                 Default::default(),
             ))
             // .add(activation.build()) //Todo
             .add(nn::conv2d(
-                &vs.root(),
+                vs,
                 mask_in_chans / 4,
                 mask_in_chans / 8,
                 2,
@@ -75,12 +75,12 @@ impl PromptEncoder {
                 },
             ))
             .add(nn::layer_norm(
-                &vs.root(),
+                vs,
                 vec![mask_in_chans / 8],
                 Default::default(),
             ));
         // .add(activation.build());
-        let no_mask_embed = nn::embedding(&vs.root(), 1, embed_dim, Default::default());
+        let no_mask_embed = nn::embedding(vs, 1, embed_dim, Default::default());
         Self {
             embed_dim,
             input_image_size,

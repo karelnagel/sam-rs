@@ -28,6 +28,7 @@ impl TwoWayTransformer {
     //       mlp_dim (int): the channel dimension internal to the MLP block
     //       activation (nn.Module): the activation to use in the MLP block
     pub fn new(
+        vs: &nn::Path,
         depth: i64,
         embedding_dim: i64,
         num_heads: i64,
@@ -40,6 +41,7 @@ impl TwoWayTransformer {
         let mut layers: Vec<TwoWayAttentionBlock> = vec![];
         for i in 0..depth {
             layers.push(TwoWayAttentionBlock::new(
+                vs,
                 embedding_dim,
                 num_heads,
                 Some(mlp_dim),
@@ -48,10 +50,13 @@ impl TwoWayTransformer {
                 Some(i == 0),
             ));
         }
-        let final_attn_token_to_image =
-            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let norm_final_attn = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        let final_attn_token_to_image = Attention::new(
+            vs,
+            embedding_dim,
+            num_heads,
+            Some(attention_downsample_rate),
+        );
+        let norm_final_attn = nn::layer_norm(vs, vec![embedding_dim], Default::default());
         Self {
             depth,
             embedding_dim,
@@ -126,6 +131,7 @@ impl TwoWayAttentionBlock {
     //   activation (nn.Module): the activation of the mlp block
     //   skip_first_layer_pe (bool): skip the PE on the first layer
     pub fn new(
+        vs: &nn::Path,
         embedding_dim: i64,
         num_heads: i64,
         mlp_dim: Option<i64>,
@@ -138,17 +144,24 @@ impl TwoWayAttentionBlock {
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let skip_first_layer_pe = skip_first_layer_pe.unwrap_or(false);
 
-        let self_attn = Attention::new(embedding_dim, num_heads, None);
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let norm1 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
-        let cross_attn_token_to_image =
-            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
-        let norm2 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
-        let mlp = MLPBlock::new(embedding_dim, mlp_dim, Some(activation));
-        let norm3 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
-        let norm4 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
-        let cross_attn_image_to_token =
-            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
+        let self_attn = Attention::new(vs, embedding_dim, num_heads, None);
+        let norm1 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
+        let cross_attn_token_to_image = Attention::new(
+            vs,
+            embedding_dim,
+            num_heads,
+            Some(attention_downsample_rate),
+        );
+        let norm2 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
+        let mlp = MLPBlock::new(vs, embedding_dim, mlp_dim, Some(activation));
+        let norm3 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
+        let norm4 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
+        let cross_attn_image_to_token = Attention::new(
+            vs,
+            embedding_dim,
+            num_heads,
+            Some(attention_downsample_rate),
+        );
         Self {
             self_attn,
             norm1,
@@ -217,14 +230,18 @@ pub struct Attention {
 }
 
 impl Attention {
-    pub fn new(embedding_dim: i64, num_heads: i64, downsample_rate: Option<i64>) -> Self {
+    pub fn new(
+        vs: &nn::Path,
+        embedding_dim: i64,
+        num_heads: i64,
+        downsample_rate: Option<i64>,
+    ) -> Self {
         let downsample_rate = downsample_rate.unwrap_or(1);
         let internal_dim = embedding_dim / downsample_rate;
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let q_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
-        let k_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
-        let v_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
-        let out_proj = nn::linear(&vs.root(), internal_dim, embedding_dim, Default::default());
+        let q_proj = nn::linear(vs, embedding_dim, internal_dim, Default::default());
+        let k_proj = nn::linear(vs, embedding_dim, internal_dim, Default::default());
+        let v_proj = nn::linear(vs, embedding_dim, internal_dim, Default::default());
+        let out_proj = nn::linear(vs, internal_dim, embedding_dim, Default::default());
         Self {
             embedding_dim,
             internal_dim,

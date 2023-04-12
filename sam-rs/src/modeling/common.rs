@@ -11,11 +11,10 @@ pub struct MLPBlock {
     act: Activation,
 }
 impl MLPBlock {
-    pub fn new(embedding_dim: i64, mlp_dim: i64, act: Option<Activation>) -> Self {
+    pub fn new(vs: &nn::Path, embedding_dim: i64, mlp_dim: i64, act: Option<Activation>) -> Self {
         let act = act.unwrap_or(Activation::GELU);
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let lin1 = nn::linear(&vs.root(), embedding_dim, mlp_dim, Default::default());
-        let lin2 = nn::linear(&vs.root(), mlp_dim, embedding_dim, Default::default());
+        let lin1 = nn::linear(vs, embedding_dim, mlp_dim, Default::default());
+        let lin2 = nn::linear(vs, mlp_dim, embedding_dim, Default::default());
         Self { lin1, lin2, act }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
@@ -36,11 +35,10 @@ pub struct LayerNorm2d {
     eps: f64,
 }
 impl LayerNorm2d {
-    pub fn new(num_channels: i64, eps: Option<f64>) -> Self {
+    pub fn new(vs: &nn::Path, num_channels: i64, eps: Option<f64>) -> Self {
         let eps = eps.unwrap_or(1e-6);
-        let vs = nn::VarStore::new(tch::Device::Cpu);
-        let weight = vs.root().ones("weight", &[num_channels]);
-        let bias = vs.root().zeros("bias", &[num_channels]);
+        let weight = vs.ones("weight", &[num_channels]);
+        let bias = vs.zeros("bias", &[num_channels]);
         Self { weight, bias, eps }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
