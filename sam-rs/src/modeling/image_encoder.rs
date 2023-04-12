@@ -317,14 +317,14 @@ impl Attention {
             .reshape(&[B, H * W, 3, self.num_heads, -1])
             .permute(&[2, 0, 3, 1, 4]);
         let qkv = qkv.reshape(&[3, B * self.num_heads, H * W, -1]).unbind(0);
-        let (q, k, v) = (qkv[0], qkv[1], qkv[2]);
+        let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
         let mut attn = (q * self.scale) * k.transpose(-2, -1);
         if self.use_rel_pos {
             attn = add_decomposed_rel_pos(
-                attn,
-                q,
-                self.rel_pos_h.unwrap(),
-                self.rel_pos_w.unwrap(),
+                &attn,
+                &q,
+                &self.rel_pos_h.as_ref().unwrap(),
+                &self.rel_pos_w.as_ref().unwrap(),
                 Size(H, W),
                 Size(H, W),
             );
@@ -422,14 +422,14 @@ pub fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
         let rel_pos_resized = rel_pos
             .reshape(&[1, rel_pos.size()[0], -1])
             .permute(&[0, 2, 1])
-            .interpolate(
-                &[max_rel_dist],
-                InterpolateConfig {
-                    mode: "linear",
-                    size: max_rel_dist,
-                    ..Default::default()
-                },
-            )
+            // .interpolate(
+            //     &[max_rel_dist],
+            //     InterpolateConfig {
+            //         mode: "linear",
+            //         size: max_rel_dist,
+            //         ..Default::default()
+            //     },
+            // ) //Todo
             .reshape(&[-1, max_rel_dist])
             .permute(&[1, 0]);
         rel_pos_resized
@@ -458,17 +458,17 @@ pub fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 // Returns:
 //     attn (Tensor): attention map with added relative positional embeddings.
 pub fn add_decomposed_rel_pos(
-    attn: Tensor,
-    q: Tensor,
-    rel_pos_h: Tensor,
-    rel_pos_w: Tensor,
+    attn: &Tensor,
+    q: &Tensor,
+    rel_pos_h: &Tensor,
+    rel_pos_w: &Tensor,
     q_size: Size,
     k_size: Size,
 ) -> Tensor {
     let Size(q_h, q_w) = q_size;
     let Size(k_h, k_w) = k_size;
-    let Rh = get_rel_pos(q_h, k_h, rel_pos_h);
-    let Rw = get_rel_pos(q_w, k_w, rel_pos_w);
+    let Rh = get_rel_pos(q_h, k_h, rel_pos_h.copy());
+    let Rw = get_rel_pos(q_w, k_w, rel_pos_w.copy());
 
     let (B, _, dim) = q.size3().unwrap();
     let r_q = q.reshape(&[B, q_h, q_w, dim]);
