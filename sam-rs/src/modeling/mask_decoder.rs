@@ -6,6 +6,7 @@ use tch::{
 use super::transformer::TwoWayTransformer;
 pub enum Activation {
     GELU,
+    ReLU,
 }
 pub struct MaskDecoder {
     transformer_dim: i64,

@@ -1,8 +1,6 @@
-use tch::{nn, Tensor};
-
-use crate::sam_predictor::Size;
-
 use super::mask_decoder::Activation;
+use crate::sam_predictor::Size;
+use tch::Tensor;
 
 pub enum LayerNorm {
     IDK,
