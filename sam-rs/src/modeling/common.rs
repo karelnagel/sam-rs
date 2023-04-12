@@ -1,4 +1,7 @@
-use tch::{nn, Kind, Tensor};
+use tch::{
+    nn::{self, Module},
+    Kind, Tensor,
+};
 
 use crate::modeling::mask_decoder::Activation;
 
@@ -16,12 +19,12 @@ impl MLPBlock {
         Self { lin1, lin2, act }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        let mut x = self.lin1.ws.matmul(x);
+        let mut x = self.lin1.forward(x);
         x = match self.act {
             Activation::GELU => x.gelu("none"),
             Activation::ReLU => x.relu(),
         };
-        self.lin2.ws.matmul(&x)
+        self.lin2.forward(&x)
     }
 }
 
