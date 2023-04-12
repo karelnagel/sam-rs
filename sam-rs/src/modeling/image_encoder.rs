@@ -180,7 +180,8 @@ impl Block {
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
-        let norm_layer = norm_layer.unwrap(); //Todo should create also
+        let norm1 = nn::layer_norm(vs, vec![dim], Default::default());
+        let norm2 = nn::layer_norm(vs, vec![dim], Default::default());
         let attn = Attention::new(
             vs,
             dim,
@@ -192,9 +193,9 @@ impl Block {
         );
         let mlp = MLPBlock::new(vs, dim, dim * mlp_ratio as i64, Some(act_layer));
         Self {
-            norm1: norm_layer.clone(),
+            norm1,
             attn,
-            norm2: norm_layer.clone(),
+            norm2,
             mlp,
             window_size,
         }
@@ -222,7 +223,7 @@ impl Block {
         };
 
         x = shortcut + x;
-        x = x + self.mlp.forward(&self.norm2.forward(&x));
+        x = &x + self.mlp.forward(&self.norm2.forward(&x));
         x
     }
 }
