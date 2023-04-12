@@ -1,6 +1,6 @@
 use super::mask_decoder::Activation;
 use crate::sam_predictor::Size;
-use tch::Tensor;
+use tch::{nn, Tensor};
 
 pub enum LayerNorm {
     IDK,
@@ -8,6 +8,10 @@ pub enum LayerNorm {
 /// This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 pub struct ImageEncoderViT {
     pub img_size: i64,
+    patch_embed: PatchEmbed,
+    pos_embed: Option<Tensor>,
+    blocks: Vec<Block>,
+    neck: nn::Sequential,
 }
 impl ImageEncoderViT {
     // Args:
@@ -43,7 +47,7 @@ impl ImageEncoderViT {
         rel_pos_zero_init: Option<bool>,
         window_size: Option<i64>,
         global_attn_indexes: Option<&[i64]>,
-    ) {
+    ) -> Self {
         let img_size = img_size.unwrap_or(1024);
         let patch_size = patch_size.unwrap_or(16);
         let in_chans = in_chans.unwrap_or(3);
@@ -61,70 +65,94 @@ impl ImageEncoderViT {
         let window_size = window_size.unwrap_or(0);
         let global_attn_indexes = global_attn_indexes.unwrap_or(&[]);
 
-        unimplemented!()
-        // super().__init__()
-        // self.img_size = img_size
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let patch_embed = PatchEmbed::new(
+            Some(Size(patch_size, patch_size)),
+            Some(Size(patch_size, patch_size)),
+            None,
+            Some(in_chans),
+            Some(embed_dim),
+        );
+        let mut pos_embed = None;
+        if use_abs_pos {
+            pos_embed = Some(vs.root().zeros(
+                "pos_embed",
+                &[1, img_size / patch_size, img_size / patch_size, embed_dim],
+            ));
+        }
 
-        // self.patch_embed = PatchEmbed(
-        //     kernel_size=(patch_size, patch_size),
-        //     stride=(patch_size, patch_size),
-        //     in_chans=in_chans,
-        //     embed_dim=embed_dim,
-        // )
+        let mut blocks = vec![];
 
-        // self.pos_embed: Optional[nn.Parameter] = None
-        // if use_abs_pos:
-        //     # Initialize absolute positional embedding with pretrain image size.
-        //     self.pos_embed = nn.Parameter(
-        //         torch.zeros(1, img_size // patch_size, img_size // patch_size, embed_dim)
-        //     )
+        for i in 0..depth {
+            let window_size = if !global_attn_indexes.contains(&i) {
+                window_size
+            } else {
+                0
+            };
+            let block = Block::new(
+                embed_dim,
+                num_heads,
+                Some(mlp_ratio),
+                Some(qkv_bias),
+                Some(&norm_layer),
+                Some(act_layer),
+                Some(use_rel_pos),
+                Some(rel_pos_zero_init),
+                Some(window_size),
+                // window_size=window_size if i not in global_attn_indexes else 0,
+                Some(Size(img_size / patch_size, img_size / patch_size)),
+            );
+            blocks.push(block);
+        }
 
-        // self.blocks = nn.ModuleList()
-        // for i in range(depth):
-        //     block = Block(
-        //         dim=embed_dim,
-        //         num_heads=num_heads,
-        //         mlp_ratio=mlp_ratio,
-        //         qkv_bias=qkv_bias,
-        //         norm_layer=norm_layer,
-        //         act_layer=act_layer,
-        //         use_rel_pos=use_rel_pos,
-        //         rel_pos_zero_init=rel_pos_zero_init,
-        //         window_size=window_size if i not in global_attn_indexes else 0,
-        //         input_size=(img_size // patch_size, img_size // patch_size),
-        //     )
-        //     self.blocks.append(block)
+        let neck = nn::seq()
+            .add(nn::conv2d(
+                vs.root(),
+                embed_dim,
+                out_chans,
+                1,
+                Default::default(),
+            ))
+            .add(nn::layer_norm(
+                vs.root(),
+                vec![out_chans],
+                Default::default(),
+            ))
+            .add(nn::conv2d(
+                vs.root(),
+                out_chans,
+                out_chans,
+                3,
+                Default::default(),
+            ))
+            .add(nn::layer_norm(
+                vs.root(),
+                vec![out_chans],
+                Default::default(),
+            ));
 
-        // self.neck = nn.Sequential(
-        //     nn.Conv2d(
-        //         embed_dim,
-        //         out_chans,
-        //         kernel_size=1,
-        //         bias=False,
-        //     ),
-        //     LayerNorm2d(out_chans),
-        //     nn.Conv2d(
-        //         out_chans,
-        //         out_chans,
-        //         kernel_size=3,
-        //         padding=1,
-        //         bias=False,
-        //     ),
-        //     LayerNorm2d(out_chans),
-        // )
+        Self {
+            img_size,
+            patch_embed,
+            pos_embed,
+            blocks,
+            neck,
+        }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        unimplemented!()
-        // x = self.patch_embed(x)
-        // if self.pos_embed is not None:
-        //     x = x + self.pos_embed
+        let mut x = self.patch_embed.forward(x);
+        x = if let Some(pos_embed) = &self.pos_embed {
+            x + pos_embed
+        } else {
+            x
+        };
 
-        // for blk in self.blocks:
-        //     x = blk(x)
+        for blk in &self.blocks {
+            x = blk.forward(&x);
+        }
 
-        // x = self.neck(x.permute(0, 3, 1, 2))
-
-        // return x
+        let list = self.neck.forward_all(&x.permute(&[0, 3, 1, 2]), None);
+        list[0].copy()
     }
 }
 
@@ -149,16 +177,16 @@ impl Block {
         num_heads: i64,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
-        norm_layer: Option<LayerNorm>,
+        norm_layer: Option<&LayerNorm>,
         act_layer: Option<Activation>,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
         window_size: Option<i64>,
         input_size: Option<Size>,
-    ) {
+    ) -> Self {
         let mlp_ration = mlp_ratio.unwrap_or(4.0);
         let qkv_bias = qkv_bias.unwrap_or(true);
-        let norm_layer = norm_layer.unwrap_or(LayerNorm::IDK);
+        let norm_layer = norm_layer.unwrap_or(&LayerNorm::IDK);
         let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
@@ -181,7 +209,7 @@ impl Block {
         // self.window_size = window_size
     }
 
-    pub fn forward(&self, x: Tensor) -> Tensor {
+    pub fn forward(&self, x: &Tensor) -> Tensor {
         unimplemented!()
         // shortcut = x
         // x = self.norm1(x)
@@ -393,7 +421,7 @@ impl PatchEmbed {
         padding: Option<Size>,
         in_chans: Option<i64>,
         embed_dim: Option<i64>,
-    ) {
+    ) -> Self {
         let kernel_size = kernel_size.unwrap_or(Size(16, 16));
         let stride = stride.unwrap_or(Size(16, 16));
         let padding = padding.unwrap_or(Size(0, 0));
@@ -406,7 +434,7 @@ impl PatchEmbed {
         //     in_chans, embed_dim, kernel_size=kernel_size, stride=stride, padding=padding
         // )
     }
-    pub fn forward(&self, x: Tensor) -> Tensor {
+    pub fn forward(&self, x: &Tensor) -> Tensor {
         unimplemented!()
         // x = self.proj(x)
         // # B C H W -> B H W C
