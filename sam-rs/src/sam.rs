@@ -2,13 +2,13 @@ use tch::Tensor;
 
 use crate::{
     modeling::{
-        image_encoder::ImageEncoder, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
+        image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
     },
     sam_predictor::{ImageFormat, Size},
 };
 
 pub struct Sam {
-    pub image_encoder: ImageEncoder,
+    pub image_encoder: ImageEncoderViT,
     pub prompt_encoder: PromptEncoder,
     pub mask_decoder: MaskDecoder,
     pub pixel_mean: Tensor,
@@ -41,7 +41,7 @@ impl Sam {
     ///   - pixel_mean (list(float)): Mean values for normalizing pixels in the input image.
     ///   - pixel_std (list(float)): Std values for normalizing pixels in the input image.
     pub fn new(
-        image_encoder: ImageEncoder,
+        image_encoder: ImageEncoderViT,
         prompt_encoder: PromptEncoder,
         mask_decoder: MaskDecoder,
         pixel_mean: Option<&[f32]>,
@@ -107,7 +107,7 @@ impl Sam {
                 .collect::<Vec<_>>(),
             0,
         );
-        let image_embeddings = self.image_encoder.encode(&input_images);
+        let image_embeddings = self.image_encoder.forward(&input_images);
 
         let mut outputs: Vec<Output> = vec![];
         for i in 0..batched_input.len() {

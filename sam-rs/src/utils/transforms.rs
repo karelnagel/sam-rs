@@ -3,14 +3,14 @@ use ndarray::{Array1, Array2};
 use crate::sam_predictor::{Image, Size};
 
 pub struct ResizeLongestSide {
-    target_length: i32,
+    target_length: i64,
 }
 
 impl ResizeLongestSide {
     /// Resizes images to the longest side 'target_length', as well as provides
     /// methods for resizing coordinates and boxes. Provides methods for
     /// transforming both numpy array and batched torch tensors.
-    pub fn new(target_length: i32) -> Self {
+    pub fn new(target_length: i64) -> Self {
         Self { target_length }
     }
     pub fn apply_image(&self, image: &Image) -> Image {
