@@ -110,38 +110,48 @@ impl PromptEncoder {
     }
 
     /// Embeds point prompts.
-    fn _embed_points(&self, points: Tensor, labels: Tensor, pad: bool) -> Tensor {
-        unimplemented!()
-        // points = points + 0.5  # Shift to center of pixel
-        // if pad:
-        //     padding_point = torch.zeros((points.shape[0], 1, 2), device=points.device)
-        //     padding_label = -torch.ones((labels.shape[0], 1), device=labels.device)
-        //     points = torch.cat([points, padding_point], dim=1)
-        //     labels = torch.cat([labels, padding_label], dim=1)
-        // point_embedding = self.pe_layer.forward_with_coords(points, self.input_image_size)
-        // point_embedding[labels == -1] = 0.0
-        // point_embedding[labels == -1] += self.not_a_point_embed.weight
-        // point_embedding[labels == 0] += self.point_embeddings[0].weight
-        // point_embedding[labels == 1] += self.point_embeddings[1].weight
-        // return point_embedding
+    fn _embed_points(&self, mut points: Tensor, mut labels: Tensor, pad: bool) -> Tensor {
+        points = points + 0.5; // Shift to center of pixel
+        if pad {
+            let padding_point =
+                Tensor::zeros(&[points.size()[0], 1, 2], (tch::Kind::Float, Device::Cpu));
+            let padding_label =
+                -Tensor::ones(&[labels.size()[0], 1], (tch::Kind::Float, Device::Cpu));
+            points = Tensor::cat(&[points, padding_point], 1);
+            labels = Tensor::cat(&[labels, padding_label], 1);
+        }
+        let mut point_embedding = self
+            .pe_layer
+            .forward_with_coords(points, self.input_image_size);
+
+        point_embedding = point_embedding.masked_fill_(&labels.eq(-1), 0.0);
+        point_embedding =
+            point_embedding.masked_scatter_(&labels.eq(-1), &self.not_a_point_embed.ws);
+        point_embedding =
+            point_embedding.masked_scatter_(&labels.eq(0), &self.point_embeddings[0].ws);
+        point_embedding =
+            point_embedding.masked_scatter_(&labels.eq(1), &self.point_embeddings[1].ws);
+        point_embedding
     }
 
     ///Embeds box prompts.
-    fn _embed_boxes(&self, boxes: Tensor) -> Tensor {
-        unimplemented!()
-        // boxes = boxes + 0.5  # Shift to center of pixel
-        // coords = boxes.reshape(-1, 2, 2)
-        // corner_embedding = self.pe_layer.forward_with_coords(coords, self.input_image_size)
-        // corner_embedding[:, 0, :] += self.point_embeddings[2].weight
-        // corner_embedding[:, 1, :] += self.point_embeddings[3].weight
-        // return corner_embedding
+    fn _embed_boxes(&self, mut boxes: Tensor) -> Tensor {
+        boxes = boxes + 0.5; // Shift to center of pixel
+        let coords = boxes.reshape(&[-1, 2, 2]);
+        let mut corner_embedding = self
+            .pe_layer
+            .forward_with_coords(coords, self.input_image_size);
+        corner_embedding = corner_embedding
+            .masked_scatter_(&boxes.eq(0), &self.point_embeddings[2].ws.unsqueeze(0));
+        corner_embedding = corner_embedding
+            .masked_scatter_(&boxes.eq(1), &self.point_embeddings[3].ws.unsqueeze(0));
+        corner_embedding
     }
 
     ///Embeds mask inputs.
     fn _embed_masks(&self, masks: Tensor) -> Tensor {
-        unimplemented!()
-        // mask_embedding = self.mask_downscaling(masks)
-        // return mask_embedding
+        let masks = self.mask_downscaling.forward_all(&masks, None);
+        masks.get(0).unwrap().copy()
     }
 
     /// Gets the batch size of the output given the batch size of the input prompts.
@@ -151,21 +161,19 @@ impl PromptEncoder {
         boxes: Option<Tensor>,
         masks: Option<Tensor>,
     ) -> i64 {
-        unimplemented!()
-        // if points is not None:
-        //     return points[0].shape[0]
-        // elif boxes is not None:
-        //     return boxes.shape[0]
-        // elif masks is not None:
-        //     return masks.shape[0]
-        // else:
-        //     return 1
+        if let Some((point, _)) = points {
+            return point.size()[0];
+        } else if let Some(boxes) = boxes {
+            return boxes.size()[0];
+        } else if let Some(masks) = masks {
+            return masks.size()[0];
+        } else {
+            return 1;
+        }
     }
 
     fn _get_device(&self) -> Device {
-        unimplemented!()
-
-        //return self.point_embeddings[0].weight.device
+        return self.point_embeddings[0].ws.device();
     }
 
     // Embeds different types of prompts, returning both sparse and dense
@@ -189,25 +197,33 @@ impl PromptEncoder {
         boxes: Option<Tensor>,
         masks: Option<Tensor>,
     ) -> (Tensor, Tensor) {
-        unimplemented!()
-        // bs = self._get_batch_size(points, boxes, masks)
-        // sparse_embeddings = torch.empty((bs, 0, self.embed_dim), device=self._get_device())
-        // if points is not None:
-        //     coords, labels = points
-        //     point_embeddings = self._embed_points(coords, labels, pad=(boxes is None))
-        //     sparse_embeddings = torch.cat([sparse_embeddings, point_embeddings], dim=1)
-        // if boxes is not None:
-        //     box_embeddings = self._embed_boxes(boxes)
-        //     sparse_embeddings = torch.cat([sparse_embeddings, box_embeddings], dim=1)
+        let bs = self._get_batch_size(points, boxes, masks);
+        let mut sparse_embeddings = Tensor::empty(
+            &[bs, 0, self.embed_dim],
+            (tch::Kind::Float, self._get_device()),
+        );
 
-        // if masks is not None:
-        //     dense_embeddings = self._embed_masks(masks)
-        // else:
-        //     dense_embeddings = self.no_mask_embed.weight.reshape(1, -1, 1, 1).expand(
-        //         bs, -1, self.image_embedding_size[0], self.image_embedding_size[1]
-        //     )
+        if let Some((coords, labels)) = points {
+            let point_embeddings = self._embed_points(coords, labels, pad: boxes.is_none());
+            sparse_embeddings = Tensor::cat(&[sparse_embeddings, point_embeddings], 1);
+        }
+        if let Some(boxes) = boxes {
+            let box_embeddings = self._embed_boxes(boxes);
+            sparse_embeddings = Tensor::cat(&[sparse_embeddings, box_embeddings], 1);
+        }
 
-        // return sparse_embeddings, dense_embeddings
+        if let Some(masks) = masks{
+            let dense_embeddings = self._embed_masks(masks);
+            (sparse_embeddings, dense_embeddings)
+        } else {
+            let dense_embeddings = self.no_mask_embed.ws.reshape(&[1, -1, 1, 1]).expand(&[
+                bs,
+                self.no_mask_embed.ws.size()[0],
+                self.no_mask_embed.ws.size()[1],
+                self.no_mask_embed.ws.size()[2],
+            ],true);
+            (sparse_embeddings, dense_embeddings)
+        }
     }
 }
 
