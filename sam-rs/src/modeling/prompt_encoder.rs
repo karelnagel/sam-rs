@@ -5,7 +5,6 @@ use tch::{nn, Device, Tensor};
 use crate::sam_predictor::Size;
 
 use super::mask_decoder::Activation;
-
 pub struct PromptEncoder {
     embed_dim: i64,
     input_image_size: Size,

@@ -11,15 +11,17 @@ impl MLPBlock {
     pub fn new(embedding_dim: i64, mlp_dim: i64, act: Option<Activation>) -> Self {
         let act = act.unwrap_or(Activation::GELU);
         let vs = nn::VarStore::new(tch::Device::Cpu);
-        Self {
-            lin1: nn::linear(&vs.root(), embedding_dim, mlp_dim, Default::default()),
-            lin2: nn::linear(&vs.root(), mlp_dim, embedding_dim, Default::default()),
-            act, // Todo check if this is correct was act() in python
-        }
+        let lin1 = nn::linear(&vs.root(), embedding_dim, mlp_dim, Default::default());
+        let lin2 = nn::linear(&vs.root(), mlp_dim, embedding_dim, Default::default());
+        Self { lin1, lin2, act }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        unimplemented!()
-        // return self.lin2(self.act(self.lin1(x)))
+        let mut x = self.lin1.ws.matmul(x);
+        x = match self.act {
+            Activation::GELU => x.gelu("none"),
+            Activation::ReLU => x.relu(),
+        };
+        self.lin2.ws.matmul(&x)
     }
 }
 
