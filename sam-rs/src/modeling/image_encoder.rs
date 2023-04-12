@@ -42,7 +42,6 @@ impl ImageEncoderViT {
         mlp_ratio: Option<f64>,
         out_chans: Option<i64>,
         qkv_bias: Option<bool>,
-        norm_layer: Option<nn::LayerNorm>,
         act_layer: Option<Activation>,
         use_abs_pos: Option<bool>,
         use_rel_pos: Option<bool>,
@@ -65,7 +64,6 @@ impl ImageEncoderViT {
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
         let global_attn_indexes = global_attn_indexes.unwrap_or(&[]);
-        let norm_layer = norm_layer.unwrap(); //Todo
 
         let patch_embed = PatchEmbed::new(
             vs,
@@ -97,7 +95,6 @@ impl ImageEncoderViT {
                 num_heads,
                 Some(mlp_ratio),
                 Some(qkv_bias),
-                Some(&norm_layer),
                 Some(act_layer),
                 Some(use_rel_pos),
                 Some(rel_pos_zero_init),
@@ -167,7 +164,6 @@ impl Block {
         num_heads: i64,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
-        norm_layer: Option<&nn::LayerNorm>,
         act_layer: Option<Activation>,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
