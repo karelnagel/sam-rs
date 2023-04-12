@@ -5,6 +5,8 @@ use tch::{
 
 use crate::modeling::mask_decoder::Activation;
 
+use super::common::MLPBlock;
+
 pub struct TwoWayTransformer {
     depth: i64,
     embedding_dim: i64,
@@ -100,7 +102,17 @@ impl TwoWayTransformer {
     }
 }
 
-pub struct TwoWayAttentionBlock {}
+pub struct TwoWayAttentionBlock {
+    self_attn: Attention,
+    norm1: nn::LayerNorm,
+    norm2: nn::LayerNorm,
+    norm3: nn::LayerNorm,
+    norm4: nn::LayerNorm,
+    cross_attn_token_to_image: Attention,
+    cross_attn_image_to_token: Attention,
+    mlp: MLPBlock,
+    skip_first_layer_pe: bool,
+}
 impl TwoWayAttentionBlock {
     // A transformer block with four layers: (1) self-attention of sparse
     // inputs, (2) cross attention of sparse inputs to dense inputs, (3) mlp
@@ -125,25 +137,29 @@ impl TwoWayAttentionBlock {
         let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let skip_first_layer_pe = skip_first_layer_pe.unwrap_or(false);
-        unimplemented!()
-        // super().__init__()
-        // self.self_attn = Attention(embedding_dim, num_heads)
-        // self.norm1 = nn.LayerNorm(embedding_dim)
 
-        // self.cross_attn_token_to_image = Attention(
-        //     embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        // )
-        // self.norm2 = nn.LayerNorm(embedding_dim)
-
-        // self.mlp = MLPBlock(embedding_dim, mlp_dim, activation)
-        // self.norm3 = nn.LayerNorm(embedding_dim)
-
-        // self.norm4 = nn.LayerNorm(embedding_dim)
-        // self.cross_attn_image_to_token = Attention(
-        //     embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        // )
-
-        // self.skip_first_layer_pe = skip_first_layer_pe
+        let self_attn = Attention::new(embedding_dim, num_heads, None);
+        let vs = nn::VarStore::new(tch::Device::Cpu);
+        let norm1 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        let cross_attn_token_to_image =
+            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
+        let norm2 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        let mlp = MLPBlock::new(embedding_dim, mlp_dim, Some(activation));
+        let norm3 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        let norm4 = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        let cross_attn_image_to_token =
+            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
+        Self {
+            self_attn,
+            norm1,
+            norm2,
+            norm3,
+            norm4,
+            mlp,
+            cross_attn_token_to_image,
+            cross_attn_image_to_token,
+            skip_first_layer_pe,
+        }
     }
 
     pub fn forward(
@@ -153,96 +169,105 @@ impl TwoWayAttentionBlock {
         query_pe: &Tensor,
         key_pe: &Tensor,
     ) -> (Tensor, Tensor) {
-        unimplemented!()
-        // # Self attention block
-        // if self.skip_first_layer_pe:
-        //     queries = self.self_attn(q=queries, k=queries, v=queries)
-        // else:
-        //     q = queries + query_pe
-        //     attn_out = self.self_attn(q=q, k=q, v=queries)
-        //     queries = queries + attn_out
-        // queries = self.norm1(queries)
+        let mut queries = queries.copy();
+        let keys = keys.copy();
+        // Self attention block
+        if self.skip_first_layer_pe {
+            queries = self.self_attn.forward(&queries, &queries, &queries);
+        } else {
+            let q = &queries + query_pe;
+            let attn_out = self.self_attn.forward(&q, &q, &queries);
+            queries = &queries + attn_out;
+        }
+        queries = self.norm1.forward(&queries);
 
-        // # Cross attention block, tokens attending to image embedding
-        // q = queries + query_pe
-        // k = keys + key_pe
-        // attn_out = self.cross_attn_token_to_image(q=q, k=k, v=keys)
-        // queries = queries + attn_out
-        // queries = self.norm2(queries)
+        // Cross attention block, tokens attending to image embedding
+        let q = &queries + query_pe;
+        let k = &keys + key_pe;
+        let attn_out = self.cross_attn_token_to_image.forward(&q, &k, &keys);
+        queries = &queries + attn_out;
+        queries = self.norm2.forward(&queries);
 
-        // # MLP block
-        // mlp_out = self.mlp(queries)
-        // queries = queries + mlp_out
-        // queries = self.norm3(queries)
+        // MLP block
+        let mlp_out = self.mlp.forward(&queries);
+        queries = &queries + mlp_out;
+        queries = self.norm3.forward(&queries);
 
-        // # Cross attention block, image embedding attending to tokens
-        // q = queries + query_pe
-        // k = keys + key_pe
-        // attn_out = self.cross_attn_image_to_token(q=k, k=q, v=queries)
-        // keys = keys + attn_out
-        // keys = self.norm4(keys)
+        // Cross attention block, image attending to tokens
+        let q = &queries + query_pe;
+        let k = &keys + key_pe;
+        let attn_out = self.cross_attn_image_to_token.forward(&q, &k, &queries);
+        queries = &queries + attn_out;
+        queries = self.norm4.forward(&queries);
 
-        // return queries, keys
+        (queries, keys)
     }
 }
 
 // An attention layer that allows for downscaling the size of the embedding
 //     after projection to queries, keys, and values.
-pub struct Attention {}
+pub struct Attention {
+    embedding_dim: i64,
+    internal_dim: i64,
+    num_heads: i64,
+    q_proj: nn::Linear,
+    k_proj: nn::Linear,
+    v_proj: nn::Linear,
+    out_proj: nn::Linear,
+}
 
 impl Attention {
     pub fn new(embedding_dim: i64, num_heads: i64, downsample_rate: Option<i64>) -> Self {
         let downsample_rate = downsample_rate.unwrap_or(1);
-        unimplemented!()
-        // super().__init__()
-        // self.embedding_dim = embedding_dim
-        // self.internal_dim = embedding_dim // downsample_rate
-        // self.num_heads = num_heads
-        // assert self.internal_dim % num_heads == 0, "num_heads must divide embedding_dim."
-
-        // self.q_proj = nn.Linear(embedding_dim, self.internal_dim)
-        // self.k_proj = nn.Linear(embedding_dim, self.internal_dim)
-        // self.v_proj = nn.Linear(embedding_dim, self.internal_dim)
-        // self.out_proj = nn.Linear(self.internal_dim, embedding_dim)
+        let internal_dim = embedding_dim / downsample_rate;
+        let vs = nn::VarStore::new(tch::Device::Cpu);
+        let q_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
+        let k_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
+        let v_proj = nn::linear(&vs.root(), embedding_dim, internal_dim, Default::default());
+        let out_proj = nn::linear(&vs.root(), internal_dim, embedding_dim, Default::default());
+        Self {
+            embedding_dim,
+            internal_dim,
+            num_heads,
+            q_proj,
+            k_proj,
+            v_proj,
+            out_proj,
+        }
     }
 
-    fn _separate_heads(&self, x: Tensor, num_heads: i64) -> Tensor {
-        unimplemented!()
-        // b, n, c = x.shape
-        // x = x.reshape(b, n, num_heads, c // num_heads)
-        // return x.transpose(1, 2)  # B x N_heads x N_tokens x C_per_head
+    fn _separate_heads(&self, x: &Tensor, num_heads: i64) -> Tensor {
+        let (b, n, c) = x.size3().unwrap();
+        let x = x.reshape(&[b, n, num_heads, c / num_heads]);
+        x.transpose(1, 2)
     }
 
     fn _recombine_heads(&self, x: Tensor) -> Tensor {
-        unimplemented!()
-        // b, n_heads, n_tokens, c_per_head = x.shape
-        // x = x.transpose(1, 2)
-        // return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
+        let (b, n_heads, n_tokens, c_per_head) = x.size4().unwrap();
+        x.transpose(1, 2)
+            .reshape(&[b, n_tokens, n_heads * c_per_head])
     }
 
     fn forward(&self, q: &Tensor, k: &Tensor, v: &Tensor) -> Tensor {
-        unimplemented!()
         // # Input projections
-        // q = self.q_proj(q)
-        // k = self.k_proj(k)
-        // v = self.v_proj(v)
+        let q = self.q_proj.forward(q);
+        let k = self.k_proj.forward(k);
+        let v = self.v_proj.forward(v);
 
         // # Separate into heads
-        // q = self._separate_heads(q, self.num_heads)
-        // k = self._separate_heads(k, self.num_heads)
-        // v = self._separate_heads(v, self.num_heads)
+        let q = self._separate_heads(&q, self.num_heads);
+        let k = self._separate_heads(&k, self.num_heads);
+        let v = self._separate_heads(&v, self.num_heads);
 
         // # Attention
-        // _, _, _, c_per_head = q.shape
-        // attn = q @ k.permute(0, 1, 3, 2)  # B x N_heads x N_tokens x N_tokens
-        // attn = attn / math.sqrt(c_per_head)
-        // attn = torch.softmax(attn, dim=-1)
+        let (_, _, _, c_per_head) = q.size4().unwrap();
+        let mut attn = q.matmul(&k.transpose(2, 3)); // B x N_heads x N_tokens x N_tokens
+        attn = attn / (c_per_head as f64).sqrt();
+        attn = attn.softmax(-1, tch::Kind::Float);
 
         // # Get output
-        // out = attn @ v
-        // out = self._recombine_heads(out)
-        // out = self.out_proj(out)
-
-        // return out
+        let out = attn.matmul(&v);
+        let out = self._recombine_heads(out);
+        self.out_proj.forward(&out)
     }
 }

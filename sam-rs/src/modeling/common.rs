@@ -17,7 +17,7 @@ impl MLPBlock {
             act, // Todo check if this is correct was act() in python
         }
     }
-    pub fn forward(&self, x: Tensor) -> Tensor {
+    pub fn forward(&self, x: &Tensor) -> Tensor {
         unimplemented!()
         // return self.lin2(self.act(self.lin1(x)))
     }
