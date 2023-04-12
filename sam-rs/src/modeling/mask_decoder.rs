@@ -4,6 +4,8 @@ use tch::{
 };
 
 use super::transformer::TwoWayTransformer;
+
+#[derive(Debug, Clone, Copy)]
 pub enum Activation {
     GELU,
     ReLU,

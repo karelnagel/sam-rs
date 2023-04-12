@@ -1,10 +1,20 @@
-use tch::Tensor;
+use tch::{
+    nn::{self, Module},
+    Tensor,
+};
 
 use crate::modeling::mask_decoder::Activation;
 
-pub struct TwoWayTransformer {}
+pub struct TwoWayTransformer {
+    depth: i64,
+    embedding_dim: i64,
+    num_heads: i64,
+    mlp_dim: i64,
+    layers: Vec<TwoWayAttentionBlock>,
+    final_attn_token_to_image: Attention,
+    norm_final_attn: nn::LayerNorm,
+}
 impl TwoWayTransformer {
-
     // A transformer decoder that attends to an input image using
     //     queries whose positional embedding is supplied.
 
@@ -25,30 +35,30 @@ impl TwoWayTransformer {
     ) -> Self {
         let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
-        unimplemented!()
-        // super().__init__()
-        // self.depth = depth
-        // self.embedding_dim = embedding_dim
-        // self.num_heads = num_heads
-        // self.mlp_dim = mlp_dim
-        // self.layers = nn.ModuleList()
-
-        // for i in range(depth):
-        //     self.layers.append(
-        //         TwoWayAttentionBlock(
-        //             embedding_dim=embedding_dim,
-        //             num_heads=num_heads,
-        //             mlp_dim=mlp_dim,
-        //             activation=activation,
-        //             attention_downsample_rate=attention_downsample_rate,
-        //             skip_first_layer_pe=(i == 0),
-        //         )
-        //     )
-
-        // self.final_attn_token_to_image = Attention(
-        //     embedding_dim, num_heads, downsample_rate=attention_downsample_rate
-        // )
-        // self.norm_final_attn = nn.LayerNorm(embedding_dim)
+        let mut layers: Vec<TwoWayAttentionBlock> = vec![];
+        for i in 0..depth {
+            layers.push(TwoWayAttentionBlock::new(
+                embedding_dim,
+                num_heads,
+                Some(mlp_dim),
+                Some(activation),
+                Some(attention_downsample_rate),
+                Some(i == 0),
+            ));
+        }
+        let final_attn_token_to_image =
+            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
+        let vs = nn::VarStore::new(tch::Device::Cpu);
+        let norm_final_attn = nn::layer_norm(&vs.root(), vec![embedding_dim], Default::default());
+        Self {
+            depth,
+            embedding_dim,
+            num_heads,
+            mlp_dim,
+            layers,
+            final_attn_token_to_image,
+            norm_final_attn,
+        }
     }
 
     //     Args:
@@ -68,39 +78,30 @@ impl TwoWayTransformer {
         image_pe: Tensor,
         point_embedding: Tensor,
     ) -> (Tensor, Tensor) {
-        unimplemented!()
-        // # BxCxHxW -> BxHWxC == B x N_image_tokens x C
-        // bs, c, h, w = image_embedding.shape
-        // image_embedding = image_embedding.flatten(2).permute(0, 2, 1)
-        // image_pe = image_pe.flatten(2).permute(0, 2, 1)
+        // BxCxHxW -> BxHWxC == B x N_image_tokens x C
+        let (bs, c, h, w) = image_embedding.size4().unwrap();
+        let image_embedding = image_embedding.flatten(2, 3).permute(&[0, 2, 1]);
+        let image_pe = image_pe.flatten(2, 3).permute(&[0, 2, 1]);
 
-        // # Prepare queries
-        // queries = point_embedding
-        // keys = image_embedding
-
-        // # Apply transformer blocks and final layernorm
-        // for layer in self.layers:
-        //     queries, keys = layer(
-        //         queries=queries,
-        //         keys=keys,
-        //         query_pe=point_embedding,
-        //         key_pe=image_pe,
-        //     )
-
-        // # Apply the final attention layer from the points to the image
-        // q = queries + point_embedding
-        // k = keys + image_pe
-        // attn_out = self.final_attn_token_to_image(q=q, k=k, v=keys)
-        // queries = queries + attn_out
-        // queries = self.norm_final_attn(queries)
-
-        // return queries, keys
+        //  Prepare queries
+        let mut queries = point_embedding.copy();
+        let mut keys = image_embedding;
+        for layer in &self.layers {
+            let (q, k) = layer.forward(&queries, &keys, &point_embedding, &image_pe);
+            queries = q.copy();
+            keys = k.copy();
+        }
+        let q = &queries + point_embedding;
+        let k = &keys + image_pe;
+        let attn_out = &self.final_attn_token_to_image.forward(&q, &k, &keys);
+        queries = &queries + attn_out;
+        queries = self.norm_final_attn.forward(&queries);
+        (queries, keys)
     }
 }
 
 pub struct TwoWayAttentionBlock {}
 impl TwoWayAttentionBlock {
-
     // A transformer block with four layers: (1) self-attention of sparse
     // inputs, (2) cross attention of sparse inputs to dense inputs, (3) mlp
     // block on sparse inputs, and (4) cross attention of dense inputs to sparse
@@ -119,7 +120,7 @@ impl TwoWayAttentionBlock {
         activation: Option<Activation>,
         attention_downsample_rate: Option<i64>,
         skip_first_layer_pe: Option<bool>,
-    ) {
+    ) -> Self {
         let mlp_dim = mlp_dim.unwrap_or(2048);
         let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
@@ -146,11 +147,11 @@ impl TwoWayAttentionBlock {
     }
 
     pub fn forward(
-        self,
-        queries: Tensor,
-        keys: Tensor,
-        query_pe: Tensor,
-        key_pe: Tensor,
+        &self,
+        queries: &Tensor,
+        keys: &Tensor,
+        query_pe: &Tensor,
+        key_pe: &Tensor,
     ) -> (Tensor, Tensor) {
         unimplemented!()
         // # Self attention block
@@ -190,7 +191,7 @@ impl TwoWayAttentionBlock {
 pub struct Attention {}
 
 impl Attention {
-    pub fn new(embedding_dim: i64, num_heads: i64, downsample_rate: Option<i64>) {
+    pub fn new(embedding_dim: i64, num_heads: i64, downsample_rate: Option<i64>) -> Self {
         let downsample_rate = downsample_rate.unwrap_or(1);
         unimplemented!()
         // super().__init__()
@@ -205,21 +206,21 @@ impl Attention {
         // self.out_proj = nn.Linear(self.internal_dim, embedding_dim)
     }
 
-    fn _separate_heads(self, x: Tensor, num_heads: i64) -> Tensor {
+    fn _separate_heads(&self, x: Tensor, num_heads: i64) -> Tensor {
         unimplemented!()
         // b, n, c = x.shape
         // x = x.reshape(b, n, num_heads, c // num_heads)
         // return x.transpose(1, 2)  # B x N_heads x N_tokens x C_per_head
     }
 
-    fn _recombine_heads(self, x: Tensor) -> Tensor {
+    fn _recombine_heads(&self, x: Tensor) -> Tensor {
         unimplemented!()
         // b, n_heads, n_tokens, c_per_head = x.shape
         // x = x.transpose(1, 2)
         // return x.reshape(b, n_tokens, n_heads * c_per_head)  # B x N_tokens x C
     }
-    
-    fn forward(self, q: Tensor, k: Tensor, v: Tensor) -> Tensor {
+
+    fn forward(&self, q: &Tensor, k: &Tensor, v: &Tensor) -> Tensor {
         unimplemented!()
         // # Input projections
         // q = self.q_proj(q)
