@@ -1,6 +1,9 @@
 use super::mask_decoder::Activation;
-use crate::sam_predictor::Size;
-use tch::{nn, Tensor};
+use crate::{modeling::common::MLPBlock, sam_predictor::Size};
+use tch::{
+    nn::{self, ConvConfig, LinearConfig, Module},
+    Device, Kind, Tensor,
+};
 
 /// This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
 pub struct ImageEncoderViT {
@@ -60,6 +63,7 @@ impl ImageEncoderViT {
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
         let global_attn_indexes = global_attn_indexes.unwrap_or(&[]);
+        let norm_layer = norm_layer.unwrap(); //Todo
 
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let patch_embed = PatchEmbed::new(
@@ -90,7 +94,7 @@ impl ImageEncoderViT {
                 num_heads,
                 Some(mlp_ratio),
                 Some(qkv_bias),
-                &norm_layer,
+                Some(&norm_layer),
                 Some(act_layer),
                 Some(use_rel_pos),
                 Some(rel_pos_zero_init),
@@ -153,7 +157,13 @@ impl ImageEncoderViT {
 }
 
 ///Transformer blocks with support of window attention and residual propagation blocks
-pub struct Block {}
+pub struct Block {
+    norm1: nn::LayerNorm,
+    norm2: nn::LayerNorm,
+    attn: Attention,
+    window_size: i64,
+    mlp: MLPBlock,
+}
 impl Block {
     // Args:
     // dim (int): Number of input channels.
@@ -173,59 +183,74 @@ impl Block {
         num_heads: i64,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
-        norm_layer: &Option<nn::LayerNorm>,
+        norm_layer: Option<&nn::LayerNorm>,
         act_layer: Option<Activation>,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
         window_size: Option<i64>,
         input_size: Option<Size>,
     ) -> Self {
-        let mlp_ration = mlp_ratio.unwrap_or(4.0);
+        let mlp_ratio = mlp_ratio.unwrap_or(4.0);
         let qkv_bias = qkv_bias.unwrap_or(true);
         let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
-        unimplemented!()
-        // super().__init__()
-        // self.norm1 = norm_layer(dim)
-        // self.attn = Attention(
-        //     dim,
-        //     num_heads=num_heads,
-        //     qkv_bias=qkv_bias,
-        //     use_rel_pos=use_rel_pos,
-        //     rel_pos_zero_init=rel_pos_zero_init,
-        //     input_size=input_size if window_size == 0 else (window_size, window_size),
-        // )
-
-        // self.norm2 = norm_layer(dim)
-        // self.mlp = MLPBlock(embedding_dim=dim, mlp_dim=int(dim * mlp_ratio), act=act_layer)
-
-        // self.window_size = window_size
+        let norm_layer = norm_layer.unwrap(); //Todo should create also
+        let attn = Attention::new(
+            dim,
+            Some(num_heads),
+            Some(qkv_bias),
+            Some(use_rel_pos),
+            Some(rel_pos_zero_init),
+            input_size,
+        );
+        let mlp = MLPBlock::new(dim, dim * mlp_ratio as i64, Some(act_layer));
+        Self {
+            norm1: norm_layer.clone(),
+            attn,
+            norm2: norm_layer.clone(),
+            mlp,
+            window_size,
+        }
     }
 
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        unimplemented!()
-        // shortcut = x
-        // x = self.norm1(x)
-        // # Window partition
-        // if self.window_size > 0:
-        //     H, W = x.shape[1], x.shape[2]
-        //     x, pad_hw = window_partition(x, self.window_size)
+        let shortcut = x.copy();
+        let x = self.norm1.forward(x);
 
-        // x = self.attn(x)
-        // # Reverse window partition
-        // if self.window_size > 0:
-        //     x = window_unpartition(x, self.window_size, pad_hw, (H, W))
+        // Window partition
+        let (mut x, pad_hw) = if self.window_size > 0 {
+            let (H, W) = (x.size()[1], x.size()[2]);
+            let (x, pad_hw) = window_partition(x, self.window_size);
+            (x, Some(pad_hw))
+        } else {
+            (x, None)
+        };
+        x = self.attn.forward(&x);
+        // Reverse window partition
+        x = if self.window_size > 0 {
+            let (pad_hw, (H, W)) = (pad_hw.unwrap(), (x.size()[1], x.size()[2]));
+            window_unpartition(x, self.window_size, pad_hw, Size(H, W))
+        } else {
+            x
+        };
 
-        // x = shortcut + x
-        // x = x + self.mlp(self.norm2(x))
-
-        // return x
+        x = shortcut + x;
+        x = x + self.mlp.forward(&self.norm2.forward(&x));
+        x
     }
 }
 ///Multi-head Attention block with relative position embeddings.
-pub struct Attention {}
+pub struct Attention {
+    num_heads: i64,
+    scale: f64,
+    qkv: nn::Linear,
+    proj: nn::Linear,
+    use_rel_pos: bool,
+    rel_pos_h: Option<Tensor>,
+    rel_pos_w: Option<Tensor>,
+}
 impl Attention {
     // Args:
     // dim (int): Number of input channels.
@@ -242,49 +267,74 @@ impl Attention {
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
         input_size: Option<Size>,
-    ) {
+    ) -> Self {
         let num_heads = num_heads.unwrap_or(8);
         let qkv_bias = qkv_bias.unwrap_or(true);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
 
-        unimplemented!()
+        let head_dim = dim / num_heads;
+        let scale = (head_dim as f64).powf(-0.5);
+        let vs = nn::VarStore::new(Device::cuda_if_available());
+        let qkv = nn::linear(
+            &vs.root(),
+            dim,
+            dim * 3,
+            LinearConfig {
+                bias: qkv_bias,
+                ..Default::default()
+            },
+        );
+        let proj = nn::linear(&vs.root(), dim, dim, Default::default());
 
-        // super().__init__()
-        // self.num_heads = num_heads
-        // head_dim = dim // num_heads
-        // self.scale = head_dim**-0.5
+        let mut rel_pos_h = None;
+        let mut rel_pos_w = None;
+        if use_rel_pos {
+            assert!(
+                input_size.is_some(),
+                "Input size must be provided if using relative positional encoding."
+            );
+            let (H, W) = (input_size.unwrap().0, input_size.unwrap().1);
+            rel_pos_h = Some(vs.root().zeros("rel_pos_h", &[W, num_heads]));
+            rel_pos_w = Some(vs.root().zeros("rel_pos_w", &[H, num_heads]));
+        }
 
-        // self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
-        // self.proj = nn.Linear(dim, dim)
-
-        // self.use_rel_pos = use_rel_pos
-        // if self.use_rel_pos:
-        //     assert (
-        //         input_size is not None
-        //     ), "Input size must be provided if using relative positional encoding."
-        //     # initialize relative positional embeddings
-        //     self.rel_pos_h = nn.Parameter(torch.zeros(2 * input_size[0] - 1, head_dim))
-        //     self.rel_pos_w = nn.Parameter(torch.zeros(2 * input_size[1] - 1, head_dim))
+        Self {
+            num_heads,
+            scale,
+            qkv,
+            proj,
+            use_rel_pos,
+            rel_pos_h,
+            rel_pos_w,
+        }
     }
-    pub fn forward(&self, x: Tensor) -> Tensor {
-        unimplemented!()
-        // B, H, W, _ = x.shape
-        // # qkv with shape (3, B, nHead, H * W, C)
-        // qkv = self.qkv(x).reshape(B, H * W, 3, self.num_heads, -1).permute(2, 0, 3, 1, 4)
-        // # q, k, v with shape (B * nHead, H * W, C)
-        // q, k, v = qkv.reshape(3, B * self.num_heads, H * W, -1).unbind(0)
-
-        // attn = (q * self.scale) @ k.transpose(-2, -1)
-
-        // if self.use_rel_pos:
-        //     attn = add_decomposed_rel_pos(attn, q, self.rel_pos_h, self.rel_pos_w, (H, W), (H, W))
-
-        // attn = attn.softmax(dim=-1)
-        // x = (attn @ v).view(B, self.num_heads, H, W, -1).permute(0, 2, 3, 1, 4).reshape(B, H, W, -1)
-        // x = self.proj(x)
-
-        // return x
+    pub fn forward(&self, x: &Tensor) -> Tensor {
+        let (B, H, W, _) = x.size4().unwrap();
+        let qkv = self
+            .qkv
+            .forward(x)
+            .reshape(&[B, H * W, 3, self.num_heads, -1])
+            .permute(&[2, 0, 3, 1, 4]);
+        let qkv = qkv.reshape(&[3, B * self.num_heads, H * W, -1]).unbind(0);
+        let (q, k, v) = (qkv[0], qkv[1], qkv[2]);
+        let mut attn = (q * self.scale) * k.transpose(-2, -1);
+        if self.use_rel_pos {
+            attn = add_decomposed_rel_pos(
+                attn,
+                q,
+                self.rel_pos_h.unwrap(),
+                self.rel_pos_w.unwrap(),
+                Size(H, W),
+                Size(H, W),
+            );
+        }
+        attn = attn.softmax(-1, Kind::Float);
+        let x = (attn * v)
+            .view([B, self.num_heads, H, W, -1])
+            .permute(&[0, 2, 3, 1, 4])
+            .reshape(&[B, H, W, -1]);
+        self.proj.forward(&x)
     }
 }
 
@@ -297,18 +347,29 @@ impl Attention {
 //     windows: windows after partition with [B * num_windows, window_size, window_size, C].
 //     (Hp, Wp): padded height and width before partition
 pub fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
-    unimplemented!()
-    // B, H, W, C = x.shape
+    let (B, H, W, C) = x.size4().unwrap();
 
-    // pad_h = (window_size - H % window_size) % window_size
-    // pad_w = (window_size - W % window_size) % window_size
-    // if pad_h > 0 or pad_w > 0:
-    //     x = F.pad(x, (0, 0, 0, pad_w, 0, pad_h))
-    // Hp, Wp = H + pad_h, W + pad_w
-
-    // x = x.view(B, Hp // window_size, window_size, Wp // window_size, window_size, C)
-    // windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size, window_size, C)
-    // return windows, (Hp, Wp)
+    let pad_h = (window_size - H % window_size) % window_size;
+    let pad_w = (window_size - W % window_size) % window_size;
+    let x = if pad_h > 0 || pad_w > 0 {
+        x.pad(&[0, 0, 0, pad_w, 0, pad_h], "d", Some(0.0)) // Todo probably wrong
+    } else {
+        x
+    };
+    let (Hp, Wp) = (H + pad_h, W + pad_w);
+    let x = x.view([
+        B,
+        Hp / window_size,
+        window_size,
+        Wp / window_size,
+        window_size,
+        C,
+    ]);
+    let windows =
+        x.permute(&[0, 1, 3, 2, 4, 5])
+            .contiguous()
+            .view([-1, window_size, window_size, C]);
+    (windows, Size(Hp, Wp))
 }
 
 // Window unpartition into original sequences and removing padding.
@@ -321,16 +382,26 @@ pub fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
 //     Returns:
 //         x: unpartitioned sequences with [B, H, W, C].
 pub fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size) -> Tensor {
-    unimplemented!()
-    // Hp, Wp = pad_hw
-    // H, W = hw
-    // B = windows.shape[0] // (Hp * Wp // window_size // window_size)
-    // x = windows.view(B, Hp // window_size, Wp // window_size, window_size, window_size, -1)
-    // x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, Hp, Wp, -1)
-
-    // if Hp > H or Wp > W:
-    //     x = x[:, :H, :W, :].contiguous()
-    // return x
+    let Size(Hp, Wp) = pad_hw;
+    let Size(H, W) = hw;
+    let B = windows.size()[0] / (Hp * Wp / window_size / window_size);
+    let x = windows.view([
+        B,
+        Hp / window_size,
+        Wp / window_size,
+        window_size,
+        window_size,
+        -1,
+    ]);
+    let x = x
+        .permute(&[0, 1, 3, 2, 4, 5])
+        .contiguous()
+        .view([B, Hp, Wp, -1]);
+    if Hp > H || Wp > W {
+        x.slice(1, 0, H, 1).slice(2, 0, W, 1).contiguous()
+    } else {
+        x
+    }
 }
 
 // Get relative positional embeddings according to the relative positions of
@@ -343,27 +414,37 @@ pub fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: S
 // Returns:
 // Extracted positional embeddings according to relative positions.
 pub fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
-    unimplemented!()
-    // max_rel_dist = int(2 * max(q_size, k_size) - 1)
-    // # Interpolate rel pos if needed.
-    // if rel_pos.shape[0] != max_rel_dist:
-    //     # Interpolate rel pos.
-    //     rel_pos_resized = F.interpolate(
-    //         rel_pos.reshape(1, rel_pos.shape[0], -1).permute(0, 2, 1),
-    //         size=max_rel_dist,
-    //         mode="linear",
-    //     )
-    //     rel_pos_resized = rel_pos_resized.reshape(-1, max_rel_dist).permute(1, 0)
-    // else:
-    //     rel_pos_resized = rel_pos
+    let max_rel_dist = 2 * q_size.max(k_size) - 1;
 
-    // # Scale the coords with short length if shapes for q and k are different.
-    // q_coords = torch.arange(q_size)[:, None] * max(k_size / q_size, 1.0)
-    // k_coords = torch.arange(k_size)[None, :] * max(q_size / k_size, 1.0)
-    // relative_coords = (q_coords - k_coords) + (k_size - 1) * max(q_size / k_size, 1.0)
-
-    // return rel_pos_resized[relative_coords.long()]
+    // Interpolate rel pos if needed.
+    let rel_pos_resized = if rel_pos.size()[0] != max_rel_dist {
+        // Interpolate rel pos.
+        let rel_pos_resized = rel_pos
+            .reshape(&[1, rel_pos.size()[0], -1])
+            .permute(&[0, 2, 1])
+            .interpolate(
+                &[max_rel_dist],
+                InterpolateConfig {
+                    mode: "linear",
+                    size: max_rel_dist,
+                    ..Default::default()
+                },
+            )
+            .reshape(&[-1, max_rel_dist])
+            .permute(&[1, 0]);
+        rel_pos_resized
+    } else {
+        rel_pos
+    };
+    let q_coords = Tensor::arange(q_size, (Kind::Int64, Device::Cpu)).unsqueeze(-1)
+        * (k_size as f64 / q_size as f64).max(1.0);
+    let k_coords = Tensor::arange(k_size, (Kind::Int64, Device::Cpu)).unsqueeze(0)
+        * (q_size as f64 / k_size as f64).max(1.0);
+    let relative_coords =
+        &q_coords - &k_coords + (k_size - 1) as f64 * (q_size as f64 / k_size as f64).max(1.0);
+    rel_pos_resized.index(&[Some(relative_coords.to_kind(tch::Kind::Int64))])
 }
+
 // Calculate decomposed Relative Positional Embeddings from :paper:`mvitv2`.
 // https://github.com/facebookresearch/mvit/blob/19786631e330df9f3622e5402b4a419a263a2c80/mvit/models/attention.py   # noqa B950
 // Args:
@@ -384,25 +465,23 @@ pub fn add_decomposed_rel_pos(
     q_size: Size,
     k_size: Size,
 ) -> Tensor {
-    unimplemented!()
-    // q_h, q_w = q_size
-    // k_h, k_w = k_size
-    // Rh = get_rel_pos(q_h, k_h, rel_pos_h)
-    // Rw = get_rel_pos(q_w, k_w, rel_pos_w)
+    let Size(q_h, q_w) = q_size;
+    let Size(k_h, k_w) = k_size;
+    let Rh = get_rel_pos(q_h, k_h, rel_pos_h);
+    let Rw = get_rel_pos(q_w, k_w, rel_pos_w);
 
-    // B, _, dim = q.shape
-    // r_q = q.reshape(B, q_h, q_w, dim)
-    // rel_h = torch.einsum("bhwc,hkc->bhwk", r_q, Rh)
-    // rel_w = torch.einsum("bhwc,wkc->bhwk", r_q, Rw)
-
-    // attn = (
-    //     attn.view(B, q_h, q_w, k_h, k_w) + rel_h[:, :, :, :, None] + rel_w[:, :, :, None, :]
-    // ).view(B, q_h * q_w, k_h * k_w)
-
-    // return attn
+    let (B, _, dim) = q.size3().unwrap();
+    let r_q = q.reshape(&[B, q_h, q_w, dim]);
+    let rel_h = r_q.matmul(&Rh).view([B, q_h, q_w, k_h, k_w]);
+    let rel_w = r_q.matmul(&Rw).view([B, q_h, q_w, k_h, k_w]);
+    let attn = attn.view([B, q_h, q_w, k_h, k_w]) + &rel_h.unsqueeze(-1) + &rel_w.unsqueeze(-2);
+    attn.view([B, q_h * q_w, k_h * k_w])
 }
+
 /// Image to Patch Embedding.
-pub struct PatchEmbed {}
+pub struct PatchEmbed {
+    proj: nn::Conv2D,
+}
 impl PatchEmbed {
     // Args:
     //         kernel_size (Tuple): kernel size of the projection layer.
@@ -422,18 +501,22 @@ impl PatchEmbed {
         let padding = padding.unwrap_or(Size(0, 0));
         let in_chans = in_chans.unwrap_or(3);
         let embed_dim = embed_dim.unwrap_or(768);
-        unimplemented!()
-        // super().__init__()
-
-        // self.proj = nn.Conv2d(
-        //     in_chans, embed_dim, kernel_size=kernel_size, stride=stride, padding=padding
-        // )
+        let vs = nn::VarStore::new(Device::Cpu);
+        let proj = nn::conv2d(
+            &vs.root(),
+            in_chans,
+            embed_dim,
+            kernel_size.0,
+            ConvConfig {
+                stride: stride.0,
+                padding: padding.0,
+                ..Default::default()
+            },
+        );
+        Self { proj }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        unimplemented!()
-        // x = self.proj(x)
-        // # B C H W -> B H W C
-        // x = x.permute(0, 2, 3, 1)
-        // return x
+        let mut x = self.proj.forward(x);
+        x.permute(&[0, 2, 3, 1])
     }
 }
