@@ -1,5 +1,4 @@
-use super::common::LayerNorm2d;
-use super::mask_decoder::Activation;
+use super::common::{Activation, LayerNorm2d};
 use crate::{modeling::common::MLPBlock, sam_predictor::Size};
 use tch::nn::Path;
 use tch::{
@@ -43,7 +42,7 @@ impl ImageEncoderViT {
         mlp_ratio: Option<f64>,
         out_chans: Option<i64>,
         qkv_bias: Option<bool>,
-        act_layer: Option<Activation>,
+        act_layer: Activation,
         use_abs_pos: Option<bool>,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
@@ -59,7 +58,6 @@ impl ImageEncoderViT {
         let mlp_ratio = mlp_ratio.unwrap_or(4.0);
         let out_chans = out_chans.unwrap_or(256);
         let qkv_bias = qkv_bias.unwrap_or(true);
-        let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_abs_pos = use_abs_pos.unwrap_or(true);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
@@ -96,7 +94,7 @@ impl ImageEncoderViT {
                 num_heads,
                 Some(mlp_ratio),
                 Some(qkv_bias),
-                Some(act_layer),
+                act_layer,
                 Some(use_rel_pos),
                 Some(rel_pos_zero_init),
                 Some(window_size),
@@ -165,7 +163,7 @@ impl Block {
         num_heads: i64,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
-        act_layer: Option<Activation>,
+        act_layer: Activation,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
         window_size: Option<i64>,
@@ -173,7 +171,6 @@ impl Block {
     ) -> Self {
         let mlp_ratio = mlp_ratio.unwrap_or(4.0);
         let qkv_bias = qkv_bias.unwrap_or(true);
-        let act_layer = act_layer.unwrap_or(Activation::GELU);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
@@ -188,7 +185,7 @@ impl Block {
             Some(rel_pos_zero_init),
             input_size,
         );
-        let mlp = MLPBlock::new(vs, dim, dim * mlp_ratio as i64, Some(act_layer));
+        let mlp = MLPBlock::new(vs, dim, dim * mlp_ratio as i64, act_layer);
         Self {
             norm1,
             attn,

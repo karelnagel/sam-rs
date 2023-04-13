@@ -4,7 +4,8 @@ use tch::{nn, Device, Tensor};
 
 use crate::sam_predictor::Size;
 
-use super::mask_decoder::Activation;
+use super::common::Activation;
+
 pub struct PromptEncoder {
     embed_dim: i64,
     input_image_size: Size,
@@ -62,7 +63,7 @@ impl PromptEncoder {
                 vec![mask_in_chans / 4],
                 Default::default(),
             ))
-            // .add(activation.build()) // Todo
+            .add(activation)
             .add(nn::conv2d(
                 vs,
                 mask_in_chans / 4,
@@ -78,8 +79,8 @@ impl PromptEncoder {
                 vs,
                 vec![mask_in_chans / 8],
                 Default::default(),
-            ));
-        // .add(activation.build()); // Todo
+            ))
+            .add(activation);
         let no_mask_embed = nn::embedding(vs, 1, embed_dim, Default::default());
         Self {
             embed_dim,

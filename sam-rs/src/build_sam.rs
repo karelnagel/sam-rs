@@ -2,8 +2,9 @@ use tch::{nn::VarStore, Device};
 
 use crate::{
     modeling::{
+        common::{Activation, ActivationType},
         image_encoder::ImageEncoderViT,
-        mask_decoder::{Activation, MaskDecoder},
+        mask_decoder::MaskDecoder,
         prompt_encoder::PromptEncoder,
         transformer::TwoWayTransformer,
     },
@@ -35,6 +36,8 @@ fn _build_sam(
     let image_embedding_size = img_size; // vit_patch_size
     let vs = VarStore::new(Device::cuda_if_available());
     let vs = &vs.root();
+    let activation = Activation::new(ActivationType::GELU);
+    let activation_relu = Activation::new(ActivationType::ReLU);
     let sam = Sam::new(
         ImageEncoderViT::new(
             vs,
@@ -47,7 +50,7 @@ fn _build_sam(
             Some(4.0),
             Some(prompt_embed_dim),
             Some(true),
-            None,
+            activation_relu,
             None,
             Some(true),
             None,
@@ -60,29 +63,21 @@ fn _build_sam(
             Size(image_embedding_size, image_embedding_size),
             Size(img_size, img_size),
             16,
-            Activation::GELU,
+            activation,
         ),
         MaskDecoder::new(
             vs,
             prompt_embed_dim,
-            TwoWayTransformer::new(
-                vs,
-                2,
-                prompt_embed_dim,
-                8,
-                2048,
-                Some(Activation::GELU),
-                None,
-            ),
+            TwoWayTransformer::new(vs, 2, prompt_embed_dim, 8, 2048, Some(activation), None),
             3,
-            Activation::GELU,
+            activation,
             3,
             256,
         ),
         Some(&[123.675, 116.28, 103.53]),
         Some(&[58.395, 57.12, 57.375]),
     );
-    
+
     // Todo
     // if checkpoint is not None:
     //     with open(checkpoint, "rb") as f:

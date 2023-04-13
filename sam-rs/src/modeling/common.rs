@@ -3,27 +3,19 @@ use tch::{
     Kind, Tensor,
 };
 
-use crate::modeling::mask_decoder::Activation;
-
 pub struct MLPBlock {
     lin1: nn::Linear,
     lin2: nn::Linear,
     act: Activation,
 }
 impl MLPBlock {
-    pub fn new(vs: &nn::Path, embedding_dim: i64, mlp_dim: i64, act: Option<Activation>) -> Self {
-        let act = act.unwrap_or(Activation::GELU);
+    pub fn new(vs: &nn::Path, embedding_dim: i64, mlp_dim: i64, act: Activation) -> Self {
         let lin1 = nn::linear(vs, embedding_dim, mlp_dim, Default::default());
         let lin2 = nn::linear(vs, mlp_dim, embedding_dim, Default::default());
         Self { lin1, lin2, act }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        let mut x = self.lin1.forward(x);
-        x = match self.act {
-            Activation::GELU => x.gelu("none"),
-            Activation::ReLU => x.relu(),
-        };
-        self.lin2.forward(&x)
+        self.lin2.forward(&self.act.forward(&self.lin1.forward(x)))
     }
 }
 
@@ -55,5 +47,30 @@ impl LayerNorm2d {
         let weight = vs.ones("weight", &[num_channels]);
         let bias = vs.zeros("bias", &[num_channels]);
         Self { weight, bias, eps }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ActivationType {
+    GELU,
+    ReLU,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Activation {
+    act_type: ActivationType,
+}
+
+impl Module for Activation {
+    fn forward(&self, x: &Tensor) -> Tensor {
+        match self.act_type {
+            ActivationType::GELU => x.gelu("none"),
+            ActivationType::ReLU => x.relu(),
+        }
+    }
+}
+impl Activation {
+    pub fn new(act_type: ActivationType) -> Self {
+        Self { act_type }
     }
 }

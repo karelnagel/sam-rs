@@ -3,13 +3,8 @@ use tch::{
     Tensor,
 };
 
-use super::transformer::TwoWayTransformer;
+use super::{common::Activation, transformer::TwoWayTransformer};
 
-#[derive(Debug, Clone, Copy)]
-pub enum Activation {
-    GELU,
-    ReLU,
-}
 pub struct MaskDecoder {
     transformer_dim: i64,
     transformer: TwoWayTransformer,
@@ -27,7 +22,7 @@ impl MaskDecoder {
         transformer_dim: i64,
         transformer: TwoWayTransformer,
         num_multimask_outputs: i64,
-        _activation: Activation,
+        activation: Activation,
         iou_head_depth: i64,
         iou_head_hidden_dim: i64,
     ) -> Self {

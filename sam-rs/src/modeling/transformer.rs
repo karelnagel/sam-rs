@@ -3,9 +3,7 @@ use tch::{
     Tensor,
 };
 
-use crate::modeling::mask_decoder::Activation;
-
-use super::common::MLPBlock;
+use super::common::{Activation, ActivationType, MLPBlock};
 
 pub struct TwoWayTransformer {
     depth: i64,
@@ -36,7 +34,7 @@ impl TwoWayTransformer {
         activation: Option<Activation>,
         attention_downsample_rate: Option<i64>,
     ) -> Self {
-        let activation = activation.unwrap_or(Activation::ReLU);
+        let activation = activation.unwrap_or(Activation::new(ActivationType::ReLU));
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let mut layers: Vec<TwoWayAttentionBlock> = vec![];
         for i in 0..depth {
@@ -140,7 +138,7 @@ impl TwoWayAttentionBlock {
         skip_first_layer_pe: Option<bool>,
     ) -> Self {
         let mlp_dim = mlp_dim.unwrap_or(2048);
-        let activation = activation.unwrap_or(Activation::ReLU);
+        let activation = activation.unwrap_or(Activation::new(ActivationType::ReLU));
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let skip_first_layer_pe = skip_first_layer_pe.unwrap_or(false);
 
@@ -153,7 +151,7 @@ impl TwoWayAttentionBlock {
             Some(attention_downsample_rate),
         );
         let norm2 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
-        let mlp = MLPBlock::new(vs, embedding_dim, mlp_dim, Some(activation));
+        let mlp = MLPBlock::new(vs, embedding_dim, mlp_dim, activation);
         let norm3 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
         let norm4 = nn::layer_norm(vs, vec![embedding_dim], Default::default());
         let cross_attn_image_to_token = Attention::new(
