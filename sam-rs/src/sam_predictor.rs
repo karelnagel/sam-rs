@@ -25,9 +25,6 @@ pub enum ImageFormat {
 #[derive(Clone, Copy)]
 pub struct Size(pub i64, pub i64);
 
-#[derive(Clone)]
-pub struct Image(Array3<u8>);
-
 impl SamPredictor {
     /// Uses SAM to calculate the image embedding for an image, and then
     /// allow repeated, efficient mask prediction given prompts.
@@ -56,17 +53,17 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: Image, image_format: &ImageFormat) {
+    pub fn set_image(&mut self, image: Array3<u8>, image_format: &ImageFormat) {
         // Todo flip image if wrong format
         let input_image = self.transfrom.apply_image(&image);
         let input_image_tensor =
-            Tensor::of_data_size(&input_image.0.into_raw_vec(), &[/* IDK */], Kind::Uint8);
+            Tensor::of_data_size(&input_image.into_raw_vec(), &[/* IDK */], Kind::Uint8);
         let mut input_image_torch = input_image_tensor.permute(&[2, 0, 1]);
         input_image_torch = input_image_torch.unsqueeze(0);
         if let Some(device) = self.device {
             input_image_torch = input_image_torch.to_device(device);
         }
-        let shape = image.0.shape();
+        let shape = image.shape();
         self.set_torch_image(input_image_torch, Size(shape[0] as i64, shape[1] as i64));
     }
 
@@ -145,14 +142,14 @@ impl SamPredictor {
             );
             let point_coords = self
                 .transfrom
-                .apply_coords(point_coords, self.original_size.unwrap());
+                .apply_coords(&point_coords, &self.original_size.unwrap());
             coords_torch = Some(Tensor::of_slice(&point_coords.into_raw_vec()));
             labels_torch = Some(Tensor::of_slice(&point_labels.unwrap().to_vec()));
         }
         if let Some(mut boxes) = boxes {
             boxes = self
                 .transfrom
-                .apply_boxes(boxes, self.original_size.unwrap());
+                .apply_boxes(&boxes, &self.original_size.unwrap());
             box_torch = Some(Tensor::of_slice(&boxes.to_vec()));
         }
         if let Some(mask_input) = mask_input {
