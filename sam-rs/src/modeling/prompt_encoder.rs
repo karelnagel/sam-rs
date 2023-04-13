@@ -62,7 +62,7 @@ impl PromptEncoder {
                 vec![mask_in_chans / 4],
                 Default::default(),
             ))
-            // .add(activation.build()) //Todo
+            // .add(activation.build()) // Todo
             .add(nn::conv2d(
                 vs,
                 mask_in_chans / 4,
@@ -79,7 +79,7 @@ impl PromptEncoder {
                 vec![mask_in_chans / 8],
                 Default::default(),
             ));
-        // .add(activation.build());
+        // .add(activation.build()); // Todo
         let no_mask_embed = nn::embedding(vs, 1, embed_dim, Default::default());
         Self {
             embed_dim,

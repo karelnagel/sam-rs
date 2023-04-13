@@ -27,7 +27,7 @@ impl MaskDecoder {
         transformer_dim: i64,
         transformer: TwoWayTransformer,
         num_multimask_outputs: i64,
-        activation: Activation,
+        _activation: Activation,
         iou_head_depth: i64,
         iou_head_hidden_dim: i64,
     ) -> Self {

@@ -1,3 +1,4 @@
+use super::common::LayerNorm2d;
 use super::mask_decoder::Activation;
 use crate::{modeling::common::MLPBlock, sam_predictor::Size};
 use tch::nn::Path;
@@ -107,9 +108,9 @@ impl ImageEncoderViT {
 
         let neck = nn::seq()
             .add(nn::conv2d(vs, embed_dim, out_chans, 1, Default::default()))
-            .add(nn::layer_norm(vs, vec![out_chans], Default::default()))
+            .add(LayerNorm2d::new(vs, out_chans, Default::default()))
             .add(nn::conv2d(vs, out_chans, out_chans, 3, Default::default()))
-            .add(nn::layer_norm(vs, vec![out_chans], Default::default()));
+            .add(LayerNorm2d::new(vs, out_chans, Default::default()));
 
         Self {
             img_size,
@@ -203,7 +204,6 @@ impl Block {
 
         // Window partition
         let (mut x, pad_hw) = if self.window_size > 0 {
-            let (H, W) = (x.size()[1], x.size()[2]);
             let (x, pad_hw) = window_partition(x, self.window_size);
             (x, Some(pad_hw))
         } else {
@@ -212,8 +212,8 @@ impl Block {
         x = self.attn.forward(&x);
         // Reverse window partition
         x = if self.window_size > 0 {
-            let (pad_hw, (H, W)) = (pad_hw.unwrap(), (x.size()[1], x.size()[2]));
-            window_unpartition(x, self.window_size, pad_hw, Size(H, W))
+            let (h, w) = x.size2().unwrap();
+            window_unpartition(x, self.window_size, pad_hw.unwrap(), Size(h, w))
         } else {
             x
         };
@@ -249,13 +249,13 @@ impl Attention {
         num_heads: Option<i64>,
         qkv_bias: Option<bool>,
         use_rel_pos: Option<bool>,
-        rel_pos_zero_init: Option<bool>,
+        _rel_pos_zero_init: Option<bool>,
         input_size: Option<Size>,
     ) -> Self {
         let num_heads = num_heads.unwrap_or(8);
         let qkv_bias = qkv_bias.unwrap_or(true);
         let use_rel_pos = use_rel_pos.unwrap_or(false);
-        let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
+        let _rel_pos_zero_init = _rel_pos_zero_init.unwrap_or(true);
 
         let head_dim = dim / num_heads;
         let scale = (head_dim as f64).powf(-0.5);
@@ -277,9 +277,9 @@ impl Attention {
                 input_size.is_some(),
                 "Input size must be provided if using relative positional encoding."
             );
-            let (H, W) = (input_size.unwrap().0, input_size.unwrap().1);
-            rel_pos_h = Some(vs.zeros("rel_pos_h", &[W, num_heads]));
-            rel_pos_w = Some(vs.zeros("rel_pos_w", &[H, num_heads]));
+            let (h, w) = (input_size.unwrap().0, input_size.unwrap().1);
+            rel_pos_h = Some(vs.zeros("rel_pos_h", &[w, num_heads]));
+            rel_pos_w = Some(vs.zeros("rel_pos_w", &[h, num_heads]));
         }
 
         Self {
@@ -293,13 +293,13 @@ impl Attention {
         }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        let (B, H, W, _) = x.size4().unwrap();
+        let (b, h, w, _) = x.size4().unwrap();
         let qkv = self
             .qkv
             .forward(x)
-            .reshape(&[B, H * W, 3, self.num_heads, -1])
+            .reshape(&[b, h * w, 3, self.num_heads, -1])
             .permute(&[2, 0, 3, 1, 4]);
-        let qkv = qkv.reshape(&[3, B * self.num_heads, H * W, -1]).unbind(0);
+        let qkv = qkv.reshape(&[3, b * self.num_heads, h * w, -1]).unbind(0);
         let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
         let mut attn = (q * self.scale) * k.transpose(-2, -1);
         if self.use_rel_pos {
@@ -308,15 +308,15 @@ impl Attention {
                 &q,
                 &self.rel_pos_h.as_ref().unwrap(),
                 &self.rel_pos_w.as_ref().unwrap(),
-                Size(H, W),
-                Size(H, W),
+                Size(h, w),
+                Size(h, w),
             );
         }
         attn = attn.softmax(-1, Kind::Float);
         let x = (attn * v)
-            .view([B, self.num_heads, H, W, -1])
+            .view([b, self.num_heads, h, w, -1])
             .permute(&[0, 2, 3, 1, 4])
-            .reshape(&[B, H, W, -1]);
+            .reshape(&[b, h, w, -1]);
         self.proj.forward(&x)
     }
 }
@@ -330,29 +330,29 @@ impl Attention {
 //     windows: windows after partition with [B * num_windows, window_size, window_size, C].
 //     (Hp, Wp): padded height and width before partition
 pub fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
-    let (B, H, W, C) = x.size4().unwrap();
+    let (b, h, w, c) = x.size4().unwrap();
 
-    let pad_h = (window_size - H % window_size) % window_size;
-    let pad_w = (window_size - W % window_size) % window_size;
+    let pad_h = (window_size - h % window_size) % window_size;
+    let pad_w = (window_size - w % window_size) % window_size;
     let x = if pad_h > 0 || pad_w > 0 {
         x.pad(&[0, 0, 0, pad_w, 0, pad_h], "d", Some(0.0)) // Todo probably wrong
     } else {
         x
     };
-    let (Hp, Wp) = (H + pad_h, W + pad_w);
+    let (hp, wp) = (h + pad_h, w + pad_w);
     let x = x.view([
-        B,
-        Hp / window_size,
+        b,
+        hp / window_size,
         window_size,
-        Wp / window_size,
+        wp / window_size,
         window_size,
-        C,
+        c,
     ]);
     let windows =
         x.permute(&[0, 1, 3, 2, 4, 5])
             .contiguous()
-            .view([-1, window_size, window_size, C]);
-    (windows, Size(Hp, Wp))
+            .view([-1, window_size, window_size, c]);
+    (windows, Size(hp, wp))
 }
 
 // Window unpartition into original sequences and removing padding.
@@ -365,13 +365,13 @@ pub fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
 //     Returns:
 //         x: unpartitioned sequences with [B, H, W, C].
 pub fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size) -> Tensor {
-    let Size(Hp, Wp) = pad_hw;
-    let Size(H, W) = hw;
-    let B = windows.size()[0] / (Hp * Wp / window_size / window_size);
+    let Size(hp, wp) = pad_hw;
+    let Size(h, w) = hw;
+    let b = windows.size()[0] / (hp * wp / window_size / window_size);
     let x = windows.view([
-        B,
-        Hp / window_size,
-        Wp / window_size,
+        b,
+        hp / window_size,
+        wp / window_size,
         window_size,
         window_size,
         -1,
@@ -379,9 +379,9 @@ pub fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: S
     let x = x
         .permute(&[0, 1, 3, 2, 4, 5])
         .contiguous()
-        .view([B, Hp, Wp, -1]);
-    if Hp > H || Wp > W {
-        x.slice(1, 0, H, 1).slice(2, 0, W, 1).contiguous()
+        .view([b, hp, wp, -1]);
+    if hp > h || wp > w {
+        x.slice(1, 0, h, 1).slice(2, 0, w, 1).contiguous()
     } else {
         x
     }
@@ -405,6 +405,7 @@ pub fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
         let rel_pos_resized = rel_pos
             .reshape(&[1, rel_pos.size()[0], -1])
             .permute(&[0, 2, 1])
+            // Todo
             // .interpolate(
             //     &[max_rel_dist],
             //     InterpolateConfig {
@@ -412,7 +413,7 @@ pub fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
             //         size: max_rel_dist,
             //         ..Default::default()
             //     },
-            // ) //Todo
+            // )
             .reshape(&[-1, max_rel_dist])
             .permute(&[1, 0]);
         rel_pos_resized
@@ -450,15 +451,15 @@ pub fn add_decomposed_rel_pos(
 ) -> Tensor {
     let Size(q_h, q_w) = q_size;
     let Size(k_h, k_w) = k_size;
-    let Rh = get_rel_pos(q_h, k_h, rel_pos_h.copy());
-    let Rw = get_rel_pos(q_w, k_w, rel_pos_w.copy());
+    let rh = get_rel_pos(q_h, k_h, rel_pos_h.copy());
+    let rw = get_rel_pos(q_w, k_w, rel_pos_w.copy());
 
-    let (B, _, dim) = q.size3().unwrap();
-    let r_q = q.reshape(&[B, q_h, q_w, dim]);
-    let rel_h = r_q.matmul(&Rh).view([B, q_h, q_w, k_h, k_w]);
-    let rel_w = r_q.matmul(&Rw).view([B, q_h, q_w, k_h, k_w]);
-    let attn = attn.view([B, q_h, q_w, k_h, k_w]) + &rel_h.unsqueeze(-1) + &rel_w.unsqueeze(-2);
-    attn.view([B, q_h * q_w, k_h * k_w])
+    let (b, _, dim) = q.size3().unwrap();
+    let r_q = q.reshape(&[b, q_h, q_w, dim]);
+    let rel_h = r_q.matmul(&rh).view([b, q_h, q_w, k_h, k_w]);
+    let rel_w = r_q.matmul(&rw).view([b, q_h, q_w, k_h, k_w]);
+    let attn = attn.view([b, q_h, q_w, k_h, k_w]) + &rel_h.unsqueeze(-1) + &rel_w.unsqueeze(-2);
+    attn.view([b, q_h * q_w, k_h * k_w])
 }
 
 /// Image to Patch Embedding.
@@ -499,7 +500,7 @@ impl PatchEmbed {
         Self { proj }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
-        let mut x = self.proj.forward(x);
+        let x = self.proj.forward(x);
         x.permute(&[0, 2, 3, 1])
     }
 }

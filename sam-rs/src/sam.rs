@@ -136,7 +136,7 @@ impl Sam {
                 &Size(size[1], size[2]),
                 &image_record.original_size,
             );
-            // let masks = masks > self.mask_threshold; /// Todo
+            // let masks = masks > self.mask_threshold; // Todo
             outputs.push(Output {
                 masks,
                 iou_predictions,
