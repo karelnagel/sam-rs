@@ -17,8 +17,7 @@ pub struct SamPredictor {
     model: Sam,
     transfrom: ResizeLongestSide,
 }
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ImageFormat {
     RGB,
     BGR,
@@ -56,10 +55,13 @@ impl SamPredictor {
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
     pub fn set_image(&mut self, image: Array3<u8>, image_format: &ImageFormat) {
-        // Todo flip image if wrong format
+        if image_format != &self.model.image_format {
+            //Todo flip image
+            unimplemented!("Should flip the image")
+        }
+
         let input_image = self.transfrom.apply_image(&image);
-        let input_image_tensor =
-            Tensor::of_data_size(&input_image.into_raw_vec(), &[/* IDK */], Kind::Uint8);
+        let input_image_tensor = convert_ndarray_to_tensor(&image);
         let mut input_image_torch = input_image_tensor.permute(&[2, 0, 1]);
         input_image_torch = input_image_torch.unsqueeze(0);
         if let Some(device) = self.device {
@@ -80,6 +82,7 @@ impl SamPredictor {
     pub fn set_torch_image(&mut self, transformed_image: Tensor, original_size: Size) {
         // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
+        println!("shape: {:?}", shape);
         if shape.len() != 4
             || shape[1] != 3
             || *shape[2..].iter().max().unwrap() != self.model.image_encoder.img_size.into()
@@ -257,4 +260,21 @@ impl SamPredictor {
         self.input_h = None;
         self.input_w = None;
     }
+}
+
+pub fn convert_ndarray_to_tensor(array: &Array3<u8>) -> Tensor {
+    // Get the shape of the ndarray
+    let shape = array.dim();
+    let (height, width, channels) = (shape.0, shape.1, shape.2);
+
+    // Convert the ndarray to a 1D slice
+    let slice = array.as_slice().unwrap();
+
+    // Create a tch Tensor from the slice
+    let tensor = Tensor::of_slice(slice);
+
+    // Reshape the tensor to match the shape of the ndarray
+    let reshaped_tensor = tensor.reshape(&[height as i64, width as i64, channels as i64]);
+
+    reshaped_tensor
 }
