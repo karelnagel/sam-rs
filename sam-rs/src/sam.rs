@@ -7,6 +7,7 @@ use crate::{
     sam_predictor::{ImageFormat, Size},
 };
 
+#[derive(Debug)]
 pub struct Sam {
     pub image_encoder: ImageEncoderViT,
     pub prompt_encoder: PromptEncoder,

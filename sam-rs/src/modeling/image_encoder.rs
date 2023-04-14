@@ -7,6 +7,7 @@ use tch::{
 };
 
 /// This class and its supporting functions below lightly adapted from the ViTDet backbone available at: https://github.com/facebookresearch/detectron2/blob/main/detectron2/modeling/backbone/vit.py # noqa
+#[derive(Debug)]
 pub struct ImageEncoderViT {
     pub img_size: i64,
     patch_embed: PatchEmbed,
@@ -136,6 +137,7 @@ impl ImageEncoderViT {
 }
 
 ///Transformer blocks with support of window attention and residual propagation blocks
+#[derive(Debug)]
 pub struct Block {
     norm1: nn::LayerNorm,
     norm2: nn::LayerNorm,
@@ -222,6 +224,7 @@ impl Block {
 }
 
 ///Multi-head Attention block with relative position embeddings.
+#[derive(Debug)]
 pub struct Attention {
     num_heads: i64,
     scale: f64,
@@ -460,6 +463,7 @@ pub fn add_decomposed_rel_pos(
 }
 
 /// Image to Patch Embedding.
+#[derive(Debug)]
 pub struct PatchEmbed {
     proj: nn::Conv2D,
 }

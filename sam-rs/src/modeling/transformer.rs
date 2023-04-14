@@ -5,6 +5,7 @@ use tch::{
 
 use super::common::{Activation, ActivationType, MLPBlock};
 
+#[derive(Debug)]
 pub struct TwoWayTransformer {
     depth: i64,
     embedding_dim: i64,
@@ -105,6 +106,7 @@ impl TwoWayTransformer {
     }
 }
 
+#[derive(Debug)]
 pub struct TwoWayAttentionBlock {
     self_attn: Attention,
     norm1: nn::LayerNorm,
@@ -217,6 +219,7 @@ impl TwoWayAttentionBlock {
 
 // An attention layer that allows for downscaling the size of the embedding
 //     after projection to queries, keys, and values.
+#[derive(Debug)]
 pub struct Attention {
     embedding_dim: i64,
     internal_dim: i64,

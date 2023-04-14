@@ -3,6 +3,7 @@ use tch::{
     Kind, Tensor,
 };
 
+#[derive(Debug)]
 pub struct MLPBlock {
     lin1: nn::Linear,
     lin2: nn::Linear,

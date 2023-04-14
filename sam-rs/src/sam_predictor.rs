@@ -17,12 +17,14 @@ pub struct SamPredictor {
     model: Sam,
     transfrom: ResizeLongestSide,
 }
+
+#[derive(Clone, Copy, Debug)]
 pub enum ImageFormat {
     RGB,
     BGR,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Size(pub i64, pub i64);
 
 impl SamPredictor {

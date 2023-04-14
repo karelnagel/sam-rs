@@ -5,6 +5,7 @@ use tch::{
 
 use super::{common::Activation, transformer::TwoWayTransformer};
 
+#[derive(Debug)]
 pub struct MaskDecoder {
     transformer_dim: i64,
     transformer: TwoWayTransformer,

@@ -6,6 +6,7 @@ use crate::sam_predictor::Size;
 
 use super::common::Activation;
 
+#[derive(Debug)]
 pub struct PromptEncoder {
     embed_dim: i64,
     input_image_size: Size,
@@ -232,6 +233,7 @@ impl PromptEncoder {
 }
 
 /// Positional encoding using random spatial frequencies.
+#[derive(Debug)]
 struct PositionEmbeddingRandom {
     positional_encoding_gaussian_matrix: Tensor,
 }
