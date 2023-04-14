@@ -75,7 +75,13 @@ pub trait ToTest {
 
 impl ToTest for Tensor {
     fn to_test(&self) -> TestValue {
-        let hash = hash_tensor(self);
+        let kind = self.kind();
+        let hash = match kind {
+            tch::Kind::Float => hash_tensor::<f64>(self),
+            tch::Kind::Int => hash_tensor::<i64>(self),
+            tch::Kind::Bool => hash_tensor::<bool>(self),
+            _ => panic!("Unsupported tensor kind: {:?}", kind),
+        };
         let size = self.size();
         TestValue::Tensor(TestTensor { hash, size })
     }
@@ -108,11 +114,15 @@ pub fn hash(value: String) -> String {
     format!("{:x}", result)
 }
 
-pub fn hash_tensor(tensor: &Tensor) -> String {
+pub fn hash_tensor<T>(tensor: &Tensor) -> String
+where
+    T: tch::kind::Element,
+    T: std::fmt::Debug,
+{
     let flattened = tensor.flatten(0, -1);
+    let flattened: Vec<T> = flattened.into();
     let value = format!("{:?}", flattened);
-    let hash = hash(value);
-    return hash;
+    hash(value)
 }
 
 pub fn random_tensor(size: &[i64]) -> Tensor {
