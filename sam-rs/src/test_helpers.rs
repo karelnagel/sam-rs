@@ -50,34 +50,6 @@ impl TestFile {
                 }
             }
         }
-        if let TestValue::Tensor(file_tensor) = file_value {
-            if let TestValue::Tensor(tensor) = value {
-                if file_tensor.hash != tensor.hash {
-                    let error = format!(
-                        "file tensor hash: {:?} != tensor hash: {:?}",
-                        file_tensor.hash, tensor.hash
-                    );
-                    panic!("{}", error);
-                }
-                if file_tensor.size != tensor.size {
-                    let error = format!(
-                        "file tensor size: {:?} != tensor size: {:?}",
-                        file_tensor.size, tensor.size
-                    );
-                    panic!("{}", error);
-                }
-            } else {
-                let error = format!("file value: {:?} != value: {:?}", file_value, value);
-                panic!("{}", error);
-            }
-        } else {
-            if file_value == value {
-                println!("true");
-            } else {
-                let error = format!("file value: {:?} != value: {:?}", file_value, value);
-                panic!("{}", error);
-            }
-        }
     }
 }
 

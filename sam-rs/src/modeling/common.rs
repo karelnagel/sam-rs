@@ -45,8 +45,8 @@ impl Module for LayerNorm2d {
 impl LayerNorm2d {
     pub fn new(vs: &nn::Path, num_channels: i64, eps: Option<f64>) -> Self {
         let eps = eps.unwrap_or(1e-6);
-        let weight = vs.ones("weight", &[num_channels]);
-        let bias = vs.zeros("bias", &[num_channels]);
+        let weight = Tensor::ones(&[num_channels], (Kind::Float, vs.device()));
+        let bias = Tensor::zeros(&[num_channels], (Kind::Float, vs.device()));
         Self { weight, bias, eps }
     }
 }
@@ -86,10 +86,10 @@ mod test {
     #[test]
     fn test_layer_norm_2d() {
         let vs = VarStore::new(Device::cuda_if_available());
-        let layer_norm = LayerNorm2d::new(&vs.root(), 256, Some(0.1));
+        let layer_norm = LayerNorm2d::new(&vs.root(), 10, Some(0.1));
         let file = TestFile::open("layer_norm_2d");
-        // file.compare("weight", &layer_norm.weight.to_test());
-        // file.compare("bias", &layer_norm.bias.to_test());
+        file.compare("weight", &layer_norm.weight.to_test());
+        file.compare("bias", &layer_norm.bias.to_test());
         file.compare("eps", &layer_norm.eps.to_test());
     }
 }
