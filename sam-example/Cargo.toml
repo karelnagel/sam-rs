@@ -11,3 +11,4 @@ onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
 opencv = "0.78.2"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
+ndarray = "0.15.6"
