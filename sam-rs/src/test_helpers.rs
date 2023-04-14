@@ -6,14 +6,12 @@ use tch::Tensor;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {
-    pub name: String,
     pub values: HashMap<String, TestValue>,
 }
 impl TestFile {
     pub fn open(name: &str) -> Self {
         let path = format!("./test-files/{}.json", name);
-        println!("path: {:?}", path);
-        let file = std::fs::File::open(path).unwrap();
+        let file = std::fs::File::open(path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
         let test_file: Self = serde_json::from_reader(reader).unwrap();
         test_file
@@ -23,11 +21,62 @@ impl TestFile {
             .values
             .get(key)
             .expect(format!("key {} not found", key).as_str());
-        if file_value == value {
-            println!("true");
+        match file_value {
+            TestValue::Tensor(file_tensor) => {
+                if let TestValue::Tensor(tensor) = value {
+                    if file_tensor.size != tensor.size {
+                        panic!(
+                            "Key '{:?}' tensor size is different: {:?} and {:?}",
+                            key, file_tensor.size, tensor.size
+                        );
+                    }
+                    if file_tensor.hash != tensor.hash {
+                        panic!(
+                            "Key '{:?}' tensor size is same, but hash is different: {:?} and {:?}",
+                            key, file_tensor.hash, tensor.hash
+                        );
+                    }
+                } else {
+                    panic!("Key {} is a tensor, but value is not", key)
+                }
+            }
+            _ => {
+                if file_value != value {
+                    let error = format!(
+                        "Key '{:?}' value is different: {:?} and {:?}",
+                        key, file_value, value
+                    );
+                    panic!("{}", error);
+                }
+            }
+        }
+        if let TestValue::Tensor(file_tensor) = file_value {
+            if let TestValue::Tensor(tensor) = value {
+                if file_tensor.hash != tensor.hash {
+                    let error = format!(
+                        "file tensor hash: {:?} != tensor hash: {:?}",
+                        file_tensor.hash, tensor.hash
+                    );
+                    panic!("{}", error);
+                }
+                if file_tensor.size != tensor.size {
+                    let error = format!(
+                        "file tensor size: {:?} != tensor size: {:?}",
+                        file_tensor.size, tensor.size
+                    );
+                    panic!("{}", error);
+                }
+            } else {
+                let error = format!("file value: {:?} != value: {:?}", file_value, value);
+                panic!("{}", error);
+            }
         } else {
-            let error = format!("file value: {:?} != value: {:?}", file_value, value);
-            panic!("{}", error);
+            if file_value == value {
+                println!("true");
+            } else {
+                let error = format!("file value: {:?} != value: {:?}", file_value, value);
+                panic!("{}", error);
+            }
         }
     }
 }
@@ -91,7 +140,6 @@ pub fn hash_tensor(tensor: &Tensor) -> String {
     let flattened = tensor.flatten(0, -1);
     let value = format!("{:?}", flattened);
     let hash = hash(value);
-    println!("hash: {:?}", hash);
     return hash;
 }
 
