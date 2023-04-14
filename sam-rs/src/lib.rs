@@ -1,7 +1,9 @@
+pub mod build_sam;
 pub mod modeling;
 pub mod sam;
 pub mod sam_predictor;
+pub mod test_helpers;
 pub mod utils;
-pub mod build_sam;
+extern crate md5;
 extern crate ndarray;
 extern crate tch;

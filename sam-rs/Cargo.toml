@@ -3,6 +3,7 @@ name = "sam-rs"
 version = "0.1.0"
 
 [dependencies]
+md-5 = "0.10.5"
 ndarray = "0.15.6"
 onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
 opencv = "0.78.2"
