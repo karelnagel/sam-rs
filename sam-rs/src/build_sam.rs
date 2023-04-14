@@ -38,7 +38,7 @@ fn _build_sam(
     let vs = &vs.root();
     let activation = Activation::new(ActivationType::GELU);
     let activation_relu = Activation::new(ActivationType::ReLU);
-    let sam = Sam::new(
+    Sam::new(
         ImageEncoderViT::new(
             vs,
             Some(img_size),
@@ -76,13 +76,27 @@ fn _build_sam(
         ),
         Some(&[123.675, 116.28, 103.53]),
         Some(&[58.395, 57.12, 57.375]),
-    );
+    )
+}
 
-    // Todo
-    // if checkpoint is not None:
-    //     with open(checkpoint, "rb") as f:
-    //         state_dict = torch.load(f)
-    //     sam.load_state_dict(state_dict)
-    // return sam
-    sam
+#[cfg(test)]
+mod test {
+    use crate::sam::Sam;
+
+    #[test]
+    fn test_build_sam_vit_h() {
+        compare("sam_vit_h", super::build_sam_vit_h(None));
+    }
+
+    #[test]
+    fn test_build_sam_vit_l() {
+        compare("sam_vit_l", super::build_sam_vit_l(None));
+    }
+
+    #[test]
+    fn test_build_sam_vit_b() {
+        compare("sam_vit_b", super::build_sam_vit_b(None));
+    }
+
+    fn compare(name: &str, sam: Sam) {}
 }
