@@ -78,25 +78,3 @@ fn _build_sam(
         Some(&[58.395, 57.12, 57.375]),
     )
 }
-
-#[cfg(test)]
-mod test {
-    use crate::sam::Sam;
-
-    #[test]
-    fn test_build_sam_vit_h() {
-        compare("sam_vit_h", super::build_sam_vit_h(None));
-    }
-
-    #[test]
-    fn test_build_sam_vit_l() {
-        compare("sam_vit_l", super::build_sam_vit_l(None));
-    }
-
-    #[test]
-    fn test_build_sam_vit_b() {
-        compare("sam_vit_b", super::build_sam_vit_b(None));
-    }
-
-    fn compare(name: &str, sam: Sam) {}
-}

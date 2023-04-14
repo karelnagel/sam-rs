@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
 use md5::{Digest, Md5};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {
-    pub path: String,
+    pub name: String,
     pub values: HashMap<String, TestValue>,
 }
 impl TestFile {
-    pub fn new(path: &str) -> Self {
+    pub fn open(name: &str) -> Self {
+        let path = format!("./test-files/{}.json", name);
+        println!("path: {:?}", path);
         let file = std::fs::File::open(path).unwrap();
         let reader = std::io::BufReader::new(file);
         let test_file: Self = serde_json::from_reader(reader).unwrap();
@@ -30,7 +32,7 @@ impl TestFile {
     }
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum TestValue {
     Tensor(TestTensor),
     Float(f64),
@@ -40,7 +42,7 @@ pub enum TestValue {
     List(Vec<TestValue>),
 }
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct TestTensor {
     pub hash: String,
     pub size: Vec<i64>,
