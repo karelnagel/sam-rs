@@ -78,18 +78,26 @@ impl Activation {
 
 #[cfg(test)]
 mod test {
-    use crate::test_helpers::{TestFile, ToTest};
+    use crate::test_helpers::{random_tensor, TestFile, ToTest};
 
     use super::*;
     use tch::{nn::VarStore, Device};
 
     #[test]
     fn test_layer_norm_2d() {
+        // New
         let vs = VarStore::new(Device::cuda_if_available());
         let layer_norm = LayerNorm2d::new(&vs.root(), 256, Some(0.1));
         let file = TestFile::open("layer_norm_2d");
         file.compare("weight", &layer_norm.weight.to_test());
         file.compare("bias", &layer_norm.bias.to_test());
         file.compare("eps", &layer_norm.eps.to_test());
+
+        // Forward
+        let input = random_tensor();
+        let output = layer_norm.forward(&input);
+        let file = TestFile::open("layer_norm_2d_forward");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
     }
 }

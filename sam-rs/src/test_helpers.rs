@@ -125,7 +125,6 @@ where
     hash(value)
 }
 
-pub fn random_tensor(size: &[i64]) -> Tensor {
-    tch::manual_seed(4);
-    Tensor::randn(size, (tch::Kind::Float, tch::Device::Cpu))
+pub fn random_tensor() -> Tensor {
+    Tensor::ones(&[2, 256, 16, 16], (tch::Kind::Float, tch::Device::Cpu))
 }
