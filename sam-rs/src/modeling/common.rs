@@ -75,3 +75,21 @@ impl Activation {
         Self { act_type }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::test_helpers::{TestFile, ToTest};
+
+    use super::*;
+    use tch::{nn::VarStore, Device};
+
+    #[test]
+    fn test_layer_norm_2d() {
+        let vs = VarStore::new(Device::cuda_if_available());
+        let layer_norm = LayerNorm2d::new(&vs.root(), 256, Some(1e-6));
+        let file = TestFile::new("layer_norm_2d");
+        file.compare("weight", &layer_norm.weight.to_test());
+        file.compare("bias", &layer_norm.bias.to_test());
+        file.compare("eps", &layer_norm.eps.to_test());
+    }
+}

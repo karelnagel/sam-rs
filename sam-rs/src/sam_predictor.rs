@@ -83,9 +83,10 @@ impl SamPredictor {
         // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
         println!("shape: {:?}", shape);
+
         if shape.len() != 4
             || shape[1] != 3
-            || *shape[2..].iter().max().unwrap() != self.model.image_encoder.img_size.into()
+            || *shape[2..].iter().max().unwrap() != self.model.image_encoder.img_size
         {
             panic!(
                 "set_torch_image input must be BCHW with long side {}.",
