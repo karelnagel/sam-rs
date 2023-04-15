@@ -3,6 +3,8 @@ use std::{collections::HashMap, fmt::Debug};
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
+use crate::modeling::common::ActivationType;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {
     pub values: HashMap<String, TestValue>,
@@ -77,6 +79,7 @@ pub enum TestValue {
     String(String),
     Bool(bool),
     List(Vec<TestValue>),
+    ActivationType(ActivationType),
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -128,6 +131,11 @@ impl ToTest for String {
 impl ToTest for bool {
     fn to_test(&self) -> TestValue {
         TestValue::Bool(*self)
+    }
+}
+impl ToTest for ActivationType {
+    fn to_test(&self) -> TestValue {
+        TestValue::ActivationType(*self)
     }
 }
 

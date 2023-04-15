@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use tch::{
     nn::{self, Module},
     Kind, Tensor,
@@ -50,7 +51,7 @@ impl LayerNorm2d {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum ActivationType {
     GELU,
     ReLU,
@@ -113,6 +114,28 @@ mod test {
         let input = random_tensor(&[2, 256, 16, 16]);
         let output = layer_norm.forward(&input);
         let file = TestFile::open("layer_norm_2d_forward");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+    }
+
+    #[test]
+    fn test_activation_gelu() {
+        // New
+        let act = Activation::new(ActivationType::GELU);
+        let input = random_tensor(&[256, 256]);
+        let output = act.forward(&input);
+        let file = TestFile::open("activation_gelu");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+    }
+
+    #[test]
+    fn test_activation_relu() {
+        // New
+        let act = Activation::new(ActivationType::ReLU);
+        let input = random_tensor(&[256, 256]);
+        let output = act.forward(&input);
+        let file = TestFile::open("activation_relu");
         file.compare("input", &input.to_test());
         file.compare("output", &output.to_test());
     }
