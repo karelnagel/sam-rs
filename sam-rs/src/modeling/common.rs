@@ -31,14 +31,13 @@ pub struct LayerNorm2d {
 }
 impl Module for LayerNorm2d {
     fn forward(&self, x: &Tensor) -> Tensor {
-        let arr: Option<&[i64]> = Some(&[1, 2, 3]);
-        let u = x.mean_dim(arr, true, Kind::Float);
+        let arr: Option<&[i64]> = Some(&[1]);
+        let u = x.mean_dim(arr, true, tch::Kind::Float);
         let s = (x.copy() - u.copy())
             .pow_tensor_scalar(2)
             .mean_dim(arr, true, Kind::Float);
         let x = (x.copy() - u.copy()) / (&s + self.eps).sqrt();
-        let x =
-            &self.weight.unsqueeze(-1).unsqueeze(-1) * x + &self.bias.unsqueeze(-1).unsqueeze(-1);
+        let x = &self.weight.unsqueeze(1).unsqueeze(2) * x + &self.bias.unsqueeze(1).unsqueeze(2);
         x
     }
 }

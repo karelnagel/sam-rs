@@ -1,6 +1,5 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Debug};
 
-use md5::{Digest, Md5};
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
@@ -21,25 +20,10 @@ impl TestFile {
             .values
             .get(key)
             .expect(format!("key {} not found", key).as_str());
-        match file_value {
-            TestValue::Tensor(file_tensor) => {
-                if let TestValue::Tensor(tensor) = value {
-                    if file_tensor.size != tensor.size {
-                        panic!(
-                            "Key '{:?}' tensor size is different: {:?} and {:?}",
-                            key, file_tensor.size, tensor.size
-                        );
-                    }
-                    if file_tensor.hash != tensor.hash {
-                        panic!(
-                            "Key '{:?}' tensor size is same, but hash is different: {:?} and {:?}",
-                            key, file_tensor.hash, tensor.hash
-                        );
-                    }
-                } else {
-                    panic!("Key {} is a tensor, but value is not", key)
-                }
-            }
+        match (file_value, value) {
+            (TestValue::TensorFloat(val1), TestValue::TensorFloat(val2)) => compare(val1, val2),
+            (TestValue::TensorInt(val1), TestValue::TensorInt(val2)) => compare(val1, val2),
+            (TestValue::TensorBool(val1), TestValue::TensorBool(val2)) => compare(val1, val2),
             _ => {
                 if file_value != value {
                     let error = format!(
@@ -53,10 +37,36 @@ impl TestFile {
         println!("Key {:?} is correct", key);
     }
 }
-
+fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
+    val1: &TestTensor<T>,
+    val2: &TestTensor<T>,
+) {
+    if val1.size != val2.size {
+        panic!(
+            "Tensor size is different: {:?} and {:?}",
+            val1.size, val2.size
+        );
+    }
+    if val1.values != val2.values {
+        let mean = val1.values.mean_error(&val2.values).unwrap();
+        if mean > 0.000001 {
+            // Write wrong values to file useing serde json
+            let file = std::fs::File::create("error.json").expect("file not found");
+            let writer = std::io::BufWriter::new(file);
+            serde_json::to_writer_pretty(writer, &val1.values).unwrap();
+            panic!(
+                "Tensor size is same, but values are different, the mean is {}",
+                mean
+            );
+        }
+        println!("Mean error is {}", mean);
+    }
+}
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum TestValue {
-    Tensor(TestTensor),
+    TensorFloat(TestTensor<Vec<f64>>),
+    TensorInt(TestTensor<Vec<i64>>),
+    TensorBool(TestTensor<Vec<bool>>),
     Float(f64),
     Int(i64),
     String(String),
@@ -65,8 +75,8 @@ pub enum TestValue {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct TestTensor {
-    pub hash: String,
+pub struct TestTensor<T: MyTrait> {
+    pub values: T,
     pub size: Vec<i64>,
 }
 
@@ -77,14 +87,22 @@ pub trait ToTest {
 impl ToTest for Tensor {
     fn to_test(&self) -> TestValue {
         let kind = self.kind();
-        let hash = match kind {
-            tch::Kind::Float => hash_tensor::<f64>(self),
-            tch::Kind::Int => hash_tensor::<i64>(self),
-            tch::Kind::Bool => hash_tensor::<bool>(self),
+        let size = self.size().to_vec();
+        match kind {
+            tch::Kind::Float => TestValue::TensorFloat(TestTensor {
+                values: tensor_to_vec(self),
+                size,
+            }),
+            tch::Kind::Int => TestValue::TensorInt(TestTensor {
+                values: tensor_to_vec(self),
+                size,
+            }),
+            tch::Kind::Bool => TestValue::TensorBool(TestTensor {
+                values: tensor_to_vec(self),
+                size,
+            }),
             _ => panic!("Unsupported tensor kind: {:?}", kind),
-        };
-        let size = self.size();
-        TestValue::Tensor(TestTensor { hash, size })
+        }
     }
 }
 impl ToTest for f64 {
@@ -108,23 +126,14 @@ impl ToTest for bool {
     }
 }
 
-pub fn hash(value: String) -> String {
-    let mut hasher = Md5::new();
-    hasher.update(value.as_bytes());
-    let result = hasher.finalize();
-    println!("{:?}", value.split_at(1000).0);
-    format!("{:x}", result)
-}
-
-pub fn hash_tensor<T>(tensor: &Tensor) -> String
+pub fn tensor_to_vec<T>(tensor: &Tensor) -> Vec<T>
 where
     T: tch::kind::Element,
     T: std::fmt::Debug,
 {
     let flattened = tensor.flatten(0, -1);
     let flattened: Vec<T> = flattened.into();
-    let value = format!("{:?}", flattened);
-    hash(value)
+    flattened
 }
 
 pub fn random_tensor(shape: &[i64]) -> Tensor {
@@ -137,4 +146,47 @@ pub fn random_tensor(shape: &[i64]) -> Tensor {
     Tensor::of_slice(&values)
         .view(shape)
         .to_kind(tch::Kind::Float)
+}
+
+pub trait MyTrait {
+    fn mean_error(&self, other: &Self) -> Result<f64, &'static str>;
+}
+impl MyTrait for Vec<i64> {
+    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+        if self.len() != other.len() {
+            return Err("Vectors must have the same length");
+        }
+        let squared_diff_sum: f64 = self
+            .iter()
+            .zip(other.iter())
+            .map(|(&x, &y)| ((x - y) as f64).powi(2))
+            .sum();
+        Ok(squared_diff_sum / self.len() as f64)
+    }
+}
+impl MyTrait for Vec<f64> {
+    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+        if self.len() != other.len() {
+            return Err("Vectors must have the same length");
+        }
+        let squared_diff_sum: f64 = self
+            .iter()
+            .zip(other.iter())
+            .map(|(&x, &y)| (x - y).powi(2))
+            .sum();
+        Ok(squared_diff_sum / self.len() as f64)
+    }
+}
+impl MyTrait for Vec<bool> {
+    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+        if self.len() != other.len() {
+            return Err("Vectors must have the same length");
+        }
+        let squared_diff_sum: f64 = self
+            .iter()
+            .zip(other.iter())
+            .map(|(&x, &y)| ((x as i64 - y as i64) as f64).powi(2))
+            .sum();
+        Ok(squared_diff_sum / self.len() as f64)
+    }
 }
