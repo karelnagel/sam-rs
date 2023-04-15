@@ -90,15 +90,15 @@ mod test {
         let mut mlp_block =
             MLPBlock::new(&vs.root(), 256, 256, Activation::new(ActivationType::GELU));
         let file = TestFile::open("mlp_block");
-        mlp_block.lin1.ws = random_tensor(&[256, 256]);
-        mlp_block.lin2.ws = random_tensor(&[256, 256]);
-        mlp_block.lin1.bs = Some(random_tensor(&[256]));
-        mlp_block.lin2.bs = Some(random_tensor(&[256]));
+        mlp_block.lin1.ws = random_tensor(&[256, 256],1);
+        mlp_block.lin2.ws = random_tensor(&[256, 256],2);
+        mlp_block.lin1.bs = Some(random_tensor(&[256],3));
+        mlp_block.lin2.bs = Some(random_tensor(&[256],4));
         file.compare("lin1", &mlp_block.lin1.ws.to_test());
         file.compare("lin2", &mlp_block.lin2.ws.to_test());
 
         // Forward
-        let input = random_tensor(&[256, 256]);
+        let input = random_tensor(&[256, 256],5);
         let output = mlp_block.forward(&input);
         let file = TestFile::open("mlp_block_forward");
         file.compare("input", &input.to_test());
@@ -116,7 +116,7 @@ mod test {
         file.compare("eps", &layer_norm.eps.to_test());
 
         // Forward
-        let input = random_tensor(&[2, 256, 16, 16]);
+        let input = random_tensor(&[2, 256, 16, 16],0);
         let output = layer_norm.forward(&input);
         let file = TestFile::open("layer_norm_2d_forward");
         file.compare("input", &input.to_test());
@@ -127,7 +127,7 @@ mod test {
     fn test_activation_gelu() {
         // New
         let act = Activation::new(ActivationType::GELU);
-        let input = random_tensor(&[256, 256]);
+        let input = random_tensor(&[256, 256],0);
         let output = act.forward(&input);
         let file = TestFile::open("activation_gelu");
         file.compare("input", &input.to_test());
@@ -138,7 +138,7 @@ mod test {
     fn test_activation_relu() {
         // New
         let act = Activation::new(ActivationType::ReLU);
-        let input = random_tensor(&[256, 256]);
+        let input = random_tensor(&[256, 256],0);
         let output = act.forward(&input);
         let file = TestFile::open("activation_relu");
         file.compare("input", &input.to_test());

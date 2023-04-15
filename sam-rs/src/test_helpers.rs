@@ -142,14 +142,19 @@ where
     flattened
 }
 
-pub fn random_tensor(shape: &[i64]) -> Tensor {
-    let mut value: f64 = 1.0;
-    let mut values: Vec<f64> = vec![];
-    for _ in 0..(shape.iter().product::<i64>()) {
-        value += 1.0;
-        values.push(value.round());
+pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
+    let n = shape.iter().product::<i64>();
+    let a: u64 = 3;
+    let c: u64 = 23;
+    let m: u64 = 2u64.pow(32);
+
+    let mut result = Vec::new();
+    let mut x = seed;
+    for _ in 0..n {
+        x = (a.wrapping_mul(x).wrapping_add(c)) % m;
+        result.push(x as f64 / m as f64); // Normalize the result to [0, 1]
     }
-    Tensor::of_slice(&values)
+    Tensor::of_slice(&result)
         .view(shape)
         .to_kind(tch::Kind::Float)
 }
