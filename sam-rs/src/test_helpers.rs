@@ -50,6 +50,7 @@ impl TestFile {
                 }
             }
         }
+        println!("Key {:?} is correct", key);
     }
 }
 
@@ -111,6 +112,7 @@ pub fn hash(value: String) -> String {
     let mut hasher = Md5::new();
     hasher.update(value.as_bytes());
     let result = hasher.finalize();
+    println!("{:?}", value.split_at(1000).0);
     format!("{:x}", result)
 }
 
@@ -125,6 +127,14 @@ where
     hash(value)
 }
 
-pub fn random_tensor() -> Tensor {
-    Tensor::ones(&[2, 256, 16, 16], (tch::Kind::Float, tch::Device::Cpu))
+pub fn random_tensor(shape: &[i64]) -> Tensor {
+    let mut value: f64 = 1.0;
+    let mut values: Vec<f64> = vec![];
+    for _ in 0..(shape.iter().product::<i64>()) {
+        value += 1.0;
+        values.push(value.round());
+    }
+    Tensor::of_slice(&values)
+        .view(shape)
+        .to_kind(tch::Kind::Float)
 }

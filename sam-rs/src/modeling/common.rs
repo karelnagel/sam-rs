@@ -94,7 +94,7 @@ mod test {
         file.compare("eps", &layer_norm.eps.to_test());
 
         // Forward
-        let input = random_tensor();
+        let input = random_tensor(&[2, 256, 16, 16]);
         let output = layer_norm.forward(&input);
         let file = TestFile::open("layer_norm_2d_forward");
         file.compare("input", &input.to_test());
