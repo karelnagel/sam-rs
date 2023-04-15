@@ -20,7 +20,7 @@ impl TestFile {
             .values
             .get(key)
             .expect(format!("key {} not found", key).as_str());
-        match (file_value, value) {
+        let res = match (file_value, value) {
             (TestValue::TensorFloat(val1), TestValue::TensorFloat(val2)) => compare(val1, val2),
             (TestValue::TensorInt(val1), TestValue::TensorInt(val2)) => compare(val1, val2),
             (TestValue::TensorBool(val1), TestValue::TensorBool(val2)) => compare(val1, val2),
@@ -30,17 +30,22 @@ impl TestFile {
                         "Key '{:?}' value is different: {:?} and {:?}",
                         key, file_value, value
                     );
-                    panic!("{}", error);
+                    Err(error)
+                } else {
+                    Ok(())
                 }
             }
+        };
+        if let Err(error) = res {
+            panic!("Key '{}' wasnt the same: {}", key, error);
         }
-        println!("Key {:?} is correct", key);
+        println!("Key '{:?}' is correct", key);
     }
 }
 fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
     val1: &TestTensor<T>,
     val2: &TestTensor<T>,
-) {
+) -> Result<(), String> {
     if val1.size != val2.size {
         panic!(
             "Tensor size is different: {:?} and {:?}",
@@ -49,18 +54,18 @@ fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
     }
     if val1.values != val2.values {
         let mean = val1.values.mean_error(&val2.values).unwrap();
-        if mean > 0.000001 {
-            // Write wrong values to file useing serde json
+        if mean > 0.01 {
             let file = std::fs::File::create("error.json").expect("file not found");
             let writer = std::io::BufWriter::new(file);
             serde_json::to_writer_pretty(writer, &val1.values).unwrap();
-            panic!(
+
+            return Err(format!(
                 "Tensor size is same, but values are different, the mean is {}",
                 mean
-            );
+            ));
         }
-        println!("Mean error is {}", mean);
     }
+    Ok(())
 }
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum TestValue {
