@@ -54,18 +54,11 @@ fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
             val1.size, val2.size
         );
     }
-    if val1.values != val2.values {
-        let mean = val1.values.mean_error(&val2.values).unwrap();
-        if mean > 0.01 {
-            let file = std::fs::File::create("error.json").expect("file not found");
-            let writer = std::io::BufWriter::new(file);
-            serde_json::to_writer_pretty(writer, &val1.values).unwrap();
-
-            return Err(format!(
-                "Tensor size is same, but values are different, the mean is {}",
-                mean
-            ));
-        }
+    let res = val1.values.mean_error(&val2.values);
+    if let Err(error) = res {
+        let file = std::fs::File::create("error.json").unwrap();
+        serde_json::to_writer_pretty(file, &(&val1.values, &val2.values)).unwrap();
+        return Err(error);
     }
     Ok(())
 }
@@ -162,44 +155,53 @@ pub fn random_tensor(shape: &[i64]) -> Tensor {
 }
 
 pub trait MyTrait {
-    fn mean_error(&self, other: &Self) -> Result<f64, &'static str>;
+    fn mean_error(&self, other: &Self) -> Result<(), String>;
 }
+const EPSILON: f64 = 0.001;
+
 impl MyTrait for Vec<i64> {
-    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+    fn mean_error(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
-            return Err("Vectors must have the same length");
+            return Err("Vectors must have the same length".to_string());
         }
-        let squared_diff_sum: f64 = self
-            .iter()
-            .zip(other.iter())
-            .map(|(&x, &y)| ((x - y) as f64).powi(2))
-            .sum();
-        Ok(squared_diff_sum / self.len() as f64)
+
+        for (x, y) in self.iter().zip(other.iter()) {
+            let diff = (x - y).abs() as f64;
+            let avg = (x.abs() + y.abs()) as f64 / 2.0;
+            let relative_diff = if avg == 0.0 { diff } else { diff / avg };
+            if relative_diff > EPSILON {
+                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+            }
+        }
+        Ok(())
     }
 }
 impl MyTrait for Vec<f64> {
-    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+    fn mean_error(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
-            return Err("Vectors must have the same length");
+            return Err("Vectors must have the same length".to_string());
         }
-        let squared_diff_sum: f64 = self
-            .iter()
-            .zip(other.iter())
-            .map(|(&x, &y)| (x - y).powi(2))
-            .sum();
-        Ok(squared_diff_sum / self.len() as f64)
+        for (x, y) in self.iter().zip(other.iter()) {
+            let diff = (x - y).abs();
+            let avg = (x.abs() + y.abs()) / 2.0;
+            let relative_diff = if avg == 0.0 { diff } else { diff / avg };
+            if relative_diff > EPSILON {
+                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+            }
+        }
+        Ok(())
     }
 }
 impl MyTrait for Vec<bool> {
-    fn mean_error(&self, other: &Self) -> Result<f64, &'static str> {
+    fn mean_error(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
-            return Err("Vectors must have the same length");
+            return Err("Vectors must have the same length".to_string());
         }
-        let squared_diff_sum: f64 = self
-            .iter()
-            .zip(other.iter())
-            .map(|(&x, &y)| ((x as i64 - y as i64) as f64).powi(2))
-            .sum();
-        Ok(squared_diff_sum / self.len() as f64)
+        for (x, y) in self.iter().zip(other.iter()) {
+            if x != y {
+                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+            }
+        }
+        Ok(())
     }
 }
