@@ -44,7 +44,7 @@ impl TestFile {
         println!("Key '{:?}' is correct", key);
     }
 }
-fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
+fn compare<T: std::cmp::PartialEq + IsSame + Debug + Serialize>(
     val1: &TestTensor<T>,
     val2: &TestTensor<T>,
 ) -> Result<(), String> {
@@ -54,7 +54,7 @@ fn compare<T: std::cmp::PartialEq + MyTrait + Debug + Serialize>(
             val1.size, val2.size
         );
     }
-    let res = val1.values.mean_error(&val2.values);
+    let res = val1.values.is_same(&val2.values);
     if let Err(error) = res {
         let file = std::fs::File::create("error.json").unwrap();
         serde_json::to_writer_pretty(file, &(&val1.values, &val2.values)).unwrap();
@@ -76,7 +76,7 @@ pub enum TestValue {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
-pub struct TestTensor<T: MyTrait> {
+pub struct TestTensor<T: IsSame> {
     pub values: T,
     pub size: Vec<i64>,
 }
@@ -159,46 +159,61 @@ pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
         .to_kind(tch::Kind::Float)
 }
 
-pub trait MyTrait {
-    fn mean_error(&self, other: &Self) -> Result<(), String>;
+pub trait IsSame {
+    fn is_same(&self, other: &Self) -> Result<(), String>;
 }
-const EPSILON: f64 = 0.001;
+const RELATIVE_TOLERANCE: f64 = 0.000001;
 
-impl MyTrait for Vec<i64> {
-    fn mean_error(&self, other: &Self) -> Result<(), String> {
+impl IsSame for Vec<i64> {
+    fn is_same(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
             return Err("Vectors must have the same length".to_string());
         }
+        for (i, (a, b)) in self.iter().zip(other.iter()).enumerate() {
+            // Calculate the absolute difference between the two elements.
+            let diff = (*a as f64 - *b as f64).abs();
+            // Calculate the maximum absolute value of the two elements.
+            let max_abs_value = a.abs().max(b.abs()) as f64;
+            // Calculate the relative tolerance based on the maximum absolute value.
+            let tolerance = RELATIVE_TOLERANCE * max_abs_value;
 
-        for (x, y) in self.iter().zip(other.iter()) {
-            let diff = (x - y).abs() as f64;
-            let avg = (x.abs() + y.abs()) as f64 / 2.0;
-            let relative_diff = if avg == 0.0 { diff } else { diff / avg };
-            if relative_diff > EPSILON {
-                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+            // Check if the difference exceeds the relative tolerance.
+            if diff > tolerance {
+                return Err(format!(
+                    "Elements at index {} differ by more than the allowed tolerance",
+                    i
+                ));
             }
         }
         Ok(())
     }
 }
-impl MyTrait for Vec<f64> {
-    fn mean_error(&self, other: &Self) -> Result<(), String> {
+impl IsSame for Vec<f64> {
+    fn is_same(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
             return Err("Vectors must have the same length".to_string());
         }
-        for (x, y) in self.iter().zip(other.iter()) {
-            let diff = (x - y).abs();
-            let avg = (x.abs() + y.abs()) / 2.0;
-            let relative_diff = if avg == 0.0 { diff } else { diff / avg };
-            if relative_diff > EPSILON {
-                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+        for (i, (a, b)) in self.iter().zip(other.iter()).enumerate() {
+            // Calculate the absolute difference between the two elements.
+            let diff = (*a as f64 - *b as f64).abs();
+            // Calculate the maximum absolute value of the two elements.
+            let max_abs_value = a.abs().max(b.abs()) as f64;
+            // Calculate the relative tolerance based on the maximum absolute value.
+            let tolerance = RELATIVE_TOLERANCE * max_abs_value;
+
+            // Check if the difference exceeds the relative tolerance.
+            if diff > tolerance {
+                return Err(format!(
+                    "Elements at index {} differ by more than the allowed tolerance, diff: {}, tolerance: {}",
+                    i, diff, tolerance
+                ));
             }
         }
         Ok(())
     }
 }
-impl MyTrait for Vec<bool> {
-    fn mean_error(&self, other: &Self) -> Result<(), String> {
+impl IsSame for Vec<bool> {
+    fn is_same(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
             return Err("Vectors must have the same length".to_string());
         }
