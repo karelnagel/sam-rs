@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Debug};
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
-use crate::modeling::common::ActivationType;
+use crate::{modeling::common::ActivationType, sam_predictor::Size};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {
@@ -73,6 +73,7 @@ pub enum TestValue {
     Bool(bool),
     List(Vec<TestValue>),
     ActivationType(ActivationType),
+    Size(Size),
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -109,6 +110,11 @@ impl ToTest for Tensor {
 impl ToTest for f64 {
     fn to_test(&self) -> TestValue {
         TestValue::Float(*self)
+    }
+}
+impl ToTest for Size {
+    fn to_test(&self) -> TestValue {
+        TestValue::Size(*self)
     }
 }
 impl ToTest for i64 {

@@ -76,6 +76,7 @@ impl Block {
         let x = self.norm1.forward(x);
 
         // Window partition
+        let size = Size(x.size()[1], x.size()[2]);
         let (mut x, pad_hw) = if self.window_size > 0 {
             let (x, pad_hw) = window_partition(x, self.window_size);
             (x, Some(pad_hw))
@@ -85,8 +86,7 @@ impl Block {
         x = self.attn.forward(&x);
         // Reverse window partition
         x = if self.window_size > 0 {
-            let (h, w) = x.size2().unwrap();
-            window_unpartition(x, self.window_size, pad_hw.unwrap(), Size(h, w))
+            window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
         } else {
             x
         };
@@ -111,7 +111,7 @@ fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
     let pad_h = (window_size - h % window_size) % window_size;
     let pad_w = (window_size - w % window_size) % window_size;
     let x = if pad_h > 0 || pad_w > 0 {
-        x.pad(&[0, 0, 0, pad_w, 0, pad_h], "d", Some(0.0)) // Todo probably wrong
+        x.pad(&[0, 0, 0, pad_w, 0, pad_h], "constant", None)
     } else {
         x
     };
@@ -160,5 +160,59 @@ fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size)
         x.slice(1, 0, h, 1).slice(2, 0, w, 1).contiguous()
     } else {
         x
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        modeling::common::{Activation, ActivationType},
+        sam_predictor::Size,
+        test_helpers::{random_tensor, TestFile, ToTest},
+    };
+
+    #[test]
+    fn test_window_partition() {
+        let input = random_tensor(&[2, 256, 16, 16], 1);
+        let (output, pad_hw) = super::window_partition(input.copy(), 16);
+        let file = TestFile::open("window_partition");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+        file.compare("size", &pad_hw.to_test());
+    }
+
+    #[test]
+    fn test_window_unpartition() {
+        let input = random_tensor(&[2, 256, 16, 16], 2);
+        let output = super::window_unpartition(input.copy(), 16, Size(16, 16), Size(14, 14));
+        let file = TestFile::open("window_unpartition");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+    }
+
+    #[test]
+    fn test_block() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let block = super::Block::new(
+            &vs.root(),
+            1280,
+            16,
+            Some(4.0),
+            Some(true),
+            Activation::new(ActivationType::GELU),
+            Some(true),
+            Some(true),
+            Some(14),
+            Some(Size(64, 64)),
+        );
+        let file = TestFile::open("block");
+        file.compare("window_size", &block.window_size.to_test());
+
+        // Forward
+        let input = random_tensor(&[1, 64, 64, 1280], 1);
+        let output = block.forward(&input);
+        let file = TestFile::open("block_forward");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
     }
 }

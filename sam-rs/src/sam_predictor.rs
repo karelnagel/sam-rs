@@ -1,4 +1,5 @@
 use ndarray::{Array1, Array2, Array3};
+use serde::{Serialize, Deserialize};
 use tch::{Kind, Tensor};
 
 use crate::sam::Sam;
@@ -23,7 +24,7 @@ pub enum ImageFormat {
     BGR,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Size(pub i64, pub i64);
 
 impl SamPredictor {
