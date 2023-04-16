@@ -48,3 +48,37 @@ impl PatchEmbed {
         x.permute(&[0, 2, 3, 1])
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::sam_predictor::Size;
+    use crate::test_helpers::{TestFile, ToTest};
+    use crate::{modeling::image_encoder::patch_embed::PatchEmbed, test_helpers::random_tensor};
+    use tch::{nn, Device};
+
+    #[test]
+    fn test_patch_embed() {
+        let vs = nn::VarStore::new(Device::Cpu);
+        let mut patch_embed = PatchEmbed::new(
+            &vs.root(),
+            Some(Size(16, 16)),
+            Some(Size(16, 16)),
+            Some(Size(0, 0)),
+            Some(3),
+            Some(768),
+        );
+        patch_embed.proj.ws = random_tensor(&[2, 256, 16, 16], 1);
+        patch_embed.proj.bs = Some(random_tensor(&[2], 2));
+        let file = TestFile::open("patch_embed");
+        file.compare("weight", &patch_embed.proj.ws.to_test());
+        let bias = patch_embed.proj.bs.as_ref().unwrap();
+        file.compare("bias", &bias.to_test());
+
+        // Forward
+        let input = random_tensor(&[2, 256, 16, 16], 3);
+        let output = &patch_embed.forward(&input);
+        let file = TestFile::open("patch_embed_forward");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+    }
+}
