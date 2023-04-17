@@ -173,3 +173,24 @@ impl MaskDecoder {
         return (masks, iou_pred);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use tch::{nn, Device};
+
+    use crate::modeling::{
+        common::activation::{Activation, ActivationType},
+        transformer::TwoWayTransformer,
+    };
+
+    #[test]
+    fn test_mask_decoder() {
+        let vs = nn::VarStore::new(Device::Cpu);
+        let act = Activation::new(ActivationType::GELU);
+        let two_way_transformer =
+            TwoWayTransformer::new(&vs.root(), 1, 1, 1, 1, Some(act), Some(0)); //Todo wrong
+        let mask_decoder =
+            super::MaskDecoder::new(&vs.root(), 256, two_way_transformer, 3, act, 3, 256);
+        
+    }
+}
