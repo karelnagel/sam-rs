@@ -184,7 +184,7 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, TestFile, ToTest},
+        tests::{helpers::{random_tensor, TestFile, ToTest}, mocks::Mock},
     };
 
     #[test]
@@ -234,10 +234,8 @@ mod test {
         file.compare("use_rel_pos", &attention.use_rel_pos.to_test());
 
         let input = random_tensor(&[25, 14, 14, 1280], 1);
-        attention.qkv.ws = random_tensor(&[3840, 1280], 2);
-        attention.qkv.bs = Some(random_tensor(&[3840], 3));
-        attention.proj.ws = random_tensor(&[1280, 1280], 4);
-        attention.proj.bs = Some(random_tensor(&[1280], 5));
+        attention.qkv.mock();
+        attention.proj.mock();
         let output = attention.forward(&input);
         let file = TestFile::open("attention_forward");
         file.compare("input", &input.to_test());

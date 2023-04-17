@@ -26,7 +26,10 @@ impl MLPBlock {
 mod test {
     use crate::{
         modeling::common::activation::ActivationType,
-        tests::helpers::{random_tensor, TestFile, ToTest},
+        tests::{
+            helpers::{random_tensor, TestFile, ToTest},
+            mocks::Mock,
+        },
     };
 
     use super::*;
@@ -39,12 +42,10 @@ mod test {
         let mut mlp_block =
             MLPBlock::new(&vs.root(), 256, 256, Activation::new(ActivationType::GELU));
         let file = TestFile::open("mlp_block");
-        mlp_block.lin1.ws = random_tensor(&[256, 256], 1);
-        mlp_block.lin2.ws = random_tensor(&[256, 256], 2);
-        mlp_block.lin1.bs = Some(random_tensor(&[256], 3));
-        mlp_block.lin2.bs = Some(random_tensor(&[256], 4));
-        file.compare("lin1", &mlp_block.lin1.ws.to_test());
-        file.compare("lin2", &mlp_block.lin2.ws.to_test());
+        
+        // Mocking 
+        mlp_block.lin1.mock();
+        mlp_block.lin2.mock();
 
         // Forward
         let input = random_tensor(&[256, 256], 5);

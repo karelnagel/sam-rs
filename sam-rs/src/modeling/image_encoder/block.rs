@@ -171,7 +171,10 @@ mod test {
     use crate::{
         modeling::common::activation::{Activation, ActivationType},
         sam_predictor::Size,
-        tests::helpers::{random_tensor, TestFile, ToTest},
+        tests::{
+            helpers::{random_tensor, TestFile, ToTest},
+            mocks::Mock,
+        },
     };
 
     #[test]
@@ -211,19 +214,13 @@ mod test {
         let file = TestFile::open("block");
         file.compare("window_size", &block.window_size.to_test());
 
-        // Setting linears and layernorms
-        block.norm1.ws = Some(random_tensor(&[1280], 2));
-        block.norm1.bs = Some(random_tensor(&[1280], 3));
-        block.norm2.ws = Some(random_tensor(&[1280], 4));
-        block.norm2.bs = Some(random_tensor(&[1280], 5));
-        block.attn.qkv.ws = random_tensor(&[3840, 1280], 6);
-        block.attn.qkv.bs = Some(random_tensor(&[3840], 7));
-        block.attn.proj.ws = random_tensor(&[1280, 1280], 8);
-        block.attn.proj.bs = Some(random_tensor(&[1280], 9));
-        block.mlp.lin1.ws = random_tensor(&[5120, 1280], 10);
-        block.mlp.lin1.bs = Some(random_tensor(&[5120], 11));
-        block.mlp.lin2.ws = random_tensor(&[1280, 5120], 12);
-        block.mlp.lin2.bs = Some(random_tensor(&[1280], 13));
+        // Mocking
+        block.norm1.mock();
+        block.norm2.mock();
+        block.attn.qkv.mock();
+        block.attn.proj.mock();
+        block.mlp.lin1.mock();
+        block.mlp.lin2.mock();
 
         // Forward
         let input = random_tensor(&[1, 64, 64, 1280], 1);

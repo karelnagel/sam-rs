@@ -2,14 +2,25 @@ use tch::nn;
 
 use crate::tests::helpers::random_tensor;
 
-trait Mock {
-    fn mock() -> Self;
+pub trait Mock {
+    fn mock(&mut self);
 }
 impl Mock for nn::Linear {
-    fn mock() -> Self {
-        Self {
-            ws: random_tensor(&[256, 256], 1),
-            bs: Some(random_tensor(&[256], 3)),
-        }
+    fn mock(&mut self) {
+        self.ws = random_tensor(&self.ws.size(), 1);
+        self.bs = Some(random_tensor(&self.bs.as_ref().unwrap().size(), 2));
+    }
+}
+impl Mock for nn::LayerNorm {
+    fn mock(&mut self) {
+        self.ws = Some(random_tensor(&self.ws.as_ref().unwrap().size(), 1));
+        self.bs = Some(random_tensor(&self.bs.as_ref().unwrap().size(), 2));
+    }
+}
+
+impl Mock for nn::Conv2D {
+    fn mock(&mut self) {
+        self.ws = random_tensor(&self.ws.size(), 1);
+        self.bs = Some(random_tensor(&self.bs.as_ref().unwrap().size(), 2));
     }
 }

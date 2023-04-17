@@ -53,7 +53,10 @@ impl PatchEmbed {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, TestFile, ToTest},
+        tests::{
+            helpers::{random_tensor, TestFile, ToTest},
+            mocks::Mock,
+        },
     };
     use tch::{nn, Device};
 
@@ -70,15 +73,13 @@ mod test {
             Some(3),
             Some(768),
         );
-        patch_embed.proj.ws = random_tensor(&[2, 256, 16, 16], 1);
-        patch_embed.proj.bs = Some(random_tensor(&[2], 2));
         let file = TestFile::open("patch_embed");
-        file.compare("weight", &patch_embed.proj.ws.to_test());
-        let bias = patch_embed.proj.bs.as_ref().unwrap();
-        file.compare("bias", &bias.to_test());
+
+        // Mocking
+        patch_embed.proj.mock();
 
         // Forward
-        let input = random_tensor(&[2, 256, 16, 16], 3);
+        let input = random_tensor(&[1, 3, 1024, 1024], 3);
         let output = &patch_embed.forward(&input);
         let file = TestFile::open("patch_embed_forward");
         file.compare("input", &input.to_test());
