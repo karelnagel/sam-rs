@@ -2,7 +2,7 @@ use tch::{nn, Tensor};
 
 #[derive(Debug)]
 pub struct MLP {
-    layers: nn::Sequential,
+    layers: Vec<nn::Linear>,
     num_layers: usize,
     sigmoid_output: bool,
 }
@@ -16,45 +16,37 @@ impl MLP {
         num_layers: usize,
         sigmoid_output: bool,
     ) -> Self {
-        let mut layers = nn::seq();
-        let mut last_dim = input_dim;
-        for i in 0..num_layers {
-            let next_dim = if i == num_layers - 1 {
-                output_dim
-            } else {
-                hidden_dim
-            };
-            layers = layers.add(nn::linear(
-                vs / format!("layer_{}", i),
-                last_dim,
-                next_dim,
-                Default::default(),
-            ));
-            last_dim = next_dim;
+        let h = vec![hidden_dim; num_layers - 1];
+        let mut layers = vec![];
+
+        let n_values = std::iter::once(input_dim).chain(h.clone());
+        let k_values = h.into_iter().chain(std::iter::once(output_dim));
+        for (n, k) in n_values.zip(k_values) {
+            layers.push(nn::linear(vs, n, k, Default::default()));
         }
+
         Self {
-            layers,
-            num_layers,
-            sigmoid_output,
+            layers: layers,
+            num_layers: num_layers,
+            sigmoid_output: sigmoid_output,
         }
     }
 }
 impl nn::Module for MLP {
     fn forward(&self, x: &Tensor) -> Tensor {
-        let intermediate_outputs = self.layers.forward_all(x, None);
-        let mut x = intermediate_outputs[0].shallow_clone();
-        for i in 1..self.num_layers {
+        let mut x = x.copy();
+
+        for (i, layer) in self.layers.iter().enumerate() {
             x = if i < self.num_layers - 1 {
-                x.relu()
+                layer.forward(&x).relu() // Assuming forward and relu functions are defined
             } else {
-                intermediate_outputs[i].shallow_clone()
+                layer.forward(&x)
             };
         }
         if self.sigmoid_output {
-            x.sigmoid()
-        } else {
-            x
+            x = x.sigmoid();
         }
+        x.copy()
     }
 }
 
@@ -62,22 +54,34 @@ impl nn::Module for MLP {
 mod test {
     use tch::nn::Module;
 
-    use crate::tests::helpers::{random_tensor, TestFile};
+    use crate::tests::{
+        helpers::{random_tensor, TestFile},
+        mocks::Mock,
+    };
 
     #[test]
     fn test_mlp() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
+        let mut mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
         let file = TestFile::open("mlp");
         file.compare("num_layers", &mlp.num_layers.into());
         file.compare("sigmoid_output", &mlp.sigmoid_output.into());
+        file.compare("layers_len", &mlp.layers.len().into());
+        for (i, layer) in mlp.layers.iter().enumerate() {
+            file.compare(&format!("layer{}", i), &layer.ws.size().into());
+        }
+
+        // Mocking
+        for layer in mlp.layers.iter_mut() {
+            layer.mock();
+        }
 
         // Forward
         let input = random_tensor(&[1, 256], 1);
         let output = mlp.forward(&input);
         let file = TestFile::open("mlp_forward");
         file.compare("input", &input.into());
-        // file.compare("output", &output.to_test());
+        file.compare("output", &output.into());
         // Todo
     }
 }
