@@ -28,7 +28,7 @@ impl Activation {
 
 #[cfg(test)]
 mod test {
-    use crate::test_helpers::{random_tensor, TestFile, ToTest};
+    use crate::tests::helpers::{random_tensor, TestFile, ToTest};
 
     use super::*;
 

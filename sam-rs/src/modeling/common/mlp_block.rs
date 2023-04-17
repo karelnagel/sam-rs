@@ -26,7 +26,7 @@ impl MLPBlock {
 mod test {
     use crate::{
         modeling::common::activation::ActivationType,
-        test_helpers::{random_tensor, TestFile, ToTest},
+        tests::helpers::{random_tensor, TestFile, ToTest},
     };
 
     use super::*;

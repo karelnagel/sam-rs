@@ -51,10 +51,13 @@ impl PatchEmbed {
 
 #[cfg(test)]
 mod test {
-    use crate::sam_predictor::Size;
-    use crate::test_helpers::{TestFile, ToTest};
-    use crate::{modeling::image_encoder::patch_embed::PatchEmbed, test_helpers::random_tensor};
+    use crate::{
+        sam_predictor::Size,
+        tests::helpers::{random_tensor, TestFile, ToTest},
+    };
     use tch::{nn, Device};
+
+    use super::PatchEmbed;
 
     #[test]
     fn test_patch_embed() {

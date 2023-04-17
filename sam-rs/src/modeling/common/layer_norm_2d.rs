@@ -35,7 +35,7 @@ impl LayerNorm2d {
 
 #[cfg(test)]
 mod test {
-    use crate::test_helpers::{random_tensor, TestFile, ToTest};
+    use crate::tests::helpers::{random_tensor, TestFile, ToTest};
 
     use super::*;
     use tch::{nn::VarStore, Device};
@@ -57,5 +57,4 @@ mod test {
         file.compare("input", &input.to_test());
         file.compare("output", &output.to_test());
     }
-
 }

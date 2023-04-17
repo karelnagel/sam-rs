@@ -171,7 +171,7 @@ mod test {
     use crate::{
         modeling::common::activation::{Activation, ActivationType},
         sam_predictor::Size,
-        test_helpers::{random_tensor, TestFile, ToTest},
+        tests::helpers::{random_tensor, TestFile, ToTest},
     };
 
     #[test]

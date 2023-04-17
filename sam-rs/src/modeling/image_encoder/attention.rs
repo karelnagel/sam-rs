@@ -184,7 +184,7 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 mod test {
     use crate::{
         sam_predictor::Size,
-        test_helpers::{random_tensor, TestFile, ToTest},
+        tests::helpers::{random_tensor, TestFile, ToTest},
     };
 
     #[test]

@@ -157,6 +157,11 @@ impl ToTest for ActivationType {
         TestValue::ActivationType(*self)
     }
 }
+impl ToTest for Vec<i64> {
+    fn to_test(&self) -> TestValue {
+        TestValue::List(self.iter().map(|x| x.to_test()).collect())
+    }
+}
 
 pub fn tensor_to_vec<T>(tensor: &Tensor) -> Vec<T>
 where

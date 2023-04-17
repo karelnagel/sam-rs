@@ -62,7 +62,7 @@ impl nn::Module for MLP {
 mod test {
     use tch::nn::Module;
 
-    use crate::test_helpers::{random_tensor, TestFile, ToTest};
+    use crate::tests::helpers::{random_tensor, TestFile, ToTest};
 
     #[test]
     fn test_mlp_block() {

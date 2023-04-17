@@ -141,12 +141,11 @@ impl ImageEncoderViT {
 
 #[cfg(test)]
 mod test {
+    use super::ImageEncoderViT;
     use crate::{
         modeling::common::activation::Activation,
-        test_helpers::{random_tensor, TestFile, ToTest},
+        tests::helpers::{random_tensor, TestFile, ToTest},
     };
-
-    use super::ImageEncoderViT;
 
     #[test]
     fn test_image_encoder() {
