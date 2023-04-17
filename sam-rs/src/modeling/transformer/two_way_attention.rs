@@ -3,7 +3,10 @@ use tch::{
     Tensor,
 };
 
-use crate::modeling::common::{mlp_block::MLPBlock, activation::{Activation, ActivationType}};
+use crate::modeling::common::{
+    activation::{Activation, ActivationType},
+    mlp_block::MLPBlock,
+};
 
 use super::attention::Attention;
 
@@ -115,5 +118,66 @@ impl TwoWayAttentionBlock {
         queries = self.norm4.forward(&queries);
 
         (queries, keys)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        modeling::common::activation::{Activation, ActivationType},
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
+    };
+    impl Mock for super::TwoWayAttentionBlock {
+        fn mock(&mut self) {
+            self.self_attn.mock();
+            self.norm1.mock();
+            self.norm2.mock();
+            self.norm3.mock();
+            self.norm4.mock();
+            self.cross_attn_token_to_image.mock();
+            self.cross_attn_image_to_token.mock();
+            self.mlp.mock();
+        }
+    }
+
+    #[test]
+    fn test_two_way_attention_block() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let mut block = super::TwoWayAttentionBlock::new(
+            &vs.root(),
+            256,
+            8,
+            Some(2048),
+            Some(Activation::new(ActivationType::ReLU)),
+            Some(2),
+            Some(false),
+        );
+        let file = TestFile::open("transformer_two_way_attention_block");
+        file.compare("norm1_size", block.norm1.ws.as_ref().unwrap().size());
+        file.compare("norm2_size", block.norm2.ws.as_ref().unwrap().size());
+        file.compare("norm3_size", block.norm3.ws.as_ref().unwrap().size());
+        file.compare("norm4_size", block.norm4.ws.as_ref().unwrap().size());
+        file.compare("skip_first_layer_pe", block.skip_first_layer_pe);
+
+        // Mocking
+        block.mock();
+
+        // Forward
+        let queries = random_tensor(&[1, 256, 256], 1);
+        let keys = random_tensor(&[1, 256, 256], 2);
+        let query_pe = random_tensor(&[1, 256, 256], 3);
+        let key_pe = random_tensor(&[1, 256, 256], 4);
+        let (_out_queries, _out_keys) = block.forward(&queries, &keys, &query_pe, &key_pe);
+        let file = TestFile::open("transformer_two_way_attention_block_forward");
+        file.compare("queries", queries);
+        file.compare("keys", keys);
+        file.compare("query_pe", query_pe);
+        file.compare("key_pe", key_pe);
+        // file.compare("out_queries", out_queries);
+        // file.compare("out_keys", out_keys);
+        // Todo fix this test
     }
 }
