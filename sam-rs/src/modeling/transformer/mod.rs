@@ -109,3 +109,47 @@ impl TwoWayTransformer {
         (queries, keys)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        modeling::common::activation::{Activation, ActivationType},
+        tests::{helpers::TestFile, mocks::Mock},
+    };
+
+    use super::TwoWayTransformer;
+    impl Mock for TwoWayTransformer {
+        fn mock(&mut self) {
+            self.final_attn_token_to_image.mock();
+            self.norm_final_attn.mock();
+            for layer in &mut self.layers {
+                layer.mock();
+            }
+        }
+    }
+    #[test]
+    fn test_two_way_transformer() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let mut transformer = super::TwoWayTransformer::new(
+            &vs.root(),
+            2,
+            258,
+            8,
+            2048,
+            Some(Activation::new(ActivationType::ReLU)),
+            None,
+        );
+        let file = TestFile::open("transformer_two_way_transformer");
+        file.compare("depth", transformer.depth);
+        file.compare("embedding_dim", transformer.embedding_dim);
+        file.compare("num_heads", transformer.num_heads);
+        file.compare("mlp_dim", transformer.mlp_dim);
+        file.compare("layers_len", transformer.layers.len());
+
+        // Mocking
+        transformer.mock();
+
+        // Forward
+        // Todo
+    }
+}
