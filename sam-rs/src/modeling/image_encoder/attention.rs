@@ -1,6 +1,6 @@
 use tch::{
     nn::{self, LinearConfig, Module},
-    Tensor,
+    Device, Kind, Tensor,
 };
 
 use crate::sam_predictor::Size;
@@ -59,9 +59,15 @@ impl Attention {
                 input_size.is_some(),
                 "Input size must be provided if using relative positional encoding."
             );
-            let (h, w) = (input_size.unwrap().0, input_size.unwrap().1);
-            rel_pos_h = Some(vs.zeros("rel_pos_h", &[w, num_heads]));
-            rel_pos_w = Some(vs.zeros("rel_pos_w", &[h, num_heads]));
+            let Size(h, w) = input_size.unwrap();
+            rel_pos_h = Some(Tensor::zeros(
+                &[2 * h - 1, head_dim],
+                (tch::Kind::Float, Device::Cpu),
+            ));
+            rel_pos_w = Some(Tensor::zeros(
+                &[2 * w - 1, head_dim],
+                (tch::Kind::Float, Device::Cpu),
+            ));
         }
 
         Self {
@@ -83,7 +89,8 @@ impl Attention {
             .permute(&[2, 0, 3, 1, 4]);
         let qkv = qkv.reshape(&[3, b * self.num_heads, h * w, -1]).unbind(0);
         let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
-        let mut attn = (q * self.scale) * k.transpose(-2, -1);
+
+        let mut attn = (q * self.scale).matmul(&k.transpose(-2, -1));
         if self.use_rel_pos {
             attn = add_decomposed_rel_pos(
                 &attn,
@@ -92,14 +99,17 @@ impl Attention {
                 &self.rel_pos_w.as_ref().unwrap(),
                 Size(h, w),
                 Size(h, w),
-            );
-        }
-        attn = attn.softmax(-1, tch::Kind::Float);
-        let x = (attn * v)
+            )
+        };
+        attn = attn.softmax(-1, Kind::Float);
+
+        let x = attn
+            .matmul(&v)
             .view([b, self.num_heads, h, w, -1])
             .permute(&[0, 2, 3, 1, 4])
             .reshape(&[b, h, w, -1]);
-        self.proj.forward(&x)
+        let x = self.proj.forward(&x);
+        x
     }
 }
 
@@ -130,8 +140,9 @@ fn add_decomposed_rel_pos(
 
     let (b, _, dim) = q.size3().unwrap();
     let r_q = q.reshape(&[b, q_h, q_w, dim]);
-    let rel_h = r_q.matmul(&rh).view([b, q_h, q_w, k_h, k_w]);
-    let rel_w = r_q.matmul(&rw).view([b, q_h, q_w, k_h, k_w]);
+
+    let rel_h = Tensor::einsum("bhwc,hkc->bhwk", &[&r_q, &rh], None);
+    let rel_w = Tensor::einsum("bhwc,wkc->bhwk", &[&r_q, &rw], None);
     let attn = attn.view([b, q_h, q_w, k_h, k_w]) + &rel_h.unsqueeze(-1) + &rel_w.unsqueeze(-2);
     attn.view([b, q_h * q_w, k_h * k_w])
 }
@@ -147,28 +158,19 @@ fn add_decomposed_rel_pos(
 // Extracted positional embeddings according to relative positions.
 fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
     let max_rel_dist = 2 * q_size.max(k_size) - 1;
+    let mut rel_pos_resized = rel_pos;
 
-    // Interpolate rel pos if needed.
-    let rel_pos_resized = if rel_pos.size()[0] != max_rel_dist {
-        // Interpolate rel pos.
-        let rel_pos_resized = rel_pos
-            .reshape(&[1, rel_pos.size()[0], -1])
-            .permute(&[0, 2, 1])
-            // Todo
-            // .interpolate(
-            //     &[max_rel_dist],
-            //     InterpolateConfig {
-            //         mode: "linear",
-            //         size: max_rel_dist,
-            //         ..Default::default()
-            //     },
-            // )
+    if rel_pos_resized.size()[0] != max_rel_dist {
+        let rel_pos_3d = rel_pos_resized.unsqueeze(0);
+        // Perform linear interpolation (upsampling) along the last dimension.
+        rel_pos_resized = rel_pos_3d.upsample_linear1d(&[max_rel_dist as i64], false, None);
+
+        // Remove the extra dimension.
+        rel_pos_resized = rel_pos_resized.squeeze_dim(0);
+        rel_pos_resized = rel_pos_resized
             .reshape(&[-1, max_rel_dist])
-            .permute(&[1, 0]);
-        rel_pos_resized
-    } else {
-        rel_pos
-    };
+            .permute(&[1, 0])
+    }
     let q_coords = Tensor::arange(q_size, (tch::Kind::Int64, tch::Device::Cpu)).unsqueeze(-1)
         * (k_size as f64 / q_size as f64).max(1.0);
     let k_coords = Tensor::arange(k_size, (tch::Kind::Int64, tch::Device::Cpu)).unsqueeze(0)
@@ -176,4 +178,69 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
     let relative_coords =
         &q_coords - &k_coords + (k_size - 1) as f64 * (q_size as f64 / k_size as f64).max(1.0);
     rel_pos_resized.index(&[Some(relative_coords.to_kind(tch::Kind::Int64))])
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        sam_predictor::Size,
+        test_helpers::{random_tensor, TestFile, ToTest},
+    };
+
+    #[test]
+    fn test_get_rel_pos() {
+        let rel_pos = random_tensor(&[127, 80], 1);
+        let q_size = 64;
+        let k_size = 64;
+        let output = super::get_rel_pos(q_size, k_size, rel_pos.copy());
+        let file = TestFile::open("get_rel_pos");
+        file.compare("input", &rel_pos.to_test());
+        file.compare("output", &output.to_test());
+    }
+
+    #[test]
+    fn test_add_decomposed_rel_pos() {
+        let attn = random_tensor(&[400, 196, 196], 2);
+        let q = random_tensor(&[400, 196, 80], 3);
+        let rel_pos_h = random_tensor(&[27, 80], 4);
+        let rel_pos_w = random_tensor(&[27, 80], 5);
+        let q_size = Size(14, 14);
+        let k_size = Size(14, 14);
+        let output =
+            super::add_decomposed_rel_pos(&attn, &q, &rel_pos_h, &rel_pos_w, q_size, k_size);
+        let file = TestFile::open("add_decomposed_rel_pos");
+        file.compare("attn", &attn.to_test());
+        file.compare("q", &q.to_test());
+        file.compare("q_size", &q_size.to_test());
+        file.compare("k_size", &k_size.to_test());
+        file.compare("output", &output.to_test());
+    }
+
+    #[test]
+    fn test_attention() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let mut attention = super::Attention::new(
+            &vs.root(),
+            1280,
+            Some(16),
+            Some(true),
+            Some(true),
+            Some(true),
+            Some(Size(14, 14)),
+        );
+        let file = TestFile::open("attention");
+        file.compare("num_heads", &attention.num_heads.to_test());
+        file.compare("scale", &attention.scale.to_test());
+        file.compare("use_rel_pos", &attention.use_rel_pos.to_test());
+
+        let input = random_tensor(&[25, 14, 14, 1280], 1);
+        attention.qkv.ws = random_tensor(&[3840, 1280], 2);
+        attention.qkv.bs = Some(random_tensor(&[3840], 3));
+        attention.proj.ws = random_tensor(&[1280, 1280], 4);
+        attention.proj.bs = Some(random_tensor(&[1280], 5));
+        let output = attention.forward(&input);
+        let file = TestFile::open("attention_forward");
+        file.compare("input", &input.to_test());
+        file.compare("output", &output.to_test());
+    }
 }
