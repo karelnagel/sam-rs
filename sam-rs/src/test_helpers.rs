@@ -137,6 +137,11 @@ impl ToTest for i64 {
         TestValue::Int(*self)
     }
 }
+impl ToTest for usize {
+    fn to_test(&self) -> TestValue {
+        TestValue::Int(*self as i64)
+    }
+}
 impl ToTest for String {
     fn to_test(&self) -> TestValue {
         TestValue::String(self.to_string())

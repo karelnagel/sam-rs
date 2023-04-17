@@ -171,7 +171,7 @@ mod test {
             Some(&[7, 15, 23, 31]),
         );
         let file = TestFile::open("image_encoder");
-        file.compare("img_size", &1024.to_test());
+        file.compare("img_size", &1024_i64.to_test());
 
         // Forward
         let input = random_tensor(&[1, 3, 1024, 1024], 1);
