@@ -2,7 +2,7 @@ use tch::{nn::VarStore, Device};
 
 use crate::{
     modeling::{
-        common::{Activation, ActivationType},
+        common::activation::{Activation, ActivationType},
         image_encoder::ImageEncoderViT,
         mask_decoder::MaskDecoder,
         prompt_encoder::PromptEncoder,

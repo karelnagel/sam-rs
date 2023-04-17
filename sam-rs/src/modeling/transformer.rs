@@ -3,7 +3,10 @@ use tch::{
     Tensor,
 };
 
-use super::common::{Activation, ActivationType, MLPBlock};
+use super::common::{
+    activation::{Activation, ActivationType},
+    mlp_block::MLPBlock,
+};
 
 #[derive(Debug)]
 pub struct TwoWayTransformer {

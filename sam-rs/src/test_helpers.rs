@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Debug};
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
-use crate::{modeling::common::ActivationType, sam_predictor::Size};
+use crate::{modeling::common::activation::ActivationType, sam_predictor::Size};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {

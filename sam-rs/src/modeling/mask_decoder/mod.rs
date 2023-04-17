@@ -5,7 +5,7 @@ use tch::{
     Tensor,
 };
 
-use super::{common::Activation, transformer::TwoWayTransformer};
+use super::{common::activation::Activation, transformer::TwoWayTransformer};
 
 #[derive(Debug)]
 pub struct MaskDecoder {

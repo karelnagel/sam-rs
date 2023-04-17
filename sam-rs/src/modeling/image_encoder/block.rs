@@ -4,7 +4,7 @@ use tch::{
 };
 
 use crate::{
-    modeling::common::{Activation, MLPBlock},
+    modeling::common::{activation::Activation, mlp_block::MLPBlock},
     sam_predictor::Size,
 };
 
@@ -169,7 +169,7 @@ fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size)
 #[cfg(test)]
 mod test {
     use crate::{
-        modeling::common::{Activation, ActivationType},
+        modeling::common::activation::{Activation, ActivationType},
         sam_predictor::Size,
         test_helpers::{random_tensor, TestFile, ToTest},
     };

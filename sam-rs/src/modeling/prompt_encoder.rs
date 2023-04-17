@@ -4,7 +4,7 @@ use tch::{nn, Device, Tensor};
 
 use crate::sam_predictor::Size;
 
-use super::common::Activation;
+use super::common::activation::Activation;
 
 #[derive(Debug)]
 pub struct PromptEncoder {

@@ -1,7 +1,7 @@
 use self::block::Block;
 use self::patch_embed::PatchEmbed;
 
-use super::common::{Activation, LayerNorm2d};
+use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
 use crate::sam_predictor::Size;
 use tch::nn::Path;
 use tch::{nn, Tensor};
@@ -142,7 +142,7 @@ impl ImageEncoderViT {
 #[cfg(test)]
 mod test {
     use crate::{
-        modeling::common::Activation,
+        modeling::common::activation::Activation,
         test_helpers::{random_tensor, TestFile, ToTest},
     };
 
@@ -151,7 +151,7 @@ mod test {
     #[test]
     fn test_image_encoder() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let act = Activation::new(crate::modeling::common::ActivationType::GELU);
+        let act = Activation::new(crate::modeling::common::activation::ActivationType::GELU);
         let image_encoder = ImageEncoderViT::new(
             &vs.root(),
             Some(1024),
