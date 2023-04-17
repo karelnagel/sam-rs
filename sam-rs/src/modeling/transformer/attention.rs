@@ -75,3 +75,42 @@ impl Attention {
         self.out_proj.forward(&out)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::tests::{
+        helpers::{random_tensor, TestFile},
+        mocks::Mock,
+    };
+
+    #[test]
+    fn test_attention() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let mut attention = super::Attention::new(&vs.root(), 256, 8, Some(1));
+        let file = TestFile::open("transformer_attention");
+        file.compare("embedding_dim", &attention.embedding_dim.into());
+        file.compare("internal_dim", &attention.internal_dim.into());
+        file.compare("num_heads", &attention.num_heads.into());
+        file.compare("q_proj_size", &attention.q_proj.ws.size().into());
+        file.compare("k_proj_size", &attention.k_proj.ws.size().into());
+        file.compare("v_proj_size", &attention.v_proj.ws.size().into());
+        file.compare("out_proj_size", &attention.out_proj.ws.size().into());
+
+        // Mocking
+        attention.q_proj.mock();
+        attention.k_proj.mock();
+        attention.v_proj.mock();
+        attention.out_proj.mock();
+
+        // Forward
+        let q = random_tensor(&[1, 256, 256], 1);
+        let k = random_tensor(&[1, 256, 256], 2);
+        let v = random_tensor(&[1, 256, 256], 3);
+        let output = attention.forward(&q, &k, &v);
+        let file = TestFile::open("transformer_attention_forward");
+        file.compare("q", &q.into());
+        file.compare("k", &k.into());
+        file.compare("v", &v.into());
+        file.compare("output", &output.into());
+    }
+}
