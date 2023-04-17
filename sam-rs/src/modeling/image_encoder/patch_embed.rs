@@ -74,6 +74,7 @@ mod test {
             Some(320),
         );
         let file = TestFile::open("patch_embed");
+        file.compare("proj_size", &patch_embed.proj.ws.size().into());
 
         // Mocking
         patch_embed.proj.mock();

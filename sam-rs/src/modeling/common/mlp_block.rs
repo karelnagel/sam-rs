@@ -42,6 +42,8 @@ mod test {
         let mut mlp_block =
             MLPBlock::new(&vs.root(), 256, 256, Activation::new(ActivationType::GELU));
         let file = TestFile::open("mlp_block");
+        file.compare("lin1_size", &mlp_block.lin1.ws.size().into());
+        file.compare("lin2_size", &mlp_block.lin2.ws.size().into());
 
         // Mocking
         mlp_block.lin1.mock();
