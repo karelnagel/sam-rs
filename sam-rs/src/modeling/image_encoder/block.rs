@@ -172,7 +172,7 @@ mod test {
         modeling::common::activation::{Activation, ActivationType},
         sam_predictor::Size,
         tests::{
-            helpers::{random_tensor, TestFile, ToTest},
+            helpers::{random_tensor, TestFile},
             mocks::Mock,
         },
     };
@@ -182,9 +182,9 @@ mod test {
         let input = random_tensor(&[2, 256, 16, 16], 1);
         let (output, pad_hw) = super::window_partition(input.copy(), 16);
         let file = TestFile::open("window_partition");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
-        file.compare("size", &pad_hw.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
+        file.compare("size", &pad_hw.into());
     }
 
     #[test]
@@ -192,8 +192,8 @@ mod test {
         let input = random_tensor(&[2, 256, 16, 16], 2);
         let output = super::window_unpartition(input.copy(), 16, Size(16, 16), Size(14, 14));
         let file = TestFile::open("window_unpartition");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
     }
 
     #[test]
@@ -212,7 +212,7 @@ mod test {
             Some(Size(64, 64)),
         );
         let file = TestFile::open("block");
-        file.compare("window_size", &block.window_size.to_test());
+        file.compare("window_size", &block.window_size.into());
 
         // Mocking
         block.norm1.mock();
@@ -226,7 +226,7 @@ mod test {
         let input = random_tensor(&[1, 64, 64, 320], 1);
         let output = block.forward(&input);
         let file = TestFile::open("block_forward");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
     }
 }

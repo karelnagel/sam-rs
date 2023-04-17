@@ -86,7 +86,7 @@ pub enum TestValue {
     Int(i64),
     String(String),
     Bool(bool),
-    List(Vec<TestValue>),
+    List(Vec<i64>),
     ActivationType(ActivationType),
     Size(Size),
 }
@@ -97,69 +97,65 @@ pub struct TestTensor<T: IsSame> {
     pub size: Vec<i64>,
 }
 
-pub trait ToTest {
-    fn to_test(&self) -> TestValue;
-}
-
-impl ToTest for Tensor {
-    fn to_test(&self) -> TestValue {
-        let kind = self.kind();
-        let size = self.size().to_vec();
+impl From<Tensor> for TestValue {
+    fn from(tensor: Tensor) -> Self {
+        let kind: tch::Kind = tensor.kind();
+        let size = tensor.size().to_vec();
         match kind {
             tch::Kind::Float => TestValue::TensorFloat(TestTensor {
-                values: tensor_to_vec(self),
+                values: tensor_to_vec(&tensor),
                 size,
             }),
             tch::Kind::Int => TestValue::TensorInt(TestTensor {
-                values: tensor_to_vec(self),
+                values: tensor_to_vec(&tensor),
                 size,
             }),
             tch::Kind::Bool => TestValue::TensorBool(TestTensor {
-                values: tensor_to_vec(self),
+                values: tensor_to_vec(&tensor),
                 size,
             }),
             _ => panic!("Unsupported tensor kind: {:?}", kind),
         }
     }
 }
-impl ToTest for f64 {
-    fn to_test(&self) -> TestValue {
-        TestValue::Float(*self)
+impl From<f64> for TestValue {
+    fn from(item: f64) -> Self {
+        TestValue::Float(item)
     }
 }
-impl ToTest for Size {
-    fn to_test(&self) -> TestValue {
-        TestValue::Size(*self)
+impl From<Size> for TestValue {
+    fn from(item: Size) -> Self {
+        TestValue::Size(item)
     }
 }
-impl ToTest for i64 {
-    fn to_test(&self) -> TestValue {
-        TestValue::Int(*self)
+impl From<i64> for TestValue {
+    fn from(item: i64) -> Self {
+        TestValue::Int(item)
     }
 }
-impl ToTest for usize {
-    fn to_test(&self) -> TestValue {
-        TestValue::Int(*self as i64)
+impl From<usize> for TestValue {
+    fn from(item: usize) -> Self {
+        TestValue::Int(item as i64)
     }
 }
-impl ToTest for String {
-    fn to_test(&self) -> TestValue {
-        TestValue::String(self.to_string())
+impl From<String> for TestValue {
+    fn from(item: String) -> Self {
+        TestValue::String(item.to_string())
     }
 }
-impl ToTest for bool {
-    fn to_test(&self) -> TestValue {
-        TestValue::Bool(*self)
+impl From<bool> for TestValue {
+    fn from(item: bool) -> Self {
+        TestValue::Bool(item)
     }
 }
-impl ToTest for ActivationType {
-    fn to_test(&self) -> TestValue {
-        TestValue::ActivationType(*self)
+impl From<ActivationType> for TestValue {
+    fn from(item: ActivationType) -> Self {
+        TestValue::ActivationType(item)
     }
 }
-impl ToTest for Vec<i64> {
-    fn to_test(&self) -> TestValue {
-        TestValue::List(self.iter().map(|x| x.to_test()).collect())
+impl From<Vec<i64>> for TestValue {
+    fn from(item: Vec<i64>) -> Self {
+        TestValue::List(item)
     }
 }
 
@@ -169,8 +165,7 @@ where
     T: std::fmt::Debug,
 {
     let flattened = tensor.flatten(0, -1);
-    let flattened: Vec<T> = flattened.into();
-    flattened
+    flattened.into()
 }
 
 pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {

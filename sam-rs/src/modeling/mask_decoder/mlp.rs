@@ -62,21 +62,21 @@ impl nn::Module for MLP {
 mod test {
     use tch::nn::Module;
 
-    use crate::tests::helpers::{random_tensor, TestFile, ToTest};
+    use crate::tests::helpers::{random_tensor, TestFile};
 
     #[test]
     fn test_mlp() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
         let file = TestFile::open("mlp");
-        file.compare("num_layers", &mlp.num_layers.to_test());
-        file.compare("sigmoid_output", &mlp.sigmoid_output.to_test());
+        file.compare("num_layers", &mlp.num_layers.into());
+        file.compare("sigmoid_output", &mlp.sigmoid_output.into());
 
         // Forward
         let input = random_tensor(&[1, 256], 1);
         let output = mlp.forward(&input);
         let file = TestFile::open("mlp_forward");
-        file.compare("input", &input.to_test());
+        file.compare("input", &input.into());
         // file.compare("output", &output.to_test());
         // Todo
     }

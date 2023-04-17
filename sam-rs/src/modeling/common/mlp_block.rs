@@ -27,7 +27,7 @@ mod test {
     use crate::{
         modeling::common::activation::ActivationType,
         tests::{
-            helpers::{random_tensor, TestFile, ToTest},
+            helpers::{random_tensor, TestFile},
             mocks::Mock,
         },
     };
@@ -42,8 +42,8 @@ mod test {
         let mut mlp_block =
             MLPBlock::new(&vs.root(), 256, 256, Activation::new(ActivationType::GELU));
         let file = TestFile::open("mlp_block");
-        
-        // Mocking 
+
+        // Mocking
         mlp_block.lin1.mock();
         mlp_block.lin2.mock();
 
@@ -51,7 +51,7 @@ mod test {
         let input = random_tensor(&[256, 256], 5);
         let output = mlp_block.forward(&input);
         let file = TestFile::open("mlp_block_forward");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
     }
 }

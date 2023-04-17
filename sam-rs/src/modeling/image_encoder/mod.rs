@@ -144,7 +144,7 @@ mod test {
     use super::ImageEncoderViT;
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, TestFile, ToTest},
+        tests::helpers::{random_tensor, TestFile},
     };
 
     #[test]
@@ -171,13 +171,13 @@ mod test {
             Some(&[7, 15, 23, 31]),
         );
         let file = TestFile::open("image_encoder");
-        file.compare("img_size", &img_size.to_test());
+        file.compare("img_size", &img_size.into());
 
         // Forward
         let input = random_tensor(&[1, 3, img_size, img_size], 1);
         let output = image_encoder.forward(&input);
         let file = TestFile::open("image_encoder_forward");
-        file.compare("input", &input.to_test());
-        file.compare_only_size("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare_only_size("output", &output.into());
     }
 }

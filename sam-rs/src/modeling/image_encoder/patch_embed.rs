@@ -54,7 +54,7 @@ mod test {
     use crate::{
         sam_predictor::Size,
         tests::{
-            helpers::{random_tensor, TestFile, ToTest},
+            helpers::{random_tensor, TestFile},
             mocks::Mock,
         },
     };
@@ -80,9 +80,9 @@ mod test {
 
         // Forward
         let input = random_tensor(&[1, 3, 512, 512], 3);
-        let output = &patch_embed.forward(&input);
+        let output = patch_embed.forward(&input);
         let file = TestFile::open("patch_embed_forward");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
     }
 }

@@ -161,8 +161,10 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
     let mut rel_pos_resized = rel_pos;
 
     if rel_pos_resized.size()[0] != max_rel_dist {
-        rel_pos_resized = rel_pos_resized.reshape(&[1,rel_pos_resized.size()[0],-1]).permute(&[0,2,1]);
-        
+        rel_pos_resized = rel_pos_resized
+            .reshape(&[1, rel_pos_resized.size()[0], -1])
+            .permute(&[0, 2, 1]);
+
         // Should be interpolate
         rel_pos_resized = rel_pos_resized.upsample_linear1d(&[max_rel_dist as i64], false, None);
 
@@ -185,7 +187,7 @@ mod test {
     use crate::{
         sam_predictor::Size,
         tests::{
-            helpers::{random_tensor, TestFile, ToTest},
+            helpers::{random_tensor, TestFile},
             mocks::Mock,
         },
     };
@@ -197,8 +199,8 @@ mod test {
         let k_size = 32;
         let output = super::get_rel_pos(q_size, k_size, rel_pos.copy());
         let file = TestFile::open("get_rel_pos");
-        file.compare("input", &rel_pos.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &rel_pos.into());
+        file.compare("output", &output.into());
     }
 
     #[test]
@@ -212,11 +214,11 @@ mod test {
         let output =
             super::add_decomposed_rel_pos(&attn, &q, &rel_pos_h, &rel_pos_w, q_size, k_size);
         let file = TestFile::open("add_decomposed_rel_pos");
-        file.compare("attn", &attn.to_test());
-        file.compare("q", &q.to_test());
-        file.compare("q_size", &q_size.to_test());
-        file.compare("k_size", &k_size.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("attn", &attn.into());
+        file.compare("q", &q.into());
+        file.compare("q_size", &q_size.into());
+        file.compare("k_size", &k_size.into());
+        file.compare("output", &output.into());
     }
 
     #[test]
@@ -232,9 +234,9 @@ mod test {
             Some(Size(14, 14)),
         );
         let file = TestFile::open("attention");
-        file.compare("num_heads", &attention.num_heads.to_test());
-        file.compare("scale", &attention.scale.to_test());
-        file.compare("use_rel_pos", &attention.use_rel_pos.to_test());
+        file.compare("num_heads", &attention.num_heads.into());
+        file.compare("scale", &attention.scale.into());
+        file.compare("use_rel_pos", &attention.use_rel_pos.into());
 
         // Mocking
         attention.qkv.mock();
@@ -244,7 +246,7 @@ mod test {
         let input = random_tensor(&[25, 14, 14, 320], 1);
         let output = attention.forward(&input);
         let file = TestFile::open("attention_forward");
-        file.compare("input", &input.to_test());
-        file.compare("output", &output.to_test());
+        file.compare("input", &input.into());
+        file.compare("output", &output.into());
     }
 }
