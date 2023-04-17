@@ -190,9 +190,9 @@ mod test {
         let input = random_tensor(&[2, 256, 16, 16], 1);
         let (output, pad_hw) = super::window_partition(input.copy(), 16);
         let file = TestFile::open("window_partition");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
-        file.compare("size", &pad_hw.into());
+        file.compare("input", input);
+        file.compare("output", output);
+        file.compare("size", pad_hw);
     }
 
     #[test]
@@ -200,8 +200,8 @@ mod test {
         let input = random_tensor(&[2, 256, 16, 16], 2);
         let output = super::window_unpartition(input.copy(), 16, Size(16, 16), Size(14, 14));
         let file = TestFile::open("window_unpartition");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 
     #[test]
@@ -220,7 +220,7 @@ mod test {
             Some(Size(64, 64)),
         );
         let file = TestFile::open("block");
-        file.compare("window_size", &block.window_size.into());
+        file.compare("window_size", block.window_size);
 
         // Mocking
         block.mock();
@@ -229,7 +229,7 @@ mod test {
         let input = random_tensor(&[1, 64, 64, 320], 1);
         let output = block.forward(&input);
         let file = TestFile::open("block_forward");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }

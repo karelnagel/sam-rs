@@ -208,8 +208,8 @@ pub mod test {
         let k_size = 32;
         let output = super::get_rel_pos(q_size, k_size, rel_pos.copy());
         let file = TestFile::open("get_rel_pos");
-        file.compare("input", &rel_pos.into());
-        file.compare("output", &output.into());
+        file.compare("input", rel_pos);
+        file.compare("output", output);
     }
 
     #[test]
@@ -223,11 +223,11 @@ pub mod test {
         let output =
             super::add_decomposed_rel_pos(&attn, &q, &rel_pos_h, &rel_pos_w, q_size, k_size);
         let file = TestFile::open("add_decomposed_rel_pos");
-        file.compare("attn", &attn.into());
-        file.compare("q", &q.into());
-        file.compare("q_size", &q_size.into());
-        file.compare("k_size", &k_size.into());
-        file.compare("output", &output.into());
+        file.compare("attn", attn);
+        file.compare("q", q);
+        file.compare("q_size", q_size);
+        file.compare("k_size", k_size);
+        file.compare("output", output);
     }
 
     #[test]
@@ -243,9 +243,9 @@ pub mod test {
             Some(Size(14, 14)),
         );
         let file = TestFile::open("attention");
-        file.compare("num_heads", &attention.num_heads.into());
-        file.compare("scale", &attention.scale.into());
-        file.compare("use_rel_pos", &attention.use_rel_pos.into());
+        file.compare("num_heads", attention.num_heads);
+        file.compare("scale", attention.scale);
+        file.compare("use_rel_pos", attention.use_rel_pos);
 
         // Mocking
         attention.mock();
@@ -254,7 +254,7 @@ pub mod test {
         let input = random_tensor(&[25, 14, 14, 320], 1);
         let output = attention.forward(&input);
         let file = TestFile::open("attention_forward");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }

@@ -78,7 +78,7 @@ mod test {
             Some(320),
         );
         let file = TestFile::open("patch_embed");
-        file.compare("proj_size", &patch_embed.proj.ws.size().into());
+        file.compare("proj_size", patch_embed.proj.ws.size());
 
         // Mocking
         patch_embed.mock();
@@ -87,7 +87,7 @@ mod test {
         let input = random_tensor(&[1, 3, 512, 512], 3);
         let output = patch_embed.forward(&input);
         let file = TestFile::open("patch_embed_forward");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }

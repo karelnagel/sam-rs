@@ -1,8 +1,9 @@
 pub mod build_sam;
-pub mod tests;
 pub mod modeling;
 pub mod sam;
 pub mod sam_predictor;
+#[cfg(test)]
+pub mod tests;
 pub mod utils;
 
 extern crate md5;

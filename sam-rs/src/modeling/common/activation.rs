@@ -39,8 +39,8 @@ mod test {
         let input = random_tensor(&[256, 256], 0);
         let output = act.forward(&input);
         let file = TestFile::open("activation_gelu");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 
     #[test]
@@ -50,7 +50,7 @@ mod test {
         let input = random_tensor(&[256, 256], 0);
         let output = act.forward(&input);
         let file = TestFile::open("activation_relu");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }

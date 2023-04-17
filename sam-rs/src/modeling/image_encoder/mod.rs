@@ -171,13 +171,13 @@ mod test {
             Some(&[7, 15, 23, 31]),
         );
         let file = TestFile::open("image_encoder");
-        file.compare("img_size", &img_size.into());
+        file.compare("img_size", img_size);
 
         // Forward
         let input = random_tensor(&[1, 3, img_size, img_size], 1);
         let output = image_encoder.forward(&input);
         let file = TestFile::open("image_encoder_forward");
-        file.compare("input", &input.into());
-        file.compare_only_size("output", &output.into());
+        file.compare("input", input);
+        file.compare_only_size("output", output);
     }
 }

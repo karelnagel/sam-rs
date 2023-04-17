@@ -71,11 +71,11 @@ mod test {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mut mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
         let file = TestFile::open("mlp");
-        file.compare("num_layers", &mlp.num_layers.into());
-        file.compare("sigmoid_output", &mlp.sigmoid_output.into());
-        file.compare("layers_len", &mlp.layers.len().into());
+        file.compare("num_layers", mlp.num_layers);
+        file.compare("sigmoid_output", mlp.sigmoid_output);
+        file.compare("layers_len", mlp.layers.len());
         for (i, layer) in mlp.layers.iter().enumerate() {
-            file.compare(&format!("layer{}", i), &layer.ws.size().into());
+            file.compare(&format!("layer{}", i), layer.ws.size());
         }
 
         // Mocking
@@ -85,8 +85,8 @@ mod test {
         let input = random_tensor(&[1, 256], 1);
         let output = mlp.forward(&input);
         let file = TestFile::open("mlp_forward");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
         // Todo
     }
 }

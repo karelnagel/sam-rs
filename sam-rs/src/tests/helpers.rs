@@ -17,11 +17,11 @@ impl TestFile {
         let test_file: Self = serde_json::from_reader(reader).unwrap();
         test_file
     }
-    pub fn compare(&self, key: &str, value: &TestValue) {
-        self.comp(key, value, false)
+    pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
+        self.comp(key, &value.into(), false)
     }
-    pub fn compare_only_size(&self, key: &str, value: &TestValue) {
-        self.comp(key, value, true)
+    pub fn compare_only_size<T: Into<TestValue>>(&self, key: &str, value: T) {
+        self.comp(key, &value.into(), true)
     }
     fn comp(&self, key: &str, value: &TestValue, only_size: bool) {
         let file_value = self

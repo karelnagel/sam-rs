@@ -46,15 +46,15 @@ mod test {
         let vs = VarStore::new(Device::cuda_if_available());
         let layer_norm = LayerNorm2d::new(&vs.root(), 256, Some(0.1));
         let file = TestFile::open("layer_norm_2d");
-        file.compare("weight", &layer_norm.weight.copy().into());
-        file.compare("bias", &layer_norm.bias.copy().into());
-        file.compare("eps", &layer_norm.eps.into());
+        file.compare("weight", layer_norm.weight.copy());
+        file.compare("bias", layer_norm.bias.copy());
+        file.compare("eps", layer_norm.eps);
 
         // Forward
         let input = random_tensor(&[2, 256, 16, 16], 0);
         let output = layer_norm.forward(&input);
         let file = TestFile::open("layer_norm_2d_forward");
-        file.compare("input", &input.into());
-        file.compare("output", &output.into());
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }
