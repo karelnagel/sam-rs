@@ -68,14 +68,14 @@ mod test {
     fn test_mlp_block() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
-        let file = TestFile::open("mlp_block");
+        let file = TestFile::open("mlp");
         file.compare("num_layers", &mlp.num_layers.to_test());
         file.compare("sigmoid_output", &mlp.sigmoid_output.to_test());
 
         // Forward
         let input = random_tensor(&[1, 256], 1);
         let output = mlp.forward(&input);
-        let file = TestFile::open("mlp_block_forward");
+        let file = TestFile::open("mlp_forward");
         file.compare("input", &input.to_test());
         file.compare("output", &output.to_test());
     }
