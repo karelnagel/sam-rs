@@ -50,8 +50,14 @@ impl Block {
         let use_rel_pos = use_rel_pos.unwrap_or(false);
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
+
         let norm1 = nn::layer_norm(vs, vec![dim], Default::default());
         let norm2 = nn::layer_norm(vs, vec![dim], Default::default());
+        let input_size = if window_size != 0 {
+            Some(Size(window_size, window_size))
+        } else {
+            input_size
+        };
         let attn = Attention::new(
             vs,
             dim,
@@ -73,22 +79,19 @@ impl Block {
 
     pub fn forward(&self, x: &Tensor) -> Tensor {
         let shortcut = x.copy();
-        let x = self.norm1.forward(x);
-
+        let mut x = self.norm1.forward(x);
+        let mut pad_hw = None;
         // Window partition
         let size = Size(x.size()[1], x.size()[2]);
-        let (mut x, pad_hw) = if self.window_size > 0 {
-            let (x, pad_hw) = window_partition(x, self.window_size);
-            (x, Some(pad_hw))
-        } else {
-            (x, None)
+        if self.window_size > 0 {
+            let res = window_partition(x, self.window_size);
+            x = res.0;
+            pad_hw = Some(res.1);
         };
         x = self.attn.forward(&x);
         // Reverse window partition
-        x = if self.window_size > 0 {
-            window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
-        } else {
-            x
+        if self.window_size > 0 {
+            x = window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
         };
 
         x = shortcut + x;
@@ -193,7 +196,7 @@ mod test {
     #[test]
     fn test_block() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let block = super::Block::new(
+        let mut block = super::Block::new(
             &vs.root(),
             1280,
             16,
@@ -207,6 +210,20 @@ mod test {
         );
         let file = TestFile::open("block");
         file.compare("window_size", &block.window_size.to_test());
+
+        // Setting linears and layernorms
+        block.norm1.ws = Some(random_tensor(&[1280], 2));
+        block.norm1.bs = Some(random_tensor(&[1280], 3));
+        block.norm2.ws = Some(random_tensor(&[1280], 4));
+        block.norm2.bs = Some(random_tensor(&[1280], 5));
+        block.attn.qkv.ws = random_tensor(&[3840, 1280], 6);
+        block.attn.qkv.bs = Some(random_tensor(&[3840], 7));
+        block.attn.proj.ws = random_tensor(&[1280, 1280], 8);
+        block.attn.proj.bs = Some(random_tensor(&[1280], 9));
+        block.mlp.lin1.ws = random_tensor(&[5120, 1280], 10);
+        block.mlp.lin1.bs = Some(random_tensor(&[5120], 11));
+        block.mlp.lin2.ws = random_tensor(&[1280, 5120], 12);
+        block.mlp.lin2.bs = Some(random_tensor(&[1280], 13));
 
         // Forward
         let input = random_tensor(&[1, 64, 64, 1280], 1);

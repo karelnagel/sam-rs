@@ -10,8 +10,8 @@ use crate::sam_predictor::Size;
 pub struct Attention {
     num_heads: i64,
     scale: f64,
-    qkv: nn::Linear,
-    proj: nn::Linear,
+    pub qkv: nn::Linear,
+    pub proj: nn::Linear,
     use_rel_pos: bool,
     rel_pos_h: Option<Tensor>,
     rel_pos_w: Option<Tensor>,
