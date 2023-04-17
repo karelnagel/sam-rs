@@ -18,14 +18,26 @@ impl TestFile {
         test_file
     }
     pub fn compare(&self, key: &str, value: &TestValue) {
+        self.comp(key, value, false)
+    }
+    pub fn compare_only_size(&self, key: &str, value: &TestValue) {
+        self.comp(key, value, true)
+    }
+    fn comp(&self, key: &str, value: &TestValue, only_size: bool) {
         let file_value = self
             .values
             .get(key)
             .expect(format!("key {} not found", key).as_str());
         let res = match (file_value, value) {
-            (TestValue::TensorFloat(val1), TestValue::TensorFloat(val2)) => compare(val1, val2),
-            (TestValue::TensorInt(val1), TestValue::TensorInt(val2)) => compare(val1, val2),
-            (TestValue::TensorBool(val1), TestValue::TensorBool(val2)) => compare(val1, val2),
+            (TestValue::TensorFloat(val1), TestValue::TensorFloat(val2)) => {
+                compare(val1, val2, only_size)
+            }
+            (TestValue::TensorInt(val1), TestValue::TensorInt(val2)) => {
+                compare(val1, val2, only_size)
+            }
+            (TestValue::TensorBool(val1), TestValue::TensorBool(val2)) => {
+                compare(val1, val2, only_size)
+            }
             _ => {
                 if file_value != value {
                     let error = format!(
@@ -47,6 +59,7 @@ impl TestFile {
 fn compare<T: std::cmp::PartialEq + IsSame + Debug + Serialize>(
     val1: &TestTensor<T>,
     val2: &TestTensor<T>,
+    only_size: bool,
 ) -> Result<(), String> {
     if val1.size != val2.size {
         panic!(
@@ -54,11 +67,13 @@ fn compare<T: std::cmp::PartialEq + IsSame + Debug + Serialize>(
             val1.size, val2.size
         );
     }
-    let res = val1.values.is_same(&val2.values);
-    if let Err(error) = res {
-        let file = std::fs::File::create("error.json").unwrap();
-        serde_json::to_writer_pretty(file, &(&val1.values, &val2.values)).unwrap();
-        return Err(error);
+    if !only_size {
+        let res = val1.values.is_same(&val2.values);
+        if let Err(error) = res {
+            let file = std::fs::File::create("error.json").unwrap();
+            serde_json::to_writer_pretty(file, &(&val1.values, &val2.values)).unwrap();
+            return Err(error);
+        }
     }
     Ok(())
 }

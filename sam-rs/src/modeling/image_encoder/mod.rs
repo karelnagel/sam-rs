@@ -138,3 +138,46 @@ impl ImageEncoderViT {
         list[0].copy()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        modeling::common::Activation,
+        test_helpers::{random_tensor, TestFile, ToTest},
+    };
+
+    use super::ImageEncoderViT;
+
+    #[test]
+    fn test_image_encoder() {
+        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
+        let act = Activation::new(crate::modeling::common::ActivationType::GELU);
+        let image_encoder = ImageEncoderViT::new(
+            &vs.root(),
+            Some(1024),
+            Some(16),
+            Some(3),
+            Some(1280),
+            Some(32),
+            Some(16),
+            Some(4.0),
+            Some(256),
+            Some(true),
+            act,
+            Some(true),
+            Some(true),
+            Some(true),
+            Some(14),
+            Some(&[7, 15, 23, 31]),
+        );
+        let file = TestFile::open("image_encoder");
+        file.compare("img_size", &1024.to_test());
+
+        // Forward
+        let input = random_tensor(&[1, 3, 1024, 1024], 1);
+        let output = image_encoder.forward(&input);
+        let file = TestFile::open("image_encoder_forward");
+        file.compare("input", &input.to_test());
+        file.compare_only_size("output", &output.to_test());
+    }
+}
