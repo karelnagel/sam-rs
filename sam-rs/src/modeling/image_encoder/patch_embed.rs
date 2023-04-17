@@ -71,7 +71,7 @@ mod test {
             Some(Size(16, 16)),
             Some(Size(0, 0)),
             Some(3),
-            Some(768),
+            Some(320),
         );
         let file = TestFile::open("patch_embed");
 
@@ -79,7 +79,7 @@ mod test {
         patch_embed.proj.mock();
 
         // Forward
-        let input = random_tensor(&[1, 3, 1024, 1024], 3);
+        let input = random_tensor(&[1, 3, 512, 512], 3);
         let output = &patch_embed.forward(&input);
         let file = TestFile::open("patch_embed_forward");
         file.compare("input", &input.to_test());

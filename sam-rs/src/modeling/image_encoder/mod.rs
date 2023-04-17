@@ -151,12 +151,13 @@ mod test {
     fn test_image_encoder() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let act = Activation::new(crate::modeling::common::activation::ActivationType::GELU);
+        let img_size = 128;
         let image_encoder = ImageEncoderViT::new(
             &vs.root(),
-            Some(1024),
-            Some(16),
+            Some(img_size),
+            Some(4),
             Some(3),
-            Some(1280),
+            Some(320),
             Some(32),
             Some(16),
             Some(4.0),
@@ -170,10 +171,10 @@ mod test {
             Some(&[7, 15, 23, 31]),
         );
         let file = TestFile::open("image_encoder");
-        file.compare("img_size", &1024_i64.to_test());
+        file.compare("img_size", &img_size.to_test());
 
         // Forward
-        let input = random_tensor(&[1, 3, 1024, 1024], 1);
+        let input = random_tensor(&[1, 3, img_size, img_size], 1);
         let output = image_encoder.forward(&input);
         let file = TestFile::open("image_encoder_forward");
         file.compare("input", &input.to_test());

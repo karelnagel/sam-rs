@@ -201,7 +201,7 @@ mod test {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mut block = super::Block::new(
             &vs.root(),
-            1280,
+            320,
             16,
             Some(4.0),
             Some(true),
@@ -223,7 +223,7 @@ mod test {
         block.mlp.lin2.mock();
 
         // Forward
-        let input = random_tensor(&[1, 64, 64, 1280], 1);
+        let input = random_tensor(&[1, 64, 64, 320], 1);
         let output = block.forward(&input);
         let file = TestFile::open("block_forward");
         file.compare("input", &input.to_test());

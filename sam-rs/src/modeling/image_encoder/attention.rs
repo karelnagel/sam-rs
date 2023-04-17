@@ -161,11 +161,11 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
     let mut rel_pos_resized = rel_pos;
 
     if rel_pos_resized.size()[0] != max_rel_dist {
-        let rel_pos_3d = rel_pos_resized.unsqueeze(0);
-        // Perform linear interpolation (upsampling) along the last dimension.
-        rel_pos_resized = rel_pos_3d.upsample_linear1d(&[max_rel_dist as i64], false, None);
+        rel_pos_resized = rel_pos_resized.reshape(&[1,rel_pos_resized.size()[0],-1]).permute(&[0,2,1]);
+        
+        // Should be interpolate
+        rel_pos_resized = rel_pos_resized.upsample_linear1d(&[max_rel_dist as i64], false, None);
 
-        // Remove the extra dimension.
         rel_pos_resized = rel_pos_resized.squeeze_dim(0);
         rel_pos_resized = rel_pos_resized
             .reshape(&[-1, max_rel_dist])
@@ -184,14 +184,17 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::{helpers::{random_tensor, TestFile, ToTest}, mocks::Mock},
+        tests::{
+            helpers::{random_tensor, TestFile, ToTest},
+            mocks::Mock,
+        },
     };
 
     #[test]
     fn test_get_rel_pos() {
-        let rel_pos = random_tensor(&[127, 80], 1);
-        let q_size = 64;
-        let k_size = 64;
+        let rel_pos = random_tensor(&[127, 40], 1);
+        let q_size = 32;
+        let k_size = 32;
         let output = super::get_rel_pos(q_size, k_size, rel_pos.copy());
         let file = TestFile::open("get_rel_pos");
         file.compare("input", &rel_pos.to_test());
@@ -200,12 +203,12 @@ mod test {
 
     #[test]
     fn test_add_decomposed_rel_pos() {
-        let attn = random_tensor(&[400, 196, 196], 2);
-        let q = random_tensor(&[400, 196, 80], 3);
-        let rel_pos_h = random_tensor(&[27, 80], 4);
-        let rel_pos_w = random_tensor(&[27, 80], 5);
-        let q_size = Size(14, 14);
-        let k_size = Size(14, 14);
+        let attn = random_tensor(&[200, 49, 49], 2);
+        let q = random_tensor(&[200, 49, 20], 3);
+        let rel_pos_h = random_tensor(&[20, 20], 4);
+        let rel_pos_w = random_tensor(&[20, 20], 5);
+        let q_size = Size(7, 7);
+        let k_size = Size(7, 7);
         let output =
             super::add_decomposed_rel_pos(&attn, &q, &rel_pos_h, &rel_pos_w, q_size, k_size);
         let file = TestFile::open("add_decomposed_rel_pos");
@@ -221,7 +224,7 @@ mod test {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mut attention = super::Attention::new(
             &vs.root(),
-            1280,
+            320,
             Some(16),
             Some(true),
             Some(true),
@@ -233,9 +236,12 @@ mod test {
         file.compare("scale", &attention.scale.to_test());
         file.compare("use_rel_pos", &attention.use_rel_pos.to_test());
 
-        let input = random_tensor(&[25, 14, 14, 1280], 1);
+        // Mocking
         attention.qkv.mock();
         attention.proj.mock();
+
+        // Forward
+        let input = random_tensor(&[25, 14, 14, 320], 1);
         let output = attention.forward(&input);
         let file = TestFile::open("attention_forward");
         file.compare("input", &input.to_test());
