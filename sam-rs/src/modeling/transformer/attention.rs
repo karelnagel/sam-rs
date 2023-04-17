@@ -83,6 +83,16 @@ mod test {
         mocks::Mock,
     };
 
+    use super::Attention;
+    impl Mock for Attention {
+        fn mock(&mut self) {
+            self.q_proj.mock();
+            self.k_proj.mock();
+            self.v_proj.mock();
+            self.out_proj.mock();
+        }
+    }
+
     #[test]
     fn test_attention() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
@@ -97,10 +107,7 @@ mod test {
         file.compare("out_proj_size", &attention.out_proj.ws.size().into());
 
         // Mocking
-        attention.q_proj.mock();
-        attention.k_proj.mock();
-        attention.v_proj.mock();
-        attention.out_proj.mock();
+        attention.mock();
 
         // Forward
         let q = random_tensor(&[1, 256, 256], 1);

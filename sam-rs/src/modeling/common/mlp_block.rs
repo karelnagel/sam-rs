@@ -23,7 +23,7 @@ impl MLPBlock {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use crate::{
         modeling::common::activation::ActivationType,
         tests::{
@@ -35,6 +35,12 @@ mod test {
     use super::*;
     use tch::{nn::VarStore, Device};
 
+    impl Mock for MLPBlock {
+        fn mock(&mut self) {
+            self.lin1.mock();
+            self.lin2.mock();
+        }
+    }
     #[test]
     fn test_mlp_block() {
         // New
@@ -46,8 +52,7 @@ mod test {
         file.compare("lin2_size", &mlp_block.lin2.ws.size().into());
 
         // Mocking
-        mlp_block.lin1.mock();
-        mlp_block.lin2.mock();
+        mlp_block.mock();
 
         // Forward
         let input = random_tensor(&[256, 256], 5);

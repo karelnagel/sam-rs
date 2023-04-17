@@ -177,6 +177,14 @@ mod test {
         },
     };
 
+    impl Mock for super::Block {
+        fn mock(&mut self) {
+            self.norm1.mock();
+            self.attn.mock();
+            self.norm2.mock();
+            self.mlp.mock();
+        }
+    }
     #[test]
     fn test_window_partition() {
         let input = random_tensor(&[2, 256, 16, 16], 1);
@@ -215,12 +223,7 @@ mod test {
         file.compare("window_size", &block.window_size.into());
 
         // Mocking
-        block.norm1.mock();
-        block.norm2.mock();
-        block.attn.qkv.mock();
-        block.attn.proj.mock();
-        block.mlp.lin1.mock();
-        block.mlp.lin2.mock();
+        block.mock();
 
         // Forward
         let input = random_tensor(&[1, 64, 64, 320], 1);

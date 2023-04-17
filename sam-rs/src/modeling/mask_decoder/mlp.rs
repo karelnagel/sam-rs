@@ -59,6 +59,13 @@ mod test {
         mocks::Mock,
     };
 
+    impl Mock for super::MLP {
+        fn mock(&mut self) {
+            for layer in self.layers.iter_mut() {
+                layer.mock();
+            }
+        }
+    }
     #[test]
     fn test_mlp() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
@@ -72,9 +79,7 @@ mod test {
         }
 
         // Mocking
-        for layer in mlp.layers.iter_mut() {
-            layer.mock();
-        }
+        mlp.mock();
 
         // Forward
         let input = random_tensor(&[1, 256], 1);

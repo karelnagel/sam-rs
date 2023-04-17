@@ -61,7 +61,11 @@ mod test {
     use tch::{nn, Device};
 
     use super::PatchEmbed;
-
+    impl Mock for PatchEmbed {
+        fn mock(&mut self) {
+            self.proj.mock();
+        }
+    }
     #[test]
     fn test_patch_embed() {
         let vs = nn::VarStore::new(Device::Cpu);
@@ -77,7 +81,7 @@ mod test {
         file.compare("proj_size", &patch_embed.proj.ws.size().into());
 
         // Mocking
-        patch_embed.proj.mock();
+        patch_embed.mock();
 
         // Forward
         let input = random_tensor(&[1, 3, 512, 512], 3);

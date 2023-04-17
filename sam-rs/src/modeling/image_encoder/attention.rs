@@ -183,7 +183,7 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use crate::{
         sam_predictor::Size,
         tests::{
@@ -191,6 +191,15 @@ mod test {
             mocks::Mock,
         },
     };
+
+    use super::Attention;
+
+    impl Mock for Attention {
+        fn mock(&mut self) {
+            self.proj.mock();
+            self.qkv.mock();
+        }
+    }
 
     #[test]
     fn test_get_rel_pos() {
@@ -239,8 +248,7 @@ mod test {
         file.compare("use_rel_pos", &attention.use_rel_pos.into());
 
         // Mocking
-        attention.qkv.mock();
-        attention.proj.mock();
+        attention.mock();
 
         // Forward
         let input = random_tensor(&[25, 14, 14, 320], 1);
