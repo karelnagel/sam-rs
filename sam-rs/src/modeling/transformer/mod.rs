@@ -133,7 +133,7 @@ mod test {
         let mut transformer = super::TwoWayTransformer::new(
             &vs.root(),
             2,
-            258,
+            256,
             8,
             2048,
             Some(Activation::new(ActivationType::ReLU)),
