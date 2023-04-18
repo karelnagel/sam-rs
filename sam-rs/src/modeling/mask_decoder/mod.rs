@@ -5,7 +5,10 @@ use tch::{
     Tensor,
 };
 
-use super::{common::activation::Activation, transformer::TwoWayTransformer};
+use super::{
+    common::{activation::Activation, layer_norm_2d::LayerNorm2d},
+    transformer::TwoWayTransformer,
+};
 
 #[derive(Debug)]
 pub struct MaskDecoder {
@@ -44,11 +47,7 @@ impl MaskDecoder {
                     ..Default::default()
                 },
             ))
-            .add(nn::layer_norm(
-                vs,
-                vec![transformer_dim / 4],
-                Default::default(),
-            ))
+            .add(LayerNorm2d::new(vs, transformer_dim / 4, None))
             .add(activation)
             .add(nn::conv_transpose2d(
                 vs,
@@ -152,17 +151,16 @@ impl MaskDecoder {
 
         let (b, c, h, w) = src.size4().unwrap();
         let (hs, src) = self.transformer.forward(&src, &pos_src, &tokens);
-        let iou_token_out = hs.narrow(1, 0, 1);
-        let mask_tokens_out = hs.narrow(1, 1, 1 + self.num_mask_tokens);
+        let iou_token_out = hs.narrow(1, 0, 1).squeeze_dim(1);
+        let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
 
         let src = src.transpose(1, 2).view([b, c, h, w]);
         let upscaled_embedding = self.output_upscaling.forward(&src);
         let mut hyper_in_list: Vec<Tensor> = vec![];
         for i in 0..self.num_mask_tokens {
-            hyper_in_list.push(
-                self.output_hypernetworks_mlps[i as usize]
-                    .forward(&mask_tokens_out.narrow(1, i, 1)),
-            );
+            let input = &mask_tokens_out.narrow(1, i, 1).squeeze_dim(1);
+            let item = self.output_hypernetworks_mlps[i as usize].forward(input);
+            hyper_in_list.push(item);
         }
         let hyper_in = Tensor::stack(&hyper_in_list, 1);
 
@@ -264,7 +262,7 @@ mod test {
             &sparse_prompt_embeddings,
             &dense_prompt_embeddings,
         );
-        let file = TestFile::open("mask_decoder_forward");
+        let file = TestFile::open("mask_decoder_predict");
         file.compare("image_embedding", image_embedding);
         file.compare("image_pe", image_pe);
         file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
