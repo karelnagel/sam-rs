@@ -1,4 +1,4 @@
-use tch::nn;
+use tch::{nn, Tensor};
 
 use crate::tests::helpers::random_tensor;
 
@@ -34,5 +34,11 @@ impl Mock for nn::ConvTranspose2D {
     fn mock(&mut self) {
         self.ws = random_tensor(&self.ws.size(), 1);
         self.bs = Some(random_tensor(&self.bs.as_ref().unwrap().size(), 2));
+    }
+}
+
+impl Mock for Tensor {
+    fn mock(&mut self) {
+        self.set_data(&random_tensor(&self.size(), 1))
     }
 }

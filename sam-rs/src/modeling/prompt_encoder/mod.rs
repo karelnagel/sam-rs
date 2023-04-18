@@ -126,7 +126,7 @@ impl PromptEncoder {
         }
         let mut point_embedding = self
             .pe_layer
-            .forward_with_coords(points, self.input_image_size);
+            .forward_with_coords(&points, self.input_image_size);
 
         point_embedding = point_embedding.masked_fill_(&labels.eq(-1), 0.0);
         point_embedding =
@@ -144,7 +144,7 @@ impl PromptEncoder {
         let coords = boxes.reshape(&[-1, 2, 2]);
         let mut corner_embedding = self
             .pe_layer
-            .forward_with_coords(coords, self.input_image_size);
+            .forward_with_coords(&coords, self.input_image_size);
         corner_embedding = corner_embedding
             .masked_scatter_(&boxes.eq(0), &self.point_embeddings[2].ws.unsqueeze(0));
         corner_embedding = corner_embedding
