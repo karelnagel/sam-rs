@@ -128,7 +128,6 @@ mod test {
             }
         }
     }
-    #[ignore]
     #[test]
     fn test_two_way_transformer() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);

@@ -87,7 +87,7 @@ impl TwoWayAttentionBlock {
         key_pe: &Tensor,
     ) -> (Tensor, Tensor) {
         let mut queries = queries.copy();
-        let keys = keys.copy();
+        let mut keys = keys.copy();
         // Self attention block
         if self.skip_first_layer_pe {
             queries = self.self_attn.forward(&queries, &queries, &queries);
@@ -97,7 +97,6 @@ impl TwoWayAttentionBlock {
             queries = &queries + attn_out;
         }
         queries = self.norm1.forward(&queries);
-
         // Cross attention block, tokens attending to image embedding
         let q = &queries + query_pe;
         let k = &keys + key_pe;
@@ -111,11 +110,14 @@ impl TwoWayAttentionBlock {
         queries = self.norm3.forward(&queries);
 
         // Cross attention block, image attending to tokens
+
         let q = &queries + query_pe;
         let k = &keys + key_pe;
-        let attn_out = self.cross_attn_image_to_token.forward(&q, &k, &queries);
-        queries = &queries + attn_out;
-        queries = self.norm4.forward(&queries);
+        let attn_out = self.cross_attn_image_to_token.forward(&k, &q, &queries);
+
+        keys = &keys + &attn_out;
+        keys = self.norm4.forward(&keys);
+        println!("asdfasdfasdfasdfasdfasdfasfd");
 
         (queries, keys)
     }
@@ -143,7 +145,6 @@ mod test {
         }
     }
 
-    #[ignore]
     #[test]
     fn test_two_way_attention_block() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);

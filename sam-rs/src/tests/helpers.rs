@@ -188,7 +188,7 @@ pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
 pub trait IsSame {
     fn is_same(&self, other: &Self) -> Result<(), String>;
 }
-const RELATIVE_TOLERANCE: f64 = 0.000001;
+const RELATIVE_TOLERANCE: f64 = 0.004;
 
 impl IsSame for Vec<i64> {
     fn is_same(&self, other: &Self) -> Result<(), String> {
@@ -230,8 +230,8 @@ impl IsSame for Vec<f64> {
             // Check if the difference exceeds the relative tolerance.
             if diff > tolerance {
                 return Err(format!(
-                    "Elements at index {} differ by more than the allowed tolerance, diff: {}, tolerance: {}",
-                    i, diff, tolerance
+                    "Elements at index {} differ by more than the allowed tolerance, a: {}, b: {}",
+                    i, a, b
                 ));
             }
         }

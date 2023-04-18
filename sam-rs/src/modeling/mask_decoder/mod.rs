@@ -143,7 +143,7 @@ impl MaskDecoder {
         let output_tokens = Tensor::cat(&[&self.iou_token.ws, &self.mask_tokens.ws], 0);
         let output_tokens = output_tokens
             .unsqueeze(0)
-            .expand(&[sparse_prompt_embeddings.size()[0], -1, -1], true); // don't know about the false
+            .expand(&[sparse_prompt_embeddings.size()[0], -1, -1], false);
         let tokens = Tensor::cat(&[&output_tokens, sparse_prompt_embeddings], 1);
 
         let src = image_embeddings.repeat_interleave_self_int(tokens.size()[0], 0, None)
@@ -243,20 +243,21 @@ mod test {
     #[test]
     fn test_mask_decoder_predict() {
         let vs = nn::VarStore::new(Device::Cpu);
-        let act = Activation::new(ActivationType::ReLU);
+        let gelu = Activation::new(ActivationType::GELU);
+        let relu = Activation::new(ActivationType::ReLU);
         let two_way_transformer =
-            TwoWayTransformer::new(&vs.root(), 2, 128, 4, 1024, Some(act), Some(2));
+            TwoWayTransformer::new(&vs.root(), 2, 256, 8, 2048, Some(relu), Some(2));
         let mut mask_decoder =
-            super::MaskDecoder::new(&vs.root(), 128, two_way_transformer, 3, act, 3, 128);
+            super::MaskDecoder::new(&vs.root(), 256, two_way_transformer, 3, gelu, 3, 256);
 
         // Mocking
         mask_decoder.mock();
 
         // Forward
-        let image_embedding = random_tensor(&[1, 128, 32, 32], 1);
-        let image_pe = random_tensor(&[1, 128, 32, 32], 2);
-        let sparse_prompt_embeddings = random_tensor(&[32, 2, 128], 3);
-        let dense_prompt_embeddings = random_tensor(&[32, 128, 32, 32], 4);
+        let image_embedding = random_tensor(&[1, 256, 64, 64], 1);
+        let image_pe = random_tensor(&[1, 256, 64, 64], 2);
+        let sparse_prompt_embeddings = random_tensor(&[64, 2, 256], 3);
+        let dense_prompt_embeddings = random_tensor(&[64, 256, 64, 64], 4);
         let (masks, iou_pred) = mask_decoder.predict_masks(
             &image_embedding,
             &image_pe,
