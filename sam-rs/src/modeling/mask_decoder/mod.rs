@@ -148,7 +148,7 @@ impl MaskDecoder {
         let shape = src.size();
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
 
-        let (hs, src) = self.transformer.forward(&src, pos_src, tokens);
+        let (hs, src) = self.transformer.forward(&src, &pos_src, &tokens);
         let iou_token_out = hs.narrow(1, 0, 1);
         let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
 
@@ -185,12 +185,11 @@ mod test {
 
     #[test]
     fn test_mask_decoder() {
-        // let vs = nn::VarStore::new(Device::Cpu);
-        // let act = Activation::new(ActivationType::GELU);
-        // let two_way_transformer =
-        //     TwoWayTransformer::new(&vs.root(), 1, 1, 1, 1, Some(act), Some(0)); //Todo wrong
-        // let mask_decoder =
-        //     super::MaskDecoder::new(&vs.root(), 256, two_way_transformer, 3, act, 3, 256);
-        
+        let vs = nn::VarStore::new(Device::Cpu);
+        let act = Activation::new(ActivationType::GELU);
+        let two_way_transformer =
+            TwoWayTransformer::new(&vs.root(), 1, 1, 1, 1, Some(act), Some(0)); //Todo wrong
+        let mask_decoder =
+            super::MaskDecoder::new(&vs.root(), 256, two_way_transformer, 3, act, 3, 256);
     }
 }

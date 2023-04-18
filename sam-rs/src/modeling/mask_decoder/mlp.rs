@@ -87,6 +87,5 @@ mod test {
         let file = TestFile::open("mlp_forward");
         file.compare("input", input);
         file.compare("output", output);
-        // Todo
     }
 }

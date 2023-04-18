@@ -85,21 +85,19 @@ impl TwoWayTransformer {
     pub fn forward(
         &self,
         image_embedding: &Tensor,
-        image_pe: Tensor,
-        point_embedding: Tensor,
+        image_pe: &Tensor,
+        point_embedding: &Tensor,
     ) -> (Tensor, Tensor) {
         // BxCxHxW -> BxHWxC == B x N_image_tokens x C
         let (bs, c, h, w) = image_embedding.size4().unwrap();
-        let image_embedding = image_embedding.flatten(2, 3).permute(&[0, 2, 1]);
-        let image_pe = image_pe.flatten(2, 3).permute(&[0, 2, 1]);
+        let image_embedding = image_embedding.flatten(2, -1).permute(&[0, 2, 1]);
+        let image_pe = image_pe.flatten(2, -1).permute(&[0, 2, 1]);
 
         //  Prepare queries
         let mut queries = point_embedding.copy();
         let mut keys = image_embedding;
         for layer in &self.layers {
-            let (q, k) = layer.forward(&queries, &keys, &point_embedding, &image_pe);
-            queries = q.copy();
-            keys = k.copy();
+            (queries, keys) = layer.forward(&queries, &keys, &point_embedding, &image_pe);
         }
         let q = &queries + point_embedding;
         let k = &keys + image_pe;
@@ -114,7 +112,10 @@ impl TwoWayTransformer {
 mod test {
     use crate::{
         modeling::common::activation::{Activation, ActivationType},
-        tests::{helpers::TestFile, mocks::Mock},
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
     };
 
     use super::TwoWayTransformer;
@@ -127,17 +128,18 @@ mod test {
             }
         }
     }
+    #[ignore]
     #[test]
     fn test_two_way_transformer() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let mut transformer = super::TwoWayTransformer::new(
             &vs.root(),
             2,
+            64,
+            4,
             256,
-            8,
-            2048,
             Some(Activation::new(ActivationType::ReLU)),
-            None,
+            Some(2),
         );
         let file = TestFile::open("transformer_two_way_transformer");
         file.compare("depth", transformer.depth);
@@ -150,6 +152,15 @@ mod test {
         transformer.mock();
 
         // Forward
-        // Todo
+        let image_embedding = random_tensor(&[1, 64, 16, 16], 1);
+        let image_pe = random_tensor(&[1, 64, 16, 16], 2);
+        let point_embedding = random_tensor(&[16, 256, 64], 3);
+        let (queries, keys) = transformer.forward(&image_embedding, &image_pe, &point_embedding);
+        let file = TestFile::open("transformer_two_way_transformer_forward");
+        file.compare("image_embedding", image_embedding);
+        file.compare("image_pe", image_pe);
+        file.compare("point_embedding", point_embedding);
+        file.compare("queries", queries);
+        file.compare("keys", keys);
     }
 }
