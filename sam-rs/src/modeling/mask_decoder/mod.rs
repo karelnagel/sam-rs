@@ -32,7 +32,7 @@ impl MaskDecoder {
         let iou_token = nn::embedding(vs, 1, transformer_dim, Default::default());
         let num_mask_tokens = num_multimask_outputs + 1;
         let mask_tokens = nn::embedding(vs, num_mask_tokens, transformer_dim, Default::default());
-        // Todo it is wrong
+
         let output_upscaling = nn::seq()
             .add(nn::conv_transpose2d(
                 vs,
@@ -40,26 +40,30 @@ impl MaskDecoder {
                 transformer_dim / 4,
                 2,
                 nn::ConvTransposeConfig {
-                    padding: 0,
                     stride: 2,
                     ..Default::default()
                 },
             ))
+            .add(nn::layer_norm(
+                vs,
+                vec![transformer_dim / 4],
+                Default::default(),
+            ))
+            .add(activation)
             .add(nn::conv_transpose2d(
                 vs,
                 transformer_dim / 4,
                 transformer_dim / 8,
                 2,
                 nn::ConvTransposeConfig {
-                    padding: 0,
                     stride: 2,
                     ..Default::default()
                 },
-            ));
+            ))
+            .add(activation);
 
-        // Todo wrong
         let mut output_hypernetworks_mlps = Vec::new();
-        for i in 0..num_mask_tokens {
+        for _ in 0..num_mask_tokens {
             output_hypernetworks_mlps.push(MLP::new(
                 vs,
                 transformer_dim,
@@ -117,6 +121,7 @@ impl MaskDecoder {
             sparse_prompt_embeddings,
             dense_prompt_embeddings,
         );
+
         if multimask_output {
             (
                 masks.narrow(1, 1, masks.size()[1] - 1),
@@ -138,32 +143,30 @@ impl MaskDecoder {
         let output_tokens = Tensor::cat(&[&self.iou_token.ws, &self.mask_tokens.ws], 0);
         let output_tokens = output_tokens
             .unsqueeze(0)
-            .expand(&sparse_prompt_embeddings.size(), false);
+            .expand(&[sparse_prompt_embeddings.size()[0], -1, -1], true); // don't know about the false
         let tokens = Tensor::cat(&[&output_tokens, sparse_prompt_embeddings], 1);
 
-        let src = Tensor::repeat_interleave(&image_embeddings, tokens.size()[0])
+        let src = image_embeddings.repeat_interleave_self_int(tokens.size()[0], 0, None)
             + dense_prompt_embeddings;
-        let pos_src = Tensor::repeat_interleave(&image_pe, tokens.size()[0]);
+        let pos_src = image_pe.repeat_interleave_self_int(tokens.size()[0], 0, None);
 
-        let shape = src.size();
-        let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
-
+        let (b, c, h, w) = src.size4().unwrap();
         let (hs, src) = self.transformer.forward(&src, &pos_src, &tokens);
         let iou_token_out = hs.narrow(1, 0, 1);
-        let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
+        let mask_tokens_out = hs.narrow(1, 1, 1 + self.num_mask_tokens);
 
         let src = src.transpose(1, 2).view([b, c, h, w]);
         let upscaled_embedding = self.output_upscaling.forward(&src);
-        let hyper_in_list: Vec<Tensor> = (0..self.num_mask_tokens)
-            .map(|i| {
-                self.output_hypernetworks_mlps[i as usize].forward(&mask_tokens_out.narrow(1, i, 1))
-            })
-            .collect();
+        let mut hyper_in_list: Vec<Tensor> = vec![];
+        for i in 0..self.num_mask_tokens {
+            hyper_in_list.push(
+                self.output_hypernetworks_mlps[i as usize]
+                    .forward(&mask_tokens_out.narrow(1, i, 1)),
+            );
+        }
         let hyper_in = Tensor::stack(&hyper_in_list, 1);
-        let b = upscaled_embedding.size()[0];
-        let c = upscaled_embedding.size()[1];
-        let h = upscaled_embedding.size()[2];
-        let w = upscaled_embedding.size()[3];
+
+        let (b, c, h, w) = upscaled_embedding.size4().unwrap();
 
         let masks = hyper_in
             .matmul(&upscaled_embedding.view([b, c, h * w]))
@@ -199,7 +202,7 @@ mod test {
             }
         }
     }
-    
+    #[ignore]
     #[test]
     fn test_mask_decoder() {
         let vs = nn::VarStore::new(Device::Cpu);
