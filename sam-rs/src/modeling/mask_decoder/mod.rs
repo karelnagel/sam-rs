@@ -235,15 +235,16 @@ mod test {
                 .add(activation);
         }
     }
-    #[ignore]
+
     #[test]
     fn test_mask_decoder() {
         let vs = nn::VarStore::new(Device::Cpu);
-        let act = Activation::new(ActivationType::ReLU);
+        let gelu = Activation::new(ActivationType::GELU);
+        let relu = Activation::new(ActivationType::ReLU);
         let two_way_transformer =
-            TwoWayTransformer::new(&vs.root(), 2, 128, 4, 1024, Some(act), Some(2));
+            TwoWayTransformer::new(&vs.root(), 2, 64, 2, 512, Some(relu), Some(2));
         let mut mask_decoder =
-            super::MaskDecoder::new(&vs.root(), 128, two_way_transformer, 3, act, 3, 128);
+            super::MaskDecoder::new(&vs.root(), 64, two_way_transformer, 3, gelu, 3, 64);
         let file = TestFile::open("mask_decoder");
         file.compare("transformer_dim", mask_decoder._transformer_dim);
         file.compare("num_multimask_outputs", mask_decoder._num_multimask_outputs);
@@ -253,10 +254,10 @@ mod test {
         mask_decoder.mock();
 
         // Forward
-        let image_embedding = random_tensor(&[1, 128, 32, 32], 1);
-        let image_pe = random_tensor(&[1, 128, 32, 32], 2);
-        let sparse_prompt_embeddings = random_tensor(&[32, 2, 128], 3);
-        let dense_prompt_embeddings = random_tensor(&[32, 128, 32, 32], 4);
+        let image_embedding = random_tensor(&[1, 64, 16, 16], 1);
+        let image_pe = random_tensor(&[1, 64, 16, 16], 2);
+        let sparse_prompt_embeddings = random_tensor(&[16, 2, 64], 3);
+        let dense_prompt_embeddings = random_tensor(&[16, 64, 16, 16], 4);
         let (masks, iou_pred) = mask_decoder.forward(
             &image_embedding,
             &image_pe,
@@ -265,10 +266,10 @@ mod test {
             true,
         );
         let file = TestFile::open("mask_decoder_forward");
-        // file.compare("image_embedding", image_embedding);
-        // file.compare("image_pe", image_pe);
-        // file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
-        // file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
+        file.compare("image_embedding", image_embedding);
+        file.compare("image_pe", image_pe);
+        file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
+        file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
         file.compare("masks", masks);
         file.compare("iou_pred", iou_pred);
     }
