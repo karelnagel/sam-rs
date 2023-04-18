@@ -115,14 +115,10 @@ impl Sam {
             let image_record = batched_input.get(i).unwrap();
             let curr_embedding = image_embeddings.get(i as i64);
 
-            let points = Some((
-                image_record.point_coords.copy(),
-                image_record.point_labels.copy(),
-            ));
             let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
-                points,
-                Some(image_record.boxes.copy()),
-                Some(image_record.mask_inputs.copy()),
+                Some((&image_record.point_coords, &image_record.point_labels)),
+                Some(&image_record.boxes),
+                Some(&image_record.mask_inputs),
             );
             let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
                 &curr_embedding.unsqueeze(0),

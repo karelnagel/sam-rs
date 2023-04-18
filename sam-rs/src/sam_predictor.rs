@@ -162,10 +162,10 @@ impl SamPredictor {
             mask_input_torch = Some(Tensor::of_slice(&mask_input.to_vec()));
         }
         let (masks, iou_predictions, low_res_masks) = self.predict_torch(
-            coords_torch,
-            labels_torch,
-            box_torch,
-            mask_input_torch,
+            Some(&coords_torch.unwrap()),
+            Some(&labels_torch.unwrap()),
+            Some(&box_torch.unwrap()),
+            Some(&mask_input_torch.unwrap()),
             multimask_output,
             return_logits,
         );
@@ -210,10 +210,10 @@ impl SamPredictor {
     ///     a subsequent iteration as mask input.
     pub fn predict_torch(
         &self,
-        point_coords: Option<Tensor>,
-        point_labels: Option<Tensor>,
-        boxes: Option<Tensor>,
-        mask_input: Option<Tensor>,
+        point_coords: Option<&Tensor>,
+        point_labels: Option<&Tensor>,
+        boxes: Option<&Tensor>,
+        mask_input: Option<&Tensor>,
         multimask_output: bool,
         return_logits: bool,
     ) -> (Tensor, Tensor, Tensor) {
