@@ -117,7 +117,6 @@ impl TwoWayAttentionBlock {
 
         keys = &keys + &attn_out;
         keys = self.norm4.forward(&keys);
-        println!("asdfasdfasdfasdfasdfasdfasfd");
 
         (queries, keys)
     }

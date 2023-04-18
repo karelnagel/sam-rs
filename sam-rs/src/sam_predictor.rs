@@ -83,7 +83,6 @@ impl SamPredictor {
     pub fn set_torch_image(&mut self, transformed_image: Tensor, original_size: Size) {
         // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
-        println!("shape: {:?}", shape);
 
         if shape.len() != 4
             || shape[1] != 3
