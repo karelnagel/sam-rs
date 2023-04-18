@@ -126,9 +126,9 @@ impl Sam {
             );
             let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
                 &curr_embedding.unsqueeze(0),
-                self.prompt_encoder.get_dense_pe(),
-                sparse_embeddings,
-                dense_embeddings,
+                &self.prompt_encoder.get_dense_pe(),
+                &sparse_embeddings,
+                &dense_embeddings,
                 multimask_output,
             );
             let size = image_record.image.size();

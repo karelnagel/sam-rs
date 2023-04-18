@@ -1,5 +1,5 @@
 use ndarray::{Array1, Array2, Array3};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tch::{Kind, Tensor};
 
 use crate::sam::Sam;
@@ -228,9 +228,9 @@ impl SamPredictor {
 
         let (low_res_masks, iou_predictions) = self.model.mask_decoder.forward(
             self.features.as_ref().unwrap(),
-            self.model.prompt_encoder.get_dense_pe(),
-            sparse_embeddings,
-            dense_embeddings,
+            &self.model.prompt_encoder.get_dense_pe(),
+            &sparse_embeddings,
+            &dense_embeddings,
             multimask_output,
         );
         let masks = self.model.postprocess_masks(

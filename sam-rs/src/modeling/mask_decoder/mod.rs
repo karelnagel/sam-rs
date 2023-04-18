@@ -106,13 +106,13 @@ impl MaskDecoder {
     pub fn forward(
         &self,
         image_embeddings: &Tensor,
-        image_pe: Tensor,
-        sparse_prompt_embeddings: Tensor,
-        dense_prompt_embeddings: Tensor,
+        image_pe: &Tensor,
+        sparse_prompt_embeddings: &Tensor,
+        dense_prompt_embeddings: &Tensor,
         multimask_output: bool,
     ) -> (Tensor, Tensor) {
         let (masks, iou_pred) = self.predict_masks(
-            image_embeddings.copy(),
+            image_embeddings,
             image_pe,
             sparse_prompt_embeddings,
             dense_prompt_embeddings,
@@ -130,16 +130,16 @@ impl MaskDecoder {
     /// Predicts masks. See 'forward' for more details.
     pub fn predict_masks(
         &self,
-        image_embeddings: Tensor,
-        image_pe: Tensor,
-        sparse_prompt_embeddings: Tensor,
-        dense_prompt_embeddings: Tensor,
+        image_embeddings: &Tensor,
+        image_pe: &Tensor,
+        sparse_prompt_embeddings: &Tensor,
+        dense_prompt_embeddings: &Tensor,
     ) -> (Tensor, Tensor) {
         let output_tokens = Tensor::cat(&[&self.iou_token.ws, &self.mask_tokens.ws], 0);
         let output_tokens = output_tokens
             .unsqueeze(0)
             .expand(&sparse_prompt_embeddings.size(), false);
-        let tokens = Tensor::cat(&[output_tokens, sparse_prompt_embeddings], 1);
+        let tokens = Tensor::cat(&[&output_tokens, sparse_prompt_embeddings], 1);
 
         let src = Tensor::repeat_interleave(&image_embeddings, tokens.size()[0])
             + dense_prompt_embeddings;
@@ -178,18 +178,94 @@ impl MaskDecoder {
 mod test {
     use tch::{nn, Device};
 
-    use crate::modeling::{
-        common::activation::{Activation, ActivationType},
-        transformer::TwoWayTransformer,
+    use crate::{
+        modeling::{
+            common::activation::{Activation, ActivationType},
+            transformer::TwoWayTransformer,
+        },
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
     };
-
+    impl Mock for super::MaskDecoder {
+        fn mock(&mut self) {
+            self.transformer.mock();
+            self.iou_token.mock();
+            self.mask_tokens.mock();
+            self.iou_prediction_head.mock();
+            for mlp in self.output_hypernetworks_mlps.iter_mut() {
+                mlp.mock();
+            }
+        }
+    }
+    
     #[test]
     fn test_mask_decoder() {
         let vs = nn::VarStore::new(Device::Cpu);
-        let act = Activation::new(ActivationType::GELU);
+        let act = Activation::new(ActivationType::ReLU);
         let two_way_transformer =
-            TwoWayTransformer::new(&vs.root(), 1, 1, 1, 1, Some(act), Some(0)); //Todo wrong
-        let mask_decoder =
-            super::MaskDecoder::new(&vs.root(), 256, two_way_transformer, 3, act, 3, 256);
+            TwoWayTransformer::new(&vs.root(), 2, 128, 4, 1024, Some(act), Some(2));
+        let mut mask_decoder =
+            super::MaskDecoder::new(&vs.root(), 128, two_way_transformer, 3, act, 3, 128);
+        let file = TestFile::open("mask_decoder");
+        file.compare("transformer_dim", mask_decoder.transformer_dim);
+        file.compare("num_multimask_outputs", mask_decoder.num_multimask_outputs);
+        file.compare("num_mask_tokens", mask_decoder.num_mask_tokens);
+
+        // Mocking
+        mask_decoder.mock();
+
+        // Forward
+        let image_embedding = random_tensor(&[1, 128, 32, 32], 1);
+        let image_pe = random_tensor(&[1, 128, 32, 32], 2);
+        let sparse_prompt_embeddings = random_tensor(&[32, 2, 128], 3);
+        let dense_prompt_embeddings = random_tensor(&[32, 128, 32, 32], 4);
+        let (masks, iou_pred) = mask_decoder.forward(
+            &image_embedding,
+            &image_pe,
+            &sparse_prompt_embeddings,
+            &dense_prompt_embeddings,
+            true,
+        );
+        let file = TestFile::open("mask_decoder_forward");
+        file.compare("image_embedding", image_embedding);
+        file.compare("image_pe", image_pe);
+        file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
+        file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
+        file.compare("masks", masks);
+        file.compare("iou_pred", iou_pred);
+    }
+
+    #[test]
+    fn test_mask_decoder_predict() {
+        let vs = nn::VarStore::new(Device::Cpu);
+        let act = Activation::new(ActivationType::ReLU);
+        let two_way_transformer =
+            TwoWayTransformer::new(&vs.root(), 2, 128, 4, 1024, Some(act), Some(2));
+        let mut mask_decoder =
+            super::MaskDecoder::new(&vs.root(), 128, two_way_transformer, 3, act, 3, 128);
+
+        // Mocking
+        mask_decoder.mock();
+
+        // Forward
+        let image_embedding = random_tensor(&[1, 128, 32, 32], 1);
+        let image_pe = random_tensor(&[1, 128, 32, 32], 2);
+        let sparse_prompt_embeddings = random_tensor(&[32, 2, 128], 3);
+        let dense_prompt_embeddings = random_tensor(&[32, 128, 32, 32], 4);
+        let (masks, iou_pred) = mask_decoder.predict_masks(
+            &image_embedding,
+            &image_pe,
+            &sparse_prompt_embeddings,
+            &dense_prompt_embeddings,
+        );
+        let file = TestFile::open("mask_decoder_forward");
+        file.compare("image_embedding", image_embedding);
+        file.compare("image_pe", image_pe);
+        file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
+        file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
+        file.compare("masks", masks);
+        file.compare("iou_pred", iou_pred);
     }
 }
