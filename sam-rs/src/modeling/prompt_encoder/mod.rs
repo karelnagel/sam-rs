@@ -132,14 +132,14 @@ impl PromptEncoder {
             .pe_layer
             .forward_with_coords(&points, self.input_image_size);
 
-        point_embedding = point_embedding.masked_fill_(&labels.eq(-1), 0.0);
         // Todo check if this is correct
-        point_embedding =
-            point_embedding.masked_scatter_(&labels.eq(-1), &self.not_a_point_embed.ws);
-        point_embedding =
-            point_embedding.masked_scatter_(&labels.eq(0), &self.point_embeddings[0].ws);
-        point_embedding =
-            point_embedding.masked_scatter_(&labels.eq(1), &self.point_embeddings[1].ws);
+        // point_embedding = point_embedding.masked_fill_(&labels.eq(-1), 0.0);
+        // point_embedding =
+        //     point_embedding.masked_scatter_(&labels.eq(-1), &self.not_a_point_embed.ws);
+        // point_embedding =
+        //     point_embedding.masked_scatter_(&labels.eq(0), &self.point_embeddings[0].ws);
+        // point_embedding =
+        //     point_embedding.masked_scatter_(&labels.eq(1), &self.point_embeddings[1].ws);
         point_embedding
     }
 
@@ -151,10 +151,10 @@ impl PromptEncoder {
             .pe_layer
             .forward_with_coords(&coords, self.input_image_size);
         // Todo check
-        corner_embedding = corner_embedding
-            .masked_scatter_(&boxes.eq(0), &self.point_embeddings[2].ws.unsqueeze(0));
-        corner_embedding = corner_embedding
-            .masked_scatter_(&boxes.eq(1), &self.point_embeddings[3].ws.unsqueeze(0));
+        // corner_embedding = corner_embedding
+        //     .masked_scatter_(&boxes.eq(0), &self.point_embeddings[2].ws.unsqueeze(0));
+        // corner_embedding = corner_embedding
+        //     .masked_scatter_(&boxes.eq(1), &self.point_embeddings[3].ws.unsqueeze(0));
         corner_embedding
     }
 
@@ -235,10 +235,13 @@ impl PromptEncoder {
 
 #[cfg(test)]
 mod test {
-    use tch::Device;
+    use tch::{nn, Device};
 
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::{
+            activation::{Activation, ActivationType},
+            layer_norm_2d::LayerNorm2d,
+        },
         sam_predictor::Size,
         tests::{
             helpers::{random_tensor, TestFile},
@@ -258,7 +261,40 @@ mod test {
             for item in self.point_embeddings.iter_mut() {
                 item.mock();
             }
-            // Todo mock mask_downscaling
+            let vs = nn::VarStore::new(Device::Cpu);
+            let activation = Activation::new(ActivationType::GELU);
+            let mut conv1 = nn::conv2d(
+                &vs.root(),
+                1,
+                MASK_IN_CHANS / 4,
+                2,
+                nn::ConvConfig {
+                    stride: 2,
+                    ..Default::default()
+                },
+            );
+            let mut conv2 = nn::conv2d(
+                &vs.root(),
+                MASK_IN_CHANS / 4,
+                MASK_IN_CHANS,
+                2,
+                nn::ConvConfig {
+                    stride: 2,
+                    ..Default::default()
+                },
+            );
+            let mut conv3 = nn::conv2d(&vs.root(), MASK_IN_CHANS, EMBED_DIM, 1, Default::default());
+            conv1.mock();
+            conv2.mock();
+            conv3.mock();
+            self.mask_downscaling = nn::seq()
+                .add(conv1)
+                .add(LayerNorm2d::new(&vs.root(), MASK_IN_CHANS / 4, None))
+                .add(activation)
+                .add(conv2)
+                .add(LayerNorm2d::new(&vs.root(), MASK_IN_CHANS, None))
+                .add(activation)
+                .add(conv3);
         }
     }
     fn _init() -> PromptEncoder {
