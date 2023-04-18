@@ -29,3 +29,10 @@ impl Mock for nn::Embedding {
         self.ws = random_tensor(&self.ws.size(), 1);
     }
 }
+
+impl Mock for nn::ConvTranspose2D {
+    fn mock(&mut self) {
+        self.ws = random_tensor(&self.ws.size(), 1);
+        self.bs = Some(random_tensor(&self.bs.as_ref().unwrap().size(), 2));
+    }
+}

@@ -12,9 +12,9 @@ use super::{
 
 #[derive(Debug)]
 pub struct MaskDecoder {
-    transformer_dim: i64,
+    _transformer_dim: i64,
     transformer: TwoWayTransformer,
-    num_multimask_outputs: i64,
+    _num_multimask_outputs: i64,
     iou_token: Embedding,
     num_mask_tokens: i64,
     mask_tokens: Embedding,
@@ -81,9 +81,9 @@ impl MaskDecoder {
             false,
         );
         MaskDecoder {
-            transformer_dim,
+            _transformer_dim: transformer_dim,
             transformer,
-            num_multimask_outputs,
+            _num_multimask_outputs: num_multimask_outputs,
             num_mask_tokens,
             iou_token,
             mask_tokens,
@@ -181,7 +181,10 @@ mod test {
 
     use crate::{
         modeling::{
-            common::activation::{Activation, ActivationType},
+            common::{
+                activation::{Activation, ActivationType},
+                layer_norm_2d::LayerNorm2d,
+            },
             transformer::TwoWayTransformer,
         },
         tests::{
@@ -189,6 +192,7 @@ mod test {
             mocks::Mock,
         },
     };
+
     impl Mock for super::MaskDecoder {
         fn mock(&mut self) {
             self.transformer.mock();
@@ -198,6 +202,37 @@ mod test {
             for mlp in self.output_hypernetworks_mlps.iter_mut() {
                 mlp.mock();
             }
+            let vs = nn::VarStore::new(Device::Cpu);
+            let mut conv = nn::conv_transpose2d(
+                &vs.root(),
+                self._transformer_dim,
+                self._transformer_dim / 4,
+                2,
+                nn::ConvTransposeConfig {
+                    stride: 2,
+                    ..Default::default()
+                },
+            );
+            let layer = LayerNorm2d::new(&vs.root(), self._transformer_dim / 4, None);
+            let activation = Activation::new(ActivationType::GELU);
+            let mut conv2 = nn::conv_transpose2d(
+                &vs.root(),
+                self._transformer_dim / 4,
+                self._transformer_dim / 8,
+                2,
+                nn::ConvTransposeConfig {
+                    stride: 2,
+                    ..Default::default()
+                },
+            );
+            conv.mock();
+            conv2.mock();
+            self.output_upscaling = nn::seq()
+                .add(conv)
+                .add(layer)
+                .add(activation)
+                .add(conv2)
+                .add(activation);
         }
     }
     #[ignore]
@@ -210,8 +245,8 @@ mod test {
         let mut mask_decoder =
             super::MaskDecoder::new(&vs.root(), 128, two_way_transformer, 3, act, 3, 128);
         let file = TestFile::open("mask_decoder");
-        file.compare("transformer_dim", mask_decoder.transformer_dim);
-        file.compare("num_multimask_outputs", mask_decoder.num_multimask_outputs);
+        file.compare("transformer_dim", mask_decoder._transformer_dim);
+        file.compare("num_multimask_outputs", mask_decoder._num_multimask_outputs);
         file.compare("num_mask_tokens", mask_decoder.num_mask_tokens);
 
         // Mocking
