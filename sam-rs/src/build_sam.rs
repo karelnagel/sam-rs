@@ -33,7 +33,7 @@ fn _build_sam(
     let prompt_embed_dim = 256;
     let img_size = 1024;
     let vit_patch_size = 16;
-    let image_embedding_size = img_size; // vit_patch_size
+    let image_embedding_size = img_size / vit_patch_size;
     let vs = VarStore::new(Device::cuda_if_available());
     let vs = &vs.root();
     let activation = Activation::new(ActivationType::GELU);

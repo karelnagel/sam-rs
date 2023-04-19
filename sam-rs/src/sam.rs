@@ -17,18 +17,18 @@ pub struct Sam {
     pub mask_threshold: f64,
     pub image_format: ImageFormat,
 }
-pub struct Input {
+#[derive(Debug)]
+pub struct Input<'a> {
     pub image: Tensor,
-    pub original_size: Size,
-    pub point_coords: Tensor,
-    pub point_labels: Tensor,
     pub boxes: Tensor,
-    pub mask_inputs: Tensor,
+    pub original_size: Size,
+    pub point_coords: Option<(&'a Tensor, &'a Tensor)>,
+    pub mask_inputs: Option<&'a Tensor>,
 }
 pub struct Output {
     pub masks: Tensor,
     pub iou_predictions: Tensor,
-    pub low_res_masks: Tensor,
+    pub low_res_logits: Option<Tensor>,
 }
 impl Sam {
     /// # SAM predicts object masks from an image and input prompts.
@@ -104,25 +104,25 @@ impl Sam {
         let input_images = Tensor::stack(
             &batched_input
                 .iter()
-                .map(|x| self.preprocess(x.image.copy()))
+                .map(|x| self.preprocess(&x.image))
                 .collect::<Vec<_>>(),
             0,
         );
         let image_embeddings = self.image_encoder.forward(&input_images);
-
         let mut outputs: Vec<Output> = vec![];
         for i in 0..batched_input.len() {
             let image_record = batched_input.get(i).unwrap();
             let curr_embedding = image_embeddings.get(i as i64);
-
             let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
-                Some((&image_record.point_coords, &image_record.point_labels)),
+                image_record.point_coords,
                 Some(&image_record.boxes),
-                Some(&image_record.mask_inputs),
+                image_record.mask_inputs,
             );
+            let image_embeddings = curr_embedding.unsqueeze(0);
+            let image_pe = self.prompt_encoder.get_dense_pe();
             let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
-                &curr_embedding.unsqueeze(0),
-                &self.prompt_encoder.get_dense_pe(),
+                &image_embeddings,
+                &image_pe,
                 &sparse_embeddings,
                 &dense_embeddings,
                 multimask_output,
@@ -130,14 +130,14 @@ impl Sam {
             let size = image_record.image.size();
             let masks = self.postprocess_masks(
                 &low_res_masks,
-                &Size(size[1], size[2]),
+                &Size(size[size.len() - 2], size[size.len() - 1]),
                 &image_record.original_size,
             );
-            // let masks = masks > self.mask_threshold; // Todo
+            let masks = masks.gt(self.mask_threshold);
             outputs.push(Output {
                 masks,
                 iou_predictions,
-                low_res_masks,
+                low_res_logits: Some(low_res_masks),
             })
         }
         outputs
@@ -165,13 +165,95 @@ impl Sam {
     }
 
     /// Normalize pixel values and pad to a square input.
-    pub fn preprocess(&self, x: Tensor) -> Tensor {
-        let x = (&x - &self.pixel_mean) / &self.pixel_std;
-        let (h, w) = x.size2().unwrap();
+    pub fn preprocess(&self, x: &Tensor) -> Tensor {
+        let x = (x - &self.pixel_mean) / &self.pixel_std;
+        let size = x.size();
+        let h = size[size.len() - 2];
+        let w = size[size.len() - 1];
 
         let padh = self.image_encoder.img_size - h;
         let padw = self.image_encoder.img_size - w;
         let x = x.constant_pad_nd(&[0, padw, 0, padh]);
         x
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        build_sam::{build_sam_vit_b, build_sam_vit_h},
+        sam_predictor::Size,
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
+    };
+
+    use super::{Input, Sam};
+
+    impl Mock for Sam {
+        fn mock(&mut self) {
+            self.prompt_encoder.mock();
+            self.mask_decoder.mock();
+        }
+    }
+
+    #[test]
+    fn test_sam_forward() {
+        let mut sam = build_sam_vit_b(None);
+        sam.mock();
+        let input = vec![
+            Input {
+                image: random_tensor(&[3, 171, 128], 1),
+                boxes: random_tensor(&[4, 4], 1),
+                original_size: Size(300, 450),
+                mask_inputs: None,
+                point_coords: None,
+            },
+            Input {
+                image: random_tensor(&[3, 171, 128], 1),
+                boxes: random_tensor(&[4, 4], 1),
+                original_size: Size(133, 200),
+                mask_inputs: None,
+                point_coords: None,
+            },
+        ];
+        let output = sam.forward(input, false);
+        let file = TestFile::open("sam_forward");
+        for (i, out) in output.iter().enumerate() {
+            file.compare(format!("masks{}", i).as_str(), out.masks.copy());
+            file.compare(
+                format!("iou_predictions{}", i).as_str(),
+                out.iou_predictions.copy(),
+            );
+            if let Some(low_res_logits) = &out.low_res_logits {
+                file.compare(format!("low_res_logits{}", i).as_str(), low_res_logits.copy());
+            }
+        }
+    }
+    #[test]
+    fn test_sam_postprocess_masks() {
+        let mut sam = build_sam_vit_b(None);
+        sam.mock();
+
+        let masks = random_tensor(&[4, 1, 256, 256], 1);
+        let input = Size(684, 1024);
+        let original = Size(534, 800);
+        let output = sam.postprocess_masks(&masks, &input, &original);
+        let file = TestFile::open("sam_postprocess_masks");
+        file.compare("input_size", input);
+        file.compare("masks", masks);
+        file.compare("output", output);
+    }
+    #[test]
+    fn test_sam_preprocess() {
+        let mut sam = build_sam_vit_b(None);
+        sam.mock();
+
+        let input = random_tensor(&[1, 3, 171, 128], 1);
+        let output = sam.preprocess(&input);
+        let file = TestFile::open("sam_preprocess");
+        file.compare("input", input);
+        file.compare("output", output);
     }
 }

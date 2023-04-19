@@ -96,7 +96,7 @@ impl SamPredictor {
         self.original_size = Some(original_size);
         self.input_size = Some(Size(shape[2], shape[3]));
 
-        let input_image = self.model.preprocess(transformed_image);
+        let input_image = self.model.preprocess(&transformed_image);
         self.features = Some(self.model.image_encoder.forward(&input_image));
         self.is_image_set = true;
     }
