@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug};
 
+use ndarray::ArrayD;
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
@@ -85,8 +86,10 @@ pub enum TestValue {
     TensorFloat(TestTensor<Vec<f64>>),
     TensorInt(TestTensor<Vec<i64>>),
     TensorBool(TestTensor<Vec<bool>>),
+    TensorU8(TestTensor<Vec<u8>>),
     Float(f64),
     Int(i64),
+    U8(u8),
     String(String),
     Bool(bool),
     List(Vec<i64>),
@@ -99,7 +102,33 @@ pub struct TestTensor<T: IsSame> {
     pub values: T,
     pub size: Vec<i64>,
 }
-
+impl From<ArrayD<u8>> for TestValue {
+    fn from(array: ArrayD<u8>) -> TestValue {
+        let size: Vec<i64> = array.shape().iter().map(|x| *x as i64).collect();
+        TestValue::TensorU8(TestTensor {
+            values: array.into_raw_vec(),
+            size,
+        })
+    }
+}
+impl From<ArrayD<i64>> for TestValue {
+    fn from(array: ArrayD<i64>) -> TestValue {
+        let size: Vec<i64> = array.shape().iter().map(|x| *x as i64).collect();
+        TestValue::TensorInt(TestTensor {
+            values: array.into_raw_vec(),
+            size,
+        })
+    }
+}
+impl From<ArrayD<f64>> for TestValue {
+    fn from(array: ArrayD<f64>) -> TestValue {
+        let size: Vec<i64> = array.shape().iter().map(|x| *x as i64).collect();
+        TestValue::TensorFloat(TestTensor {
+            values: array.into_raw_vec(),
+            size,
+        })
+    }
+}
 impl From<Tensor> for TestValue {
     fn from(tensor: Tensor) -> Self {
         let kind: tch::Kind = tensor.kind();
@@ -134,6 +163,11 @@ impl From<Size> for TestValue {
 impl From<i64> for TestValue {
     fn from(item: i64) -> Self {
         TestValue::Int(item)
+    }
+}
+impl From<u8> for TestValue {
+    fn from(item: u8) -> Self {
+        TestValue::U8(item)
     }
 }
 impl From<usize> for TestValue {
@@ -232,6 +266,7 @@ impl IsSame for Vec<i64> {
         Ok(())
     }
 }
+
 impl IsSame for Vec<f64> {
     fn is_same(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
@@ -257,6 +292,20 @@ impl IsSame for Vec<f64> {
     }
 }
 impl IsSame for Vec<bool> {
+    fn is_same(&self, other: &Self) -> Result<(), String> {
+        if self.len() != other.len() {
+            return Err("Vectors must have the same length".to_string());
+        }
+        for (x, y) in self.iter().zip(other.iter()) {
+            if x != y {
+                return Err(format!("Vectors are not equal: {:?} and {:?}", x, y));
+            }
+        }
+        Ok(())
+    }
+}
+
+impl IsSame for Vec<u8> {
     fn is_same(&self, other: &Self) -> Result<(), String> {
         if self.len() != other.len() {
             return Err("Vectors must have the same length".to_string());
