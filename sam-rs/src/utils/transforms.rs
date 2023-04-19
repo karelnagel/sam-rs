@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Array3};
+use ndarray::ArrayD;
 use tch::Tensor;
 
 use crate::sam_predictor::Size;
@@ -15,7 +15,7 @@ impl ResizeLongestSide {
     }
 
     // Expects a numpy array with shape HxWxC in uint8 format.
-    pub fn apply_image(&self, image: &Array3<u8>) -> Array3<u8> {
+    pub fn apply_image(&self, image: &ArrayD<u8>) -> ArrayD<u8> {
         unimplemented!();
         // let target_size = self.get_preprocess_shape(
         //     image.shape()[0] as i64,
@@ -30,7 +30,7 @@ impl ResizeLongestSide {
 
     // Expects a numpy array of length 2 in the final dimension. Requires the
     // original image size in (H, W) format.
-    pub fn apply_coords(&self, coords: &Array2<f32>, original_size: &Size) -> Array2<f32> {
+    pub fn apply_coords(&self, coords: &ArrayD<f32>, original_size: &Size) -> ArrayD<f32> {
         unimplemented!()
         // let Size(old_h, old_w) = original_size;
         // let Size(new_h, new_w) = self.get_preprocess_shape(*old_h, *old_w, self.target_length);
@@ -46,7 +46,7 @@ impl ResizeLongestSide {
 
     // Expects a numpy array shape Bx4. Requires the original image size
     // in (H, W) format.
-    pub fn apply_boxes(&self, boxes: &Array1<f32>, original_size: &Size) -> Array1<f32> {
+    pub fn apply_boxes(&self, boxes: &ArrayD<f32>, original_size: &Size) -> ArrayD<f32> {
         unimplemented!()
         // let boxes = boxes.to_owned();
         // let idk: Vec<i32> = vec![-1, 2, 2];

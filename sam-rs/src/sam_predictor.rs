@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Array3};
+use ndarray::ArrayD;
 use serde::{Deserialize, Serialize};
 use tch::{Kind, Tensor};
 
@@ -55,21 +55,20 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: Array3<u8>, image_format: &ImageFormat) {
-        if image_format != &self.model.image_format {
+    pub fn set_image(&mut self, image: &ArrayD<u8>, image_format: ImageFormat) {
+        if image_format != self.model.image_format {
             //Todo flip image
             unimplemented!("Should flip the image")
         }
-
         let input_image = self.transfrom.apply_image(&image);
-        let input_image_tensor = convert_ndarray_to_tensor(&image);
+        let input_image_tensor: Tensor = image.try_into().unwrap();
         let mut input_image_torch = input_image_tensor.permute(&[2, 0, 1]);
         input_image_torch = input_image_torch.unsqueeze(0);
         if let Some(device) = self.device {
             input_image_torch = input_image_torch.to_device(device);
         }
         let shape = image.shape();
-        self.set_torch_image(input_image_torch, Size(shape[0] as i64, shape[1] as i64));
+        self.set_torch_image(&input_image_torch, Size(shape[0] as i64, shape[1] as i64));
     }
 
     /// Calculates the image embeddings for the provided image, allowing
@@ -80,7 +79,7 @@ impl SamPredictor {
     ///     1x3xHxW, which has been transformed with ResizeLongestSide.
     ///   original_image_size (tuple(int, int)): The size of the image
     ///     before transformation, in (H, W) format.
-    pub fn set_torch_image(&mut self, transformed_image: Tensor, original_size: Size) {
+    pub fn set_torch_image(&mut self, transformed_image: &Tensor, original_size: Size) {
         // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
 
@@ -131,10 +130,10 @@ impl SamPredictor {
     ///     a subsequent iteration as mask input.
     pub fn predict(
         &self,
-        point_coords: Option<Array2<f32>>,
-        point_labels: Option<Array1<i32>>,
-        boxes: Option<Array1<f32>>,
-        mask_input: Option<Array1<f32>>,
+        point_coords: Option<ArrayD<f32>>,
+        point_labels: Option<ArrayD<i32>>,
+        boxes: Option<ArrayD<f32>>,
+        mask_input: Option<ArrayD<f32>>,
         multimask_output: bool,
         return_logits: bool,
     ) -> (Tensor, Tensor, Tensor) {
@@ -150,16 +149,16 @@ impl SamPredictor {
                 .transfrom
                 .apply_coords(&point_coords, &self.original_size.unwrap());
             coords_torch = Some(Tensor::of_slice(&point_coords.into_raw_vec()));
-            labels_torch = Some(Tensor::of_slice(&point_labels.unwrap().to_vec()));
+            labels_torch = Some(Tensor::of_slice(&point_labels.unwrap().into_raw_vec()));
         }
         if let Some(mut boxes) = boxes {
             boxes = self
                 .transfrom
                 .apply_boxes(&boxes, &self.original_size.unwrap());
-            box_torch = Some(Tensor::of_slice(&boxes.to_vec()));
+            box_torch = Some(Tensor::of_slice(&boxes.into_raw_vec()));
         }
         if let Some(mask_input) = mask_input {
-            mask_input_torch = Some(Tensor::of_slice(&mask_input.to_vec()));
+            mask_input_torch = Some(Tensor::of_slice(&mask_input.into_raw_vec()));
         }
         let (masks, iou_predictions, low_res_masks) = self.predict_torch(
             Some(&coords_torch.unwrap()),
@@ -263,19 +262,98 @@ impl SamPredictor {
     }
 }
 
-pub fn convert_ndarray_to_tensor(array: &Array3<u8>) -> Tensor {
-    // Get the shape of the ndarray
-    let shape = array.dim();
-    let (height, width, channels) = (shape.0, shape.1, shape.2);
+#[cfg(test)]
+mod test {
+    use ndarray::ArrayD;
 
-    // Convert the ndarray to a 1D slice
-    let slice = array.as_slice().unwrap();
+    use crate::{
+        build_sam::build_sam_vit_b,
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
+    };
 
-    // Create a tch Tensor from the slice
-    let tensor = Tensor::of_slice(slice);
+    use super::{SamPredictor, Size};
 
-    // Reshape the tensor to match the shape of the ndarray
-    let reshaped_tensor = tensor.reshape(&[height as i64, width as i64, channels as i64]);
+    fn init(with_set_image: bool) -> SamPredictor {
+        let mut sam = build_sam_vit_b(None);
+        sam.mock();
+        let mut predictor = SamPredictor::new(sam);
+        if (with_set_image) {
+            let image_tensor = random_tensor(&[1, 3, 683, 1024], 1).to_kind(tch::Kind::Uint8);
+            let image: ArrayD<u8> = (&image_tensor).try_into().unwrap();
+            predictor.set_image(&image, super::ImageFormat::RGB);
+        }
 
-    reshaped_tensor
+        predictor
+    }
+
+    #[test]
+    fn test_predictor_set_torch_image() {
+        let mut predictor = init(false);
+
+        let image = random_tensor(&[1, 3, 683, 1024], 1);
+        let original_size = Size(1200, 1800);
+        predictor.set_torch_image(&image, original_size);
+        let file = TestFile::open("predictor_set_torch_image");
+        file.compare("original_size", predictor.original_size.unwrap());
+        file.compare("input_size", predictor.input_size.unwrap());
+        file.compare("features", predictor.features.unwrap());
+        file.compare("is_image_set", predictor.is_image_set);
+    }
+
+    #[test]
+    fn test_predictor_set_image() {
+        let predictor = init(true);
+
+        let file = TestFile::open("predictor_set_image");
+        file.compare("original_size", predictor.original_size.unwrap());
+        file.compare("input_size", predictor.input_size.unwrap());
+        file.compare("features", predictor.features.unwrap());
+        file.compare("is_image_set", predictor.is_image_set);
+    }
+
+    #[test]
+    fn test_predictor_predict_torch() {
+        let predictor = init(true);
+
+        let point_coords = random_tensor(&[1, 1, 2], 1);
+        let point_labels = random_tensor(&[1, 1], 1);
+
+        let (masks, iou_predictions, low_res_masks) = predictor.predict_torch(
+            Some(&point_coords),
+            Some(&point_labels),
+            None,
+            None,
+            true,
+            false,
+        );
+        let file = TestFile::open("predictor_predict_torch");
+        file.compare("masks", masks);
+        file.compare("iou_predictions", iou_predictions);
+        file.compare("low_res_masks", low_res_masks);
+    }
+
+    #[test]
+    fn test_predictor_predict() {
+        let predictor = init(true);
+
+        let point_coords_tensor = random_tensor(&[1, 2], 1);
+        let point_coords: ArrayD<f32> = (&point_coords_tensor).try_into().unwrap();
+        let point_labels = random_tensor(&[1], 1).to_kind(tch::Kind::Int);
+        let point_labels: ArrayD<i32> = (&point_labels).try_into().unwrap();
+        let (masks, iou_predictions, low_res_masks) = predictor.predict(
+            Some(point_coords),
+            Some(point_labels),
+            None,
+            None,
+            true,
+            false,
+        );
+        let file = TestFile::open("predictor_predict");
+        file.compare("masks", masks);
+        file.compare("iou_predictions", iou_predictions);
+        file.compare("low_res_masks", low_res_masks);
+    }
 }

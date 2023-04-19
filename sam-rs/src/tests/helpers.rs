@@ -181,8 +181,7 @@ where
     let flattened = tensor.flatten(0, -1);
     flattened.into()
 }
-
-pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
+fn random_slice(shape: &[i64], seed: u64) -> Vec<f64> {
     let n = shape.iter().product::<i64>();
     let a: u64 = 3;
     let c: u64 = 23;
@@ -194,7 +193,12 @@ pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
         x = (a.wrapping_mul(x).wrapping_add(c)) % m;
         result.push(x as f64 / m as f64); // Normalize the result to [0, 1]
     }
-    Tensor::of_slice(&result)
+    result
+}
+
+pub fn random_tensor(shape: &[i64], seed: u64) -> Tensor {
+    let slice = random_slice(shape, seed);
+    Tensor::of_slice(&slice)
         .view(shape)
         .to_kind(tch::Kind::Float)
 }

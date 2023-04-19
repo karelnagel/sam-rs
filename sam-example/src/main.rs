@@ -2,21 +2,19 @@ extern crate ndarray;
 use crate::ndarray as nd;
 
 extern crate opencv;
-use opencv::{
-    core, imgcodecs, imgproc,
-};
+use opencv::{core, imgcodecs, imgproc};
 
 fn main() {
-    let sam = sam_rs::build_sam::build_sam_vit_h(None);
-    let mut predictor = sam_rs::sam_predictor::SamPredictor::new(sam);
-    // Image
-    let image = imgcodecs::imread("images/truck.jpg", imgcodecs::IMREAD_COLOR).unwrap();
-    let mut rgb_image = core::Mat::default();
-    imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
+    // let sam = sam_rs::build_sam::build_sam_vit_h(None);
+    // let mut predictor = sam_rs::sam_predictor::SamPredictor::new(sam);
+    // // Image
+    // let image = imgcodecs::imread("images/truck.jpg", imgcodecs::IMREAD_COLOR).unwrap();
+    // let mut rgb_image = core::Mat::default();
+    // imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
 
-    let arr: nd::ArrayView3<u8> = rgb_image.try_as_array();
+    // let arr: nd::ArrayView3<u8> = rgb_image.try_as_array();
 
-    predictor.set_image(arr.to_owned(), &sam_rs::sam_predictor::ImageFormat::RGB);
+    // predictor.set_image(arr.to_owned(), &sam_rs::sam_predictor::ImageFormat::RGB);
 
     // //Should be right
     // let point_coords = stack![Axis(0), input_point.mapv(|x| x as f32), array![[0.0, 0.0]]]
