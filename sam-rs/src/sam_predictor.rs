@@ -1,4 +1,3 @@
-use ndarray::ArrayD;
 use serde::{Deserialize, Serialize};
 use tch::{Kind, Tensor};
 
@@ -55,20 +54,19 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: &ArrayD<u8>, image_format: ImageFormat) {
+    pub fn set_image(&mut self, image: &Tensor, image_format: ImageFormat) {
         if image_format != self.model.image_format {
             //Todo flip image
             unimplemented!("Should flip the image")
         }
-        let input_image = self.transfrom.apply_image(&image);
-        let input_image_tensor: Tensor = image.try_into().unwrap();
-        let mut input_image_torch = input_image_tensor.permute(&[2, 0, 1]);
-        input_image_torch = input_image_torch.unsqueeze(0);
+        let mut input_image = self.transfrom.apply_image(&image);
+        input_image = input_image.permute(&[2, 0, 1]);
+        input_image = input_image.unsqueeze(0);
         if let Some(device) = self.device {
-            input_image_torch = input_image_torch.to_device(device);
+            input_image = input_image.to_device(device);
         }
-        let shape = image.shape();
-        self.set_torch_image(&input_image_torch, Size(shape[0] as i64, shape[1] as i64));
+        let shape = image.size();
+        self.set_torch_image(&input_image, Size(shape[0] as i64, shape[1] as i64));
     }
 
     /// Calculates the image embeddings for the provided image, allowing
@@ -130,17 +128,17 @@ impl SamPredictor {
     ///     a subsequent iteration as mask input.
     pub fn predict(
         &self,
-        point_coords: Option<ArrayD<f64>>,
-        point_labels: Option<ArrayD<i64>>,
-        boxes: Option<ArrayD<f64>>,
-        mask_input: Option<ArrayD<f64>>,
+        point_coords: Option<&Tensor>,
+        point_labels: Option<&Tensor>,
+        boxes: Option<&Tensor>,
+        mask_input: Option<&Tensor>,
         multimask_output: bool,
         return_logits: bool,
     ) -> (Tensor, Tensor, Tensor) {
         assert!(self.is_image_set, "Must set image before predicting.");
         let (mut coords_torch, mut labels_torch, mut box_torch, mut mask_input_torch) =
             (None, None, None, None);
-        if let Some(point_coords) = point_coords {
+        if let Some(point_coords) = point_coords.as_ref() {
             assert!(
                 point_labels.is_some(),
                 "point_labels must be supplied if point_coords is supplied."
@@ -148,17 +146,17 @@ impl SamPredictor {
             let point_coords = self
                 .transfrom
                 .apply_coords(&point_coords, &self.original_size.unwrap());
-            coords_torch = Some(Tensor::of_slice(&point_coords.into_raw_vec()));
-            labels_torch = Some(Tensor::of_slice(&point_labels.unwrap().into_raw_vec()));
+            coords_torch = Some(point_coords);
+            labels_torch = point_labels
         }
-        if let Some(mut boxes) = boxes {
-            boxes = self
+        if let Some(boxes) = boxes {
+            let boxes = self
                 .transfrom
                 .apply_boxes(&boxes, &self.original_size.unwrap());
-            box_torch = Some(Tensor::of_slice(&boxes.into_raw_vec()));
+            box_torch = Some(boxes);
         }
         if let Some(mask_input) = mask_input {
-            mask_input_torch = Some(Tensor::of_slice(&mask_input.into_raw_vec()));
+            mask_input_torch = Some(mask_input);
         }
         let (masks, iou_predictions, low_res_masks) = self.predict_torch(
             Some(&coords_torch.unwrap()),
@@ -264,7 +262,6 @@ impl SamPredictor {
 
 #[cfg(test)]
 mod test {
-    use ndarray::ArrayD;
 
     use crate::{
         build_sam::build_sam_vit_b,
@@ -281,8 +278,7 @@ mod test {
         sam.mock();
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image_tensor = random_tensor(&[1, 3, 683, 1024], 1).to_kind(tch::Kind::Uint8);
-            let image: ArrayD<u8> = (&image_tensor).try_into().unwrap();
+            let image = random_tensor(&[1, 3, 683, 1024], 1).to_kind(tch::Kind::Uint8);
             predictor.set_image(&image, super::ImageFormat::RGB);
         }
 
@@ -342,13 +338,11 @@ mod test {
     fn test_predictor_predict() {
         let predictor = init(true);
 
-        let point_coords_tensor = random_tensor(&[1, 2], 1);
-        let point_coords: ArrayD<f64> = (&point_coords_tensor).try_into().unwrap();
+        let point_coords = random_tensor(&[1, 2], 1);
         let point_labels = random_tensor(&[1], 1).to_kind(tch::Kind::Int);
-        let point_labels: ArrayD<i64> = (&point_labels).try_into().unwrap();
         let (masks, iou_predictions, low_res_masks) = predictor.predict(
-            Some(point_coords),
-            Some(point_labels),
+            Some(&point_coords),
+            Some(&point_labels),
             None,
             None,
             true,
