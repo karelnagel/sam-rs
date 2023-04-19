@@ -132,14 +132,30 @@ impl PromptEncoder {
             .pe_layer
             .forward_with_coords(&points, self.input_image_size);
 
-        // Todo check if this is correct
-        // point_embedding = point_embedding.masked_fill_(&labels.eq(-1), 0.0);
-        // point_embedding =
-        //     point_embedding.masked_scatter_(&labels.eq(-1), &self.not_a_point_embed.ws);
-        // point_embedding =
-        //     point_embedding.masked_scatter_(&labels.eq(0), &self.point_embeddings[0].ws);
-        // point_embedding =
-        //     point_embedding.masked_scatter_(&labels.eq(1), &self.point_embeddings[1].ws);
+        let mask_minus_one = labels.eq(-1);
+        let mask_zero = labels.eq(0);
+        let mask_one = labels.eq(1);
+
+        point_embedding = Tensor::where_self(
+            &mask_minus_one.unsqueeze(-1),
+            &Tensor::zeros_like(&point_embedding),
+            &point_embedding,
+        );
+        point_embedding = Tensor::where_self(
+            &mask_minus_one.unsqueeze(-1),
+            &(&point_embedding + &self.not_a_point_embed.ws),
+            &point_embedding,
+        );
+        point_embedding = Tensor::where_self(
+            &mask_zero.unsqueeze(-1),
+            &(&point_embedding + &self.point_embeddings[0].ws),
+            &point_embedding,
+        );
+        point_embedding = Tensor::where_self(
+            &mask_one.unsqueeze(-1),
+            &(&point_embedding + &self.point_embeddings[1].ws),
+            &point_embedding,
+        );
         point_embedding
     }
 
