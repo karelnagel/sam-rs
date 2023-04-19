@@ -137,23 +137,23 @@ impl PromptEncoder {
         let mask_one = labels.eq(1);
 
         point_embedding = Tensor::where_self(
-            &mask_minus_one.unsqueeze(-1),
             &Tensor::zeros_like(&point_embedding),
-            &point_embedding,
-        );
-        point_embedding = Tensor::where_self(
             &mask_minus_one.unsqueeze(-1),
+            &point_embedding,
+        );
+        point_embedding = Tensor::where_self(
             &(&point_embedding + &self.not_a_point_embed.ws),
+            &mask_minus_one.unsqueeze(-1),
             &point_embedding,
         );
         point_embedding = Tensor::where_self(
-            &mask_zero.unsqueeze(-1),
             &(&point_embedding + &self.point_embeddings[0].ws),
+            &mask_zero.unsqueeze(-1),
             &point_embedding,
         );
         point_embedding = Tensor::where_self(
-            &mask_one.unsqueeze(-1),
             &(&point_embedding + &self.point_embeddings[1].ws),
+            &mask_one.unsqueeze(-1),
             &point_embedding,
         );
         point_embedding
@@ -357,7 +357,7 @@ mod test {
         prompt_encoder.mock();
 
         let points = random_tensor(&[64, 1, 2], 1);
-        let labels = random_tensor(&[64, 1], 1);
+        let labels = random_tensor(&[64, 1], 2);
         let output = prompt_encoder._embed_points(&points, &labels, true);
         let file = TestFile::open("prompt_encoder_embed_points");
         file.compare("points", points);
