@@ -51,7 +51,6 @@ impl ResizeLongestSide {
         // let boxes = boxes.to_owned();
         // let idk: Vec<i32> = vec![-1, 2, 2];
 
-        // // Todo
         // // let idk = boxes.reshape(idk);
         // // let boxes = self.apply_coords(idk, original_size);
         // // boxes.reshape(&[-1, 4])
