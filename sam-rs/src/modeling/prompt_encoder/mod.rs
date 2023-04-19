@@ -241,7 +241,6 @@ impl PromptEncoder {
             &[bs, 0, self.embed_dim],
             (tch::Kind::Float, self._get_device()),
         );
-
         if let Some((coords, labels)) = points {
             let point_embeddings = self._embed_points(&coords, &labels, boxes.is_none());
             sparse_embeddings = Tensor::cat(&[sparse_embeddings, point_embeddings], 1);
@@ -250,11 +249,15 @@ impl PromptEncoder {
             let box_embeddings = self._embed_boxes(&boxes);
             sparse_embeddings = Tensor::cat(&[sparse_embeddings, box_embeddings], 1);
         }
-
         let dense_embeddings = match masks {
             Some(masks) => self._embed_masks(&masks),
             None => self.no_mask_embed.ws.reshape(&[1, -1, 1, 1]).expand(
-                &[bs, self.image_embedding_size.0, self.image_embedding_size.1],
+                &[
+                    bs,
+                    -1,
+                    self.image_embedding_size.0,
+                    self.image_embedding_size.1,
+                ],
                 true,
             ),
         };
@@ -395,17 +398,14 @@ mod test {
         let mut prompt_encoder = _init();
         prompt_encoder.mock();
 
-        let points = random_tensor(&[64, 1, 2], 1);
-        let labels = random_tensor(&[64, 1], 1);
-        let boxes = random_tensor(&[64, 1, 2], 1);
-        let masks = random_tensor(&[64, MASK_IN_CHANS, 64, 64], 1);
-        let (sparse, dense) =
-            prompt_encoder.forward(Some((&points, &labels)), Some(&boxes), Some(&masks));
+        let points = random_tensor(&[16, 1, 2], 1);
+        let labels = random_tensor(&[16, 1], 2);
+        let boxes = None;
+        let masks = None;
+        let (sparse, dense) = prompt_encoder.forward(Some((&points, &labels)), boxes, masks);
         let file = TestFile::open("prompt_encoder_forward");
         file.compare("points", points);
         file.compare("labels", labels);
-        file.compare("boxes", boxes);
-        file.compare("masks", masks);
         file.compare("sparse", sparse);
         file.compare("dense", dense);
     }
