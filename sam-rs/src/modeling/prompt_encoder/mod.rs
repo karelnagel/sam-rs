@@ -282,8 +282,8 @@ mod test {
     };
 
     use super::PromptEncoder;
-    const MASK_IN_CHANS: i64 = 16;
-    const EMBED_DIM: i64 = 256;
+    const MASK_IN_CHANS: i64 = 8;
+    const EMBED_DIM: i64 = 128;
 
     impl Mock for PromptEncoder {
         fn mock(&mut self) {
@@ -335,8 +335,8 @@ mod test {
         let prompt_encoder = PromptEncoder::new(
             &vs.root(),
             EMBED_DIM,
-            Size(64, 64),
-            Size(1024, 1024),
+            Size(32, 32),
+            Size(512, 512),
             MASK_IN_CHANS,
             act,
         );
@@ -359,8 +359,8 @@ mod test {
         let mut prompt_encoder = _init();
         prompt_encoder.mock();
 
-        let points = random_tensor(&[64, 1, 2], 1);
-        let labels = random_tensor(&[64, 1], 2);
+        let points = random_tensor(&[32, 1, 2], 1);
+        let labels = random_tensor(&[32, 1], 2);
         let output = prompt_encoder._embed_points(&points, &labels, true);
         let file = TestFile::open("prompt_encoder_embed_points");
         file.compare("points", points);
@@ -373,36 +373,32 @@ mod test {
         let mut prompt_encoder = _init();
         prompt_encoder.mock();
 
-        let boxes = random_tensor(&[64, 1, 2], 1);
+        let boxes = random_tensor(&[32, 1, 2], 1);
         let output = prompt_encoder._embed_boxes(&boxes);
         let file = TestFile::open("prompt_encoder_embed_boxes");
         file.compare("boxes", boxes);
         file.compare("output", output);
     }
 
-    #[ignore]
     #[test]
     fn test_prompt_encoder_embed_masks() {
         let mut prompt_encoder = _init();
         prompt_encoder.mock();
 
-        let masks = random_tensor(&[64, MASK_IN_CHANS, 64, 64], 1);
+        let masks = random_tensor(&[8, 1, 4, 4], 1);
         let output = prompt_encoder._embed_masks(&masks);
         let file = TestFile::open("prompt_encoder_embed_masks");
         file.compare("masks", masks);
         file.compare("output", output);
     }
-
     #[test]
     fn test_prompt_encoder_forward() {
         let mut prompt_encoder = _init();
         prompt_encoder.mock();
 
-        let points = random_tensor(&[16, 1, 2], 1);
-        let labels = random_tensor(&[16, 1], 2);
-        let boxes = None;
-        let masks = None;
-        let (sparse, dense) = prompt_encoder.forward(Some((&points, &labels)), boxes, masks);
+        let points = random_tensor(&[8, 1, 2], 1);
+        let labels = random_tensor(&[8, 1], 2);
+        let (sparse, dense) = prompt_encoder.forward(Some((&points, &labels)), None, None);
         let file = TestFile::open("prompt_encoder_forward");
         file.compare("points", points);
         file.compare("labels", labels);
