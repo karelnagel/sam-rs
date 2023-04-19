@@ -14,7 +14,7 @@ pub struct Sam {
     pub mask_decoder: MaskDecoder,
     pub pixel_mean: Tensor,
     pub pixel_std: Tensor,
-    pub mask_threshold: f32,
+    pub mask_threshold: f64,
     pub image_format: ImageFormat,
 }
 pub struct Input {

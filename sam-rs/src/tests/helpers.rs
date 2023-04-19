@@ -3,7 +3,10 @@ use std::{collections::HashMap, fmt::Debug};
 use serde::{Deserialize, Serialize};
 use tch::Tensor;
 
-use crate::{modeling::common::activation::ActivationType, sam_predictor::Size};
+use crate::{
+    modeling::common::activation::ActivationType,
+    sam_predictor::{ImageFormat, Size},
+};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TestFile {
@@ -156,6 +159,17 @@ impl From<ActivationType> for TestValue {
 impl From<Vec<i64>> for TestValue {
     fn from(item: Vec<i64>) -> Self {
         TestValue::List(item)
+    }
+}
+impl From<ImageFormat> for TestValue {
+    fn from(item: ImageFormat) -> Self {
+        TestValue::String(
+            match item {
+                ImageFormat::BGR => "BGR",
+                ImageFormat::RGB => "RGB",
+            }
+            .to_string(),
+        )
     }
 }
 

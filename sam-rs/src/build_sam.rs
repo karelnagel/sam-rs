@@ -78,3 +78,40 @@ fn _build_sam(
         Some(&[58.395, 57.12, 57.375]),
     )
 }
+
+#[cfg(test)]
+mod test {
+    use crate::tests::helpers::TestFile;
+
+    fn test(name: &str, sam: crate::sam::Sam) {
+        let file = TestFile::open(name);
+        file.compare("mask_threshold", sam.mask_threshold);
+        file.compare("image_format", sam.image_format);
+        file.compare("pixel_mean", sam.pixel_mean);
+        file.compare("pixel_std", sam.pixel_std);
+        file.compare(
+            "mask_decoder.num_mask_tokens",
+            sam.mask_decoder.num_mask_tokens,
+        );
+        file.compare("prompt_encoder.embed_dim", sam.prompt_encoder.embed_dim);
+        file.compare(
+            "prompt_encoder.input_image_size",
+            sam.prompt_encoder.input_image_size,
+        );
+    }
+    #[test]
+    fn test_build_sam_vit_h() {
+        let sam = super::build_sam_vit_h(None);
+        test("sam_vit_h", sam);
+    }
+    #[test]
+    fn test_build_sam_vit_l() {
+        let sam = super::build_sam_vit_l(None);
+        test("sam_vit_l", sam);
+    }
+    #[test]
+    fn test_build_sam_vit_b() {
+        let sam = super::build_sam_vit_b(None);
+        test("sam_vit_b", sam);
+    }
+}

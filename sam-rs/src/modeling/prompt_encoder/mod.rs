@@ -13,8 +13,8 @@ use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
 
 #[derive(Debug)]
 pub struct PromptEncoder {
-    embed_dim: i64,
-    input_image_size: Size,
+    pub embed_dim: i64,
+    pub input_image_size: Size,
     image_embedding_size: Size,
     pe_layer: PositionEmbeddingRandom,
     point_embeddings: Vec<nn::Embedding>,

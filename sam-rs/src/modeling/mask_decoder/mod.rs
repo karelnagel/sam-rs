@@ -16,7 +16,7 @@ pub struct MaskDecoder {
     transformer: TwoWayTransformer,
     _num_multimask_outputs: i64,
     iou_token: Embedding,
-    num_mask_tokens: i64,
+    pub num_mask_tokens: i64,
     mask_tokens: Embedding,
     output_upscaling: Sequential,
     output_hypernetworks_mlps: Vec<MLP>,
