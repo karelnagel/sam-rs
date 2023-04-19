@@ -16,43 +16,46 @@ impl ResizeLongestSide {
 
     // Expects a numpy array with shape HxWxC in uint8 format.
     pub fn apply_image(&self, image: &Array3<u8>) -> Array3<u8> {
-        let target_size = self.get_preprocess_shape(
-            image.shape()[0] as i64,
-            image.shape()[1] as i64,
-            self.target_length,
-        );
-        ndarray::Array::from_shape_fn(
-            (target_size.0 as usize, target_size.1 as usize, 3),
-            |(i, j, k)| image[[i, j, k]],
-        )
+        unimplemented!();
+        // let target_size = self.get_preprocess_shape(
+        //     image.shape()[0] as i64,
+        //     image.shape()[1] as i64,
+        //     self.target_length,
+        // );
+        // ndarray::Array::from_shape_fn(
+        //     (target_size.0 as usize, target_size.1 as usize, 3),
+        //     |(i, j, k)| image[[i, j, k]],
+        // )
     }
 
     // Expects a numpy array of length 2 in the final dimension. Requires the
     // original image size in (H, W) format.
     pub fn apply_coords(&self, coords: &Array2<f32>, original_size: &Size) -> Array2<f32> {
-        let Size(old_h, old_w) = original_size;
-        let Size(new_h, new_w) = self.get_preprocess_shape(*old_h, *old_w, self.target_length);
-        let mut coords = coords.to_owned();
-        coords
-            .column_mut(0)
-            .mapv_inplace(|x| x * (new_w as f32 / *old_w as f32));
-        coords
-            .column_mut(1)
-            .mapv_inplace(|x| x * (new_h as f32 / *old_h as f32));
-        coords
+        unimplemented!()
+        // let Size(old_h, old_w) = original_size;
+        // let Size(new_h, new_w) = self.get_preprocess_shape(*old_h, *old_w, self.target_length);
+        // let mut coords = coords.to_owned();
+        // coords
+        //     .column_mut(0)
+        //     .mapv_inplace(|x| x * (new_w as f32 / *old_w as f32));
+        // coords
+        //     .column_mut(1)
+        //     .mapv_inplace(|x| x * (new_h as f32 / *old_h as f32));
+        // coords
     }
 
     // Expects a numpy array shape Bx4. Requires the original image size
     // in (H, W) format.
     pub fn apply_boxes(&self, boxes: &Array1<f32>, original_size: &Size) -> Array1<f32> {
-        let boxes = boxes.to_owned();
-        let idk: Vec<i32> = vec![-1, 2, 2];
+        unimplemented!()
+        // let boxes = boxes.to_owned();
+        // let idk: Vec<i32> = vec![-1, 2, 2];
 
-        // Todo
-        // let idk = boxes.reshape(idk);
-        // let boxes = self.apply_coords(idk, original_size);
-        // boxes.reshape(&[-1, 4])
-        boxes
+        // // Todo
+        // // let idk = boxes.reshape(idk);
+        // // let boxes = self.apply_coords(idk, original_size);
+        // // boxes.reshape(&[-1, 4])
+        // boxes
         // boxes = self.apply_coords(boxes.reshape(-1, 2, 2), original_size)
         // return boxes.reshape(-1, 4)
     }
