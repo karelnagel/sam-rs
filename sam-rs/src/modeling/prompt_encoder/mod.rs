@@ -166,11 +166,24 @@ impl PromptEncoder {
         let mut corner_embedding = self
             .pe_layer
             .forward_with_coords(&coords, self.input_image_size);
-        // Todo check
-        // corner_embedding = corner_embedding
-        //     .masked_scatter_(&boxes.eq(0), &self.point_embeddings[2].ws.unsqueeze(0));
-        // corner_embedding = corner_embedding
-        //     .masked_scatter_(&boxes.eq(1), &self.point_embeddings[3].ws.unsqueeze(0));
+
+        let corner_embedding_0 = Tensor::narrow(&corner_embedding, 1, 0, 1);
+        let corner_embedding_1 = Tensor::narrow(&corner_embedding, 1, 1, 1);
+
+        let updated_corner_embedding_0 = &corner_embedding_0
+            + self.point_embeddings[2]
+                .ws
+                .squeeze_dim(0)
+                .expand_as(&corner_embedding_0);
+        let updated_corner_embedding_1 = &corner_embedding_1
+            + self.point_embeddings[3]
+                .ws
+                .squeeze_dim(0)
+                .expand_as(&corner_embedding_1);
+
+        corner_embedding =
+            Tensor::cat(&[updated_corner_embedding_0, updated_corner_embedding_1], 1);
+
         corner_embedding
     }
 
