@@ -278,11 +278,23 @@ mod test {
         sam.mock();
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = (random_tensor(&[1, 3, 683, 1024], 1)*255).to_kind(tch::Kind::Uint8);
+            let image = (random_tensor(&[1, 3, 683, 1024], 1) * 255).to_kind(tch::Kind::Uint8);
             predictor.set_image(&image, super::ImageFormat::RGB);
         }
 
         predictor
+    }
+
+    #[ignore]
+    #[test]
+    fn test_predictor_set_image() {
+        let predictor = init(true);
+
+        let file = TestFile::open("predictor_set_image");
+        file.compare("original_size", predictor.original_size.unwrap());
+        file.compare("input_size", predictor.input_size.unwrap());
+        file.compare("features", predictor.features.unwrap());
+        file.compare("is_image_set", predictor.is_image_set);
     }
 
     #[ignore]
@@ -299,16 +311,26 @@ mod test {
         file.compare("features", predictor.features.unwrap());
         file.compare("is_image_set", predictor.is_image_set);
     }
+
     #[ignore]
     #[test]
-    fn test_predictor_set_image() {
+    fn test_predictor_predict() {
         let predictor = init(true);
 
-        let file = TestFile::open("predictor_set_image");
-        file.compare("original_size", predictor.original_size.unwrap());
-        file.compare("input_size", predictor.input_size.unwrap());
-        file.compare("features", predictor.features.unwrap());
-        file.compare("is_image_set", predictor.is_image_set);
+        let point_coords = random_tensor(&[1, 2], 1);
+        let point_labels = random_tensor(&[1], 1).to_kind(tch::Kind::Int);
+        let (masks, iou_predictions, low_res_masks) = predictor.predict(
+            Some(&point_coords),
+            Some(&point_labels),
+            None,
+            None,
+            true,
+            false,
+        );
+        let file = TestFile::open("predictor_predict");
+        file.compare("masks", masks);
+        file.compare("iou_predictions", iou_predictions);
+        file.compare("low_res_masks", low_res_masks);
     }
 
     #[ignore]
@@ -328,27 +350,6 @@ mod test {
             false,
         );
         let file = TestFile::open("predictor_predict_torch");
-        file.compare("masks", masks);
-        file.compare("iou_predictions", iou_predictions);
-        file.compare("low_res_masks", low_res_masks);
-    }
-
-    #[ignore]
-    #[test]
-    fn test_predictor_predict() {
-        let predictor = init(true);
-
-        let point_coords = random_tensor(&[1, 2], 1);
-        let point_labels = random_tensor(&[1], 1).to_kind(tch::Kind::Int);
-        let (masks, iou_predictions, low_res_masks) = predictor.predict(
-            Some(&point_coords),
-            Some(&point_labels),
-            None,
-            None,
-            true,
-            false,
-        );
-        let file = TestFile::open("predictor_predict");
         file.compare("masks", masks);
         file.compare("iou_predictions", iou_predictions);
         file.compare("low_res_masks", low_res_masks);
