@@ -145,7 +145,7 @@ impl SamPredictor {
             );
             let point_coords = self
                 .transfrom
-                .apply_coords(&point_coords, &self.original_size.unwrap());
+                .apply_coords(&point_coords, self.original_size.unwrap());
             coords_torch = Some(point_coords);
             labels_torch = point_labels
         }

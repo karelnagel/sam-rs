@@ -29,18 +29,13 @@ impl ResizeLongestSide {
 
     // Expects a numpy array of length 2 in the final dimension. Requires the
     // original image size in (H, W) format.
-    pub fn apply_coords(&self, coords: &Tensor, original_size: &Size) -> Tensor {
-        unimplemented!()
-        // let Size(old_h, old_w) = original_size;
-        // let Size(new_h, new_w) = self.get_preprocess_shape(*old_h, *old_w, self.target_length);
-        // let mut coords = coords.to_owned();
-        // coords
-        //     .column_mut(0)
-        //     .mapv_inplace(|x| x * (new_w as f32 / *old_w as f32));
-        // coords
-        //     .column_mut(1)
-        //     .mapv_inplace(|x| x * (new_h as f32 / *old_h as f32));
-        // coords
+    pub fn apply_coords(&self, coords: &Tensor, original_size: Size) -> Tensor {
+        let Size(old_h, old_w) = original_size;
+        let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
+        let coords = coords.copy().to_kind(tch::Kind::Double);
+        let coords_0 = coords.narrow(-1, 0, 1) * (new_w as f64 / old_w as f64);
+        let coords_1 = &coords.narrow(-1, 1, 1) * (new_h as f64 / old_h as f64);
+        Tensor::cat(&[&coords_0, &coords_1], -1)
     }
 
     // Expects a numpy array shape Bx4. Requires the original image size
@@ -73,8 +68,7 @@ impl ResizeLongestSide {
     pub fn apply_coords_torch(&self, coords: &Tensor, original_size: &Size) -> Tensor {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(*old_h, *old_w, self.target_length);
-        let mut coords = coords.to_kind(tch::Kind::Float);
-        coords = coords.copy();
+        let coords = coords.copy().to_kind(tch::Kind::Float);
 
         // Update the first column of coords
         let coords_0 = coords.select(1, 0) * (new_w / old_w);
@@ -126,17 +120,17 @@ mod test {
         file.compare("input", input);
         // file.compare("output", output);
     }
-    #[ignore]
     #[test]
     fn test_resize_apply_coords() {
         let resize = super::ResizeLongestSide::new(64);
         let input = random_tensor(&[1, 2, 2], 1);
         let original_size = Size(1200, 1800);
-        // let output = resize.apply_coords(&input, &original_size);
+        let output = resize.apply_coords(&input, original_size);
+        dbg!(&output.flatten(0, -1));
         let file = TestFile::open("resize_apply_coords");
         file.compare("original_size", original_size);
         file.compare("input", input);
-        // file.compare("output", output);
+        file.compare("output", output);
     }
 
     #[ignore]

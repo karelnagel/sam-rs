@@ -110,6 +110,10 @@ impl From<Tensor> for TestValue {
                 values: tensor_to_vec(&tensor),
                 size,
             }),
+            tch::Kind::Double => TestValue::TensorFloat(TestTensor {
+                values: tensor_to_vec(&tensor),
+                size,
+            }),
             tch::Kind::Int => TestValue::TensorInt(TestTensor {
                 values: tensor_to_vec(&tensor),
                 size,
