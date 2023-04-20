@@ -14,7 +14,7 @@ mod test {
     #[test]
     fn test_onnx_model_example() {
         let image_path = "../images/dog.jpg";
-        let onnx_model_path = "sam.onnx";
+        let onnx_model_path = "../sam.onnx";
         let sam = build_sam_vit_h(None);
         let mut predictor = SamPredictor::new(sam);
 
@@ -32,25 +32,23 @@ mod test {
         //Example inputs
         let input_point = Tensor::of_slice(&[500, 375]).reshape(&[1, 2]);
         let input_label = Tensor::of_slice(&[1]);
-
-        let onnx_label = Tensor::cat(&[input_label, Tensor::of_slice(&[-1])], 0)
-            .unsqueeze(0)
-            .to_kind(Kind::Double);
         let onnx_coord = Tensor::cat(
             &[
                 &input_point,
-                &Tensor::zeros(&input_point.size(), (Kind::Double, Device::Cpu)),
+                &Tensor::zeros(&[1, 2], (Kind::Double, Device::Cpu)),
             ],
             0,
         )
         .unsqueeze(0);
+
+        let onnx_label = Tensor::cat(&[input_label, Tensor::of_slice(&[-1])], 0).unsqueeze(0);
+
         let onnx_coord = predictor.transfrom.apply_coords(&onnx_coord, original_size);
 
         let onnx_mask_input = Tensor::zeros(&[1, 1, 256, 256], (Kind::Double, tch::Device::Cpu));
         let onnx_has_mask_input = Tensor::zeros(&[1], (Kind::Double, tch::Device::Cpu));
 
-        let orig_im_size =
-            Tensor::of_slice(&[original_size.0, original_size.1]).to_kind(Kind::Double);
+        let orig_im_size = Tensor::of_slice(&[original_size.0, original_size.1]);
 
         let ort_input = OnnxInput::new(
             image_embedding.copy(),

@@ -52,14 +52,6 @@ impl OnnxInput {
         has_mask: Tensor,
         img_size: Tensor,
     ) -> OnnxInput {
-        let coord = Tensor::cat(
-            &[
-                &coord,
-                &Tensor::zeros(&coord.size(), (Kind::Double, Device::Cpu)),
-            ],
-            0,
-        )
-        .unsqueeze(0);
         Self {
             image_embedding,
             coord,
