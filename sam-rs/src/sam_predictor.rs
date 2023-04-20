@@ -13,7 +13,6 @@ pub struct SamPredictor {
     input_w: Option<i64>,
     input_size: Option<Size>,
     original_size: Option<Size>,
-    device: Option<tch::Device>,
     model: Sam,
     transfrom: ResizeLongestSide,
 }
@@ -44,7 +43,6 @@ impl SamPredictor {
             original_size: None,
             input_h: None,
             input_w: None,
-            device: None,
         }
     }
 
@@ -54,22 +52,21 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: &Tensor, image_format: ImageFormat) {
+    pub fn set_image(&mut self, mut image: &Tensor, image_format: ImageFormat) {
         assert!(
             image.kind() == Kind::Uint8,
             "Image should be uint8, but is {:?}",
             image.kind()
         );
-        if image_format != self.model.image_format {
-            //Todo flip image
-            unimplemented!("Should flip the image")
-        }
+
+        let image = if image_format != self.model.image_format {
+            image.flip(&[-1])
+        } else {
+            image.copy()
+        };
+
         let mut input_image = self.transfrom.apply_image(&image);
-        input_image = input_image.permute(&[2, 0, 1]);
-        input_image = input_image.unsqueeze(0);
-        if let Some(device) = self.device {
-            input_image = input_image.to_device(device);
-        }
+        input_image = input_image.permute(&[2, 0, 1]).unsqueeze(0);
         let shape = image.size();
         self.set_torch_image(&input_image, Size(shape[0] as i64, shape[1] as i64));
     }
@@ -283,7 +280,7 @@ mod test {
         sam.mock();
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = (random_tensor(&[1, 3, 683, 1024], 1) * 255).to_kind(tch::Kind::Uint8);
+            let image = (random_tensor(&[120, 180, 3], 1) * 255).to_kind(tch::Kind::Uint8);
             predictor.set_image(&image, super::ImageFormat::RGB);
         }
 
@@ -307,7 +304,7 @@ mod test {
         let mut predictor = init(false);
 
         let image = random_tensor(&[1, 3, 683, 1024], 1);
-        let original_size = Size(1200, 1800);
+        let original_size = Size(120, 180);
         predictor.set_torch_image(&image, original_size);
         let file = TestFile::open("predictor_set_torch_image");
         file.compare("original_size", predictor.original_size.unwrap());
