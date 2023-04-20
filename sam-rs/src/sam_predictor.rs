@@ -55,6 +55,11 @@ impl SamPredictor {
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
     pub fn set_image(&mut self, image: &Tensor, image_format: ImageFormat) {
+        assert!(
+            image.kind() == Kind::Uint8,
+            "Image should be uint8, but is {:?}",
+            image.kind()
+        );
         if image_format != self.model.image_format {
             //Todo flip image
             unimplemented!("Should flip the image")
@@ -297,7 +302,6 @@ mod test {
         file.compare("is_image_set", predictor.is_image_set);
     }
 
-    #[ignore]
     #[test]
     fn test_predictor_set_torch_image() {
         let mut predictor = init(false);
