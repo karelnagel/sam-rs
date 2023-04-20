@@ -41,6 +41,9 @@ impl TestFile {
             (TestValue::TensorBool(val1), TestValue::TensorBool(val2)) => {
                 compare(val1, val2, only_size)
             }
+            (TestValue::TensorUint8(val1), TestValue::TensorUint8(val2)) => {
+                compare(val1, val2, only_size)
+            }
             _ => {
                 if file_value != value {
                     let error = format!(

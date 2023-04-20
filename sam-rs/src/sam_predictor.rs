@@ -278,7 +278,7 @@ mod test {
         sam.mock();
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = random_tensor(&[1, 3, 683, 1024], 1).to_kind(tch::Kind::Uint8);
+            let image = (random_tensor(&[1, 3, 683, 1024], 1)*255).to_kind(tch::Kind::Uint8);
             predictor.set_image(&image, super::ImageFormat::RGB);
         }
 
