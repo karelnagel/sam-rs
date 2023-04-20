@@ -1,5 +1,6 @@
 pub mod build_sam;
 pub mod modeling;
+pub mod onnx_helpers;
 pub mod sam;
 pub mod sam_predictor;
 #[cfg(test)]
