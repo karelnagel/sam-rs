@@ -52,7 +52,7 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, mut image: &Tensor, image_format: ImageFormat) {
+    pub fn set_image(&mut self, image: &Tensor, image_format: ImageFormat) {
         assert!(
             image.kind() == Kind::Uint8,
             "Image should be uint8, but is {:?}",
@@ -228,13 +228,13 @@ impl SamPredictor {
             &dense_embeddings,
             multimask_output,
         );
-        let masks = self.model.postprocess_masks(
+        let mut masks = self.model.postprocess_masks(
             &low_res_masks,
             &self.input_size.unwrap(),
             &self.original_size.unwrap(),
         );
         if !return_logits {
-            panic!("Not implemented");
+            masks = masks.gt(self.model.mask_threshold)
         }
         return (masks, iou_predictions, low_res_masks);
     }
@@ -269,7 +269,6 @@ mod test {
             mocks::Mock,
         },
     };
-
 
     use super::{SamPredictor, Size};
 
@@ -310,7 +309,6 @@ mod test {
         file.compare("is_image_set", predictor.is_image_set);
     }
 
-    #[ignore]
     #[test]
     fn test_predictor_predict() {
         let predictor = init(true);
@@ -331,7 +329,6 @@ mod test {
         file.compare("low_res_masks", low_res_masks);
     }
 
-    #[ignore]
     #[test]
     fn test_predictor_predict_torch() {
         let predictor = init(true);
