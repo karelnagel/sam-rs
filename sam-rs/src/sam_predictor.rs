@@ -80,7 +80,6 @@ impl SamPredictor {
     ///   original_image_size (tuple(int, int)): The size of the image
     ///     before transformation, in (H, W) format.
     pub fn set_torch_image(&mut self, transformed_image: &Tensor, original_size: Size) {
-        // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
         assert!(
             shape.len() == 4
@@ -134,10 +133,15 @@ impl SamPredictor {
         multimask_output: bool,
         return_logits: bool,
     ) -> (Tensor, Tensor, Tensor) {
+        assert_eq!(
+            &point_labels.unwrap().kind(),
+            &Kind::Int,
+            "point_labels must be int."
+        );
         assert!(self.is_image_set, "Must set image before predicting.");
         let (mut coords_torch, mut labels_torch, mut box_torch, mut mask_input_torch) =
             (None, None, None, None);
-        if let Some(point_coords) = point_coords.as_ref() {
+        if let Some(point_coords) = point_coords {
             assert!(
                 point_labels.is_some(),
                 "point_labels must be supplied if point_coords is supplied."
@@ -145,32 +149,31 @@ impl SamPredictor {
             let point_coords = self
                 .transfrom
                 .apply_coords(&point_coords, self.original_size.unwrap());
-            coords_torch = Some(point_coords);
-            labels_torch = point_labels
+            coords_torch = Some(point_coords.unsqueeze(0));
+            labels_torch = Some(point_labels.unwrap().unsqueeze(0));
         }
         if let Some(boxes) = boxes {
             let boxes = self
                 .transfrom
                 .apply_boxes(&boxes, self.original_size.unwrap());
-            box_torch = Some(boxes);
+            box_torch = Some(boxes.unsqueeze(0));
         }
         if let Some(mask_input) = mask_input {
-            mask_input_torch = Some(mask_input);
+            mask_input_torch = Some(mask_input.unsqueeze(0));
         }
         let (masks, iou_predictions, low_res_masks) = self.predict_torch(
-            Some(&coords_torch.unwrap()),
-            Some(&labels_torch.unwrap()),
-            Some(&box_torch.unwrap()),
-            Some(&mask_input_torch.unwrap()),
+            coords_torch.as_ref(),
+            labels_torch.as_ref(),
+            box_torch.as_ref(),
+            mask_input_torch.as_ref(),
             multimask_output,
             return_logits,
         );
-        let masks = masks.to_kind(Kind::Float);
-        let iou_predictions = iou_predictions.to_kind(Kind::Float);
-        let low_res_masks = low_res_masks.to_kind(Kind::Float);
-        return (masks, iou_predictions, low_res_masks);
+        let masks = masks.select(0, 0);
+        let iou_predictions = iou_predictions.select(0, 0);
+        let low_res_masks = low_res_masks.select(0, 0);
+        (masks, iou_predictions, low_res_masks)
     }
-
     /// Predict masks for the given input prompts, using the currently set image.
     /// Input prompts are batched torch tensors and are expected to already be
     /// transformed to the input frame using ResizeLongestSide.
@@ -314,7 +317,7 @@ mod test {
         let predictor = init(true);
 
         let point_coords = random_tensor(&[1, 2], 1);
-        let point_labels = random_tensor(&[1], 1).to_kind(tch::Kind::Int);
+        let point_labels = (random_tensor(&[1], 1) * 255).to_kind(tch::Kind::Int);
         let (masks, iou_predictions, low_res_masks) = predictor.predict(
             Some(&point_coords),
             Some(&point_labels),
