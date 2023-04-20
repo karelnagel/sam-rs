@@ -152,7 +152,7 @@ impl SamPredictor {
         if let Some(boxes) = boxes {
             let boxes = self
                 .transfrom
-                .apply_boxes(&boxes, &self.original_size.unwrap());
+                .apply_boxes(&boxes, self.original_size.unwrap());
             box_torch = Some(boxes);
         }
         if let Some(mask_input) = mask_input {

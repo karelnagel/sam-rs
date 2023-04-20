@@ -40,17 +40,9 @@ impl ResizeLongestSide {
 
     // Expects a numpy array shape Bx4. Requires the original image size
     // in (H, W) format.
-    pub fn apply_boxes(&self, boxes: &Tensor, original_size: &Size) -> Tensor {
-        unimplemented!()
-        // let boxes = boxes.to_owned();
-        // let idk: Vec<i32> = vec![-1, 2, 2];
-
-        // // let idk = boxes.reshape(idk);
-        // // let boxes = self.apply_coords(idk, original_size);
-        // // boxes.reshape(&[-1, 4])
-        // boxes
-        // boxes = self.apply_coords(boxes.reshape(-1, 2, 2), original_size)
-        // return boxes.reshape(-1, 4)
+    pub fn apply_boxes(&self, boxes: &Tensor, original_size: Size) -> Tensor {
+        let boxes = self.apply_coords(&boxes.reshape(&[-1, 2, 2]), original_size);
+        boxes.reshape(&[-1, 4])
     }
     // Expects batched images with shape BxCxHxW and float format. This
     // transformation may not exactly match apply_image. apply_image is
@@ -133,17 +125,16 @@ mod test {
         file.compare("output", output);
     }
 
-    #[ignore]
     #[test]
     fn test_resize_apply_boxes() {
         let resize = super::ResizeLongestSide::new(64);
         let boxes = random_tensor(&[1, 4], 1);
         let original_size = Size(1200, 1800);
-        // let output = resize.apply_boxes(&boxes, &original_size);
+        let output = resize.apply_boxes(&boxes, original_size);
         let file = TestFile::open("resize_apply_boxes");
         file.compare("original_size", original_size);
         file.compare("boxes", boxes);
-        // file.compare("output", output);
+        file.compare("output", output);
     }
 
     #[test]
