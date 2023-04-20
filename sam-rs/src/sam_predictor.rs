@@ -82,21 +82,18 @@ impl SamPredictor {
     pub fn set_torch_image(&mut self, transformed_image: &Tensor, original_size: Size) {
         // Todo apply @torch.no_grad()
         let shape = transformed_image.size();
-
-        if shape.len() != 4
-            || shape[1] != 3
-            || *shape[2..].iter().max().unwrap() != self.model.image_encoder.img_size
-        {
-            panic!(
-                "set_torch_image input must be BCHW with long side {}.",
-                self.model.image_encoder.img_size
-            );
-        }
+        assert!(
+            shape.len() == 4
+                && shape[1] == 3
+                && shape[2..].iter().max().unwrap() == &self.model.image_encoder.img_size,
+            "set_torch_image input must be BCHW with long side {}.",
+            self.model.image_encoder.img_size,
+        );
         self.original_size = Some(original_size);
         self.input_size = Some(Size(shape[2], shape[3]));
-
         let input_image = self.model.preprocess(&transformed_image);
-        self.features = Some(self.model.image_encoder.forward(&input_image));
+        let features = self.model.image_encoder.forward(&input_image);
+        self.features = Some(features);
         self.is_image_set = true;
     }
 

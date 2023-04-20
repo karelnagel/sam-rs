@@ -3,7 +3,7 @@ use self::patch_embed::PatchEmbed;
 
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
 use crate::sam_predictor::Size;
-use tch::nn::Path;
+use tch::nn::{ConvConfig, Module, Path};
 use tch::{nn, Tensor};
 mod attention;
 mod block;
@@ -17,6 +17,8 @@ pub struct ImageEncoderViT {
     pos_embed: Option<Tensor>,
     blocks: Vec<Block>,
     neck: nn::Sequential,
+    _embed_dim: i64, //Needed for mocking
+    _out_chans: i64, // Needed for mocking
 }
 impl ImageEncoderViT {
     // Args:
@@ -109,9 +111,28 @@ impl ImageEncoderViT {
         }
 
         let neck = nn::seq()
-            .add(nn::conv2d(vs, embed_dim, out_chans, 1, Default::default()))
+            .add(nn::conv2d(
+                vs,
+                embed_dim,
+                out_chans,
+                1,
+                ConvConfig {
+                    bias: false,
+                    ..Default::default()
+                },
+            ))
             .add(LayerNorm2d::new(vs, out_chans, Default::default()))
-            .add(nn::conv2d(vs, out_chans, out_chans, 3, Default::default()))
+            .add(nn::conv2d(
+                vs,
+                out_chans,
+                out_chans,
+                3,
+                ConvConfig {
+                    bias: false,
+                    padding: 1,
+                    ..Default::default()
+                },
+            ))
             .add(LayerNorm2d::new(vs, out_chans, Default::default()));
 
         Self {
@@ -120,39 +141,79 @@ impl ImageEncoderViT {
             pos_embed,
             blocks,
             neck,
+            _embed_dim: embed_dim,
+            _out_chans: out_chans,
         }
     }
     pub fn forward(&self, x: &Tensor) -> Tensor {
         let mut x = self.patch_embed.forward(x);
-        x = if let Some(pos_embed) = &self.pos_embed {
-            x + pos_embed
-        } else {
-            x
-        };
-
+        if let Some(pos_embed) = &self.pos_embed {
+            x = x + pos_embed
+        }
         for blk in &self.blocks {
             x = blk.forward(&x);
         }
-
-        let list = self.neck.forward_all(&x.permute(&[0, 3, 1, 2]), None);
-        list[0].copy()
+        self.neck.forward(&x.permute(&[0, 3, 1, 2]))
     }
 }
 
 #[cfg(test)]
 mod test {
+    use tch::nn::{self, ConvConfig};
+
     use super::ImageEncoderViT;
     use crate::{
-        modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, TestFile},
+        modeling::common::{activation::Activation, layer_norm_2d::LayerNorm2d},
+        tests::{
+            helpers::{random_tensor, TestFile},
+            mocks::Mock,
+        },
     };
 
+    impl Mock for ImageEncoderViT {
+        fn mock(&mut self) {
+            self.patch_embed.mock();
+            self.blocks.iter_mut().for_each(|b| b.mock());
+            let vs = nn::VarStore::new(tch::Device::Cpu);
+            dbg!(self._embed_dim, self._out_chans);
+            let embed_dim = self._embed_dim;
+            let out_chans = self._out_chans;
+            let mut conv1 = nn::conv2d(
+                &vs.root(),
+                embed_dim,
+                out_chans,
+                1,
+                ConvConfig {
+                    bias: false,
+                    ..Default::default()
+                },
+            );
+            let mut conv2 = nn::conv2d(
+                &vs.root(),
+                out_chans,
+                out_chans,
+                3,
+                ConvConfig {
+                    bias: false,
+                    padding: 1,
+                    ..Default::default()
+                },
+            );
+            conv1.mock();
+            conv2.mock();
+            self.neck = nn::seq()
+                .add(conv1)
+                .add(LayerNorm2d::new(&vs.root(), out_chans, Default::default()))
+                .add(conv2)
+                .add(LayerNorm2d::new(&vs.root(), out_chans, Default::default()));
+        }
+    }
     #[test]
     fn test_image_encoder() {
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let act = Activation::new(crate::modeling::common::activation::ActivationType::GELU);
         let img_size = 128;
-        let image_encoder = ImageEncoderViT::new(
+        let mut image_encoder = ImageEncoderViT::new(
             &vs.root(),
             Some(img_size),
             Some(4),
@@ -170,6 +231,7 @@ mod test {
             Some(14),
             Some(&[7, 15, 23, 31]),
         );
+        image_encoder.mock();
         let file = TestFile::open("image_encoder");
         file.compare("img_size", img_size);
 
@@ -178,6 +240,6 @@ mod test {
         let output = image_encoder.forward(&input);
         let file = TestFile::open("image_encoder_forward");
         file.compare("input", input);
-        file.compare_only_size("output", output);
+        file.compare("output", output);
     }
 }
