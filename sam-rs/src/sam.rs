@@ -181,7 +181,7 @@ impl Sam {
 #[cfg(test)]
 mod test {
     use crate::{
-        build_sam::{build_sam_vit_b, build_sam_vit_h},
+        build_sam::build_sam_vit_b,
         sam_predictor::Size,
         tests::{
             helpers::{random_tensor, TestFile},
@@ -195,6 +195,7 @@ mod test {
         fn mock(&mut self) {
             self.prompt_encoder.mock();
             self.mask_decoder.mock();
+            self.image_encoder.mock();
         }
     }
 
@@ -227,7 +228,10 @@ mod test {
                 out.iou_predictions.copy(),
             );
             if let Some(low_res_logits) = &out.low_res_logits {
-                file.compare(format!("low_res_logits{}", i).as_str(), low_res_logits.copy());
+                file.compare(
+                    format!("low_res_logits{}", i).as_str(),
+                    low_res_logits.copy(),
+                );
             }
         }
     }

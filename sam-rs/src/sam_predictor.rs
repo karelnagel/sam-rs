@@ -270,6 +270,7 @@ mod test {
         },
     };
 
+
     use super::{SamPredictor, Size};
 
     fn init(with_set_image: bool) -> SamPredictor {
@@ -284,7 +285,6 @@ mod test {
         predictor
     }
 
-    #[ignore]
     #[test]
     fn test_predictor_set_image() {
         let predictor = init(true);
