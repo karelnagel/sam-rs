@@ -13,8 +13,8 @@ pub struct SamPredictor {
     input_w: Option<i64>,
     input_size: Option<Size>,
     original_size: Option<Size>,
-    model: Sam,
-    transfrom: ResizeLongestSide,
+    pub model: Sam,
+    pub transfrom: ResizeLongestSide,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ImageFormat {
