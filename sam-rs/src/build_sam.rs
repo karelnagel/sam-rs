@@ -28,7 +28,7 @@ fn _build_sam(
     encoder_depth: i64,
     encoder_num_heads: i64,
     encoder_global_attn_indexes: [i64; 4],
-    checkpoint: Option<&str>,
+    _checkpoint: Option<&str>,
 ) -> Sam {
     let prompt_embed_dim = 256;
     let img_size = 1024;

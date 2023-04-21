@@ -11,10 +11,10 @@ use super::common::activation::{Activation, ActivationType};
 
 #[derive(Debug)]
 pub struct TwoWayTransformer {
-    depth: i64,
-    embedding_dim: i64,
-    num_heads: i64,
-    mlp_dim: i64,
+    _depth: i64,
+    _embedding_dim: i64,
+    _num_heads: i64,
+    _mlp_dim: i64,
     layers: Vec<TwoWayAttentionBlock>,
     final_attn_token_to_image: Attention,
     norm_final_attn: nn::LayerNorm,
@@ -61,10 +61,10 @@ impl TwoWayTransformer {
         );
         let norm_final_attn = nn::layer_norm(vs, vec![embedding_dim], Default::default());
         Self {
-            depth,
-            embedding_dim,
-            num_heads,
-            mlp_dim,
+            _depth: depth,
+            _embedding_dim: embedding_dim,
+            _num_heads: num_heads,
+            _mlp_dim: mlp_dim,
             layers,
             final_attn_token_to_image,
             norm_final_attn,
@@ -89,7 +89,6 @@ impl TwoWayTransformer {
         point_embedding: &Tensor,
     ) -> (Tensor, Tensor) {
         // BxCxHxW -> BxHWxC == B x N_image_tokens x C
-        let (bs, c, h, w) = image_embedding.size4().unwrap();
         let image_embedding = image_embedding.flatten(2, -1).permute(&[0, 2, 1]);
         let image_pe = image_pe.flatten(2, -1).permute(&[0, 2, 1]);
 
@@ -141,10 +140,10 @@ mod test {
             Some(2),
         );
         let file = TestFile::open("transformer_two_way_transformer");
-        file.compare("depth", transformer.depth);
-        file.compare("embedding_dim", transformer.embedding_dim);
-        file.compare("num_heads", transformer.num_heads);
-        file.compare("mlp_dim", transformer.mlp_dim);
+        file.compare("depth", transformer._depth);
+        file.compare("embedding_dim", transformer._embedding_dim);
+        file.compare("num_heads", transformer._num_heads);
+        file.compare("mlp_dim", transformer._mlp_dim);
         file.compare("layers_len", transformer.layers.len());
 
         // Mocking

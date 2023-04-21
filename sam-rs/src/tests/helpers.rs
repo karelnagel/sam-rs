@@ -46,10 +46,7 @@ impl TestFile {
             }
             _ => {
                 if file_value != value {
-                    let error = format!(
-                        "Key '{:?}' value is different: {:?} and {:?}",
-                        key, file_value, value
-                    );
+                    let error = format!("Key '{:?}' value type is different.", key);
                     Err(error)
                 } else {
                     Ok(())

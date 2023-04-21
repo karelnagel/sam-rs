@@ -1,3 +1,4 @@
 target/
 test-files/
 error.json
+__pycache__/

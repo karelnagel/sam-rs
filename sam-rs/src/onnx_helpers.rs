@@ -6,7 +6,7 @@ use opencv::{
     imgcodecs, imgproc,
     prelude::{Mat, MatTraitConstManual},
 };
-use tch::{Device, Kind, Tensor};
+use tch::Tensor;
 
 use crate::sam_predictor::Size;
 
@@ -16,8 +16,8 @@ pub fn load_image(image_path: &str) -> (Tensor, Size) {
     imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
     let arr: ndarray::ArrayView3<u8> = rgb_image.try_as_array();
     let image = Tensor::try_from(arr).unwrap();
-    let original_size = Size(image.size()[0], image.size()[1]);
-    (image, original_size)
+    let size = Size(image.size()[0], image.size()[1]);
+    (image, size)
 }
 
 pub fn get_ort_env() -> Environment {
