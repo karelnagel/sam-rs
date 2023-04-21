@@ -1,4 +1,4 @@
-use tch::{Tensor, nn::Module};
+use tch::{nn::Module, Tensor};
 
 use crate::{
     modeling::{
@@ -29,6 +29,11 @@ pub struct Output {
     pub masks: Tensor,
     pub iou_predictions: Tensor,
     pub low_res_logits: Option<Tensor>,
+}
+impl Module for Sam {
+    fn forward(&self, _: &Tensor) -> Tensor {
+        unimplemented!()
+    }
 }
 impl Sam {
     /// # SAM predicts object masks from an image and input prompts.

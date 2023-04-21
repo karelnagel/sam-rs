@@ -15,7 +15,11 @@ pub struct Attention {
     v_proj: nn::Linear,
     out_proj: nn::Linear,
 }
-
+impl Module for Attention {
+    fn forward(&self, _: &Tensor) -> Tensor {
+        unimplemented!()
+    }
+}
 impl Attention {
     pub fn new(
         vs: &nn::Path,

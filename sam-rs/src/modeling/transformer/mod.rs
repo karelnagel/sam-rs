@@ -19,6 +19,11 @@ pub struct TwoWayTransformer {
     final_attn_token_to_image: Attention,
     norm_final_attn: nn::LayerNorm,
 }
+impl Module for TwoWayTransformer {
+    fn forward(&self, _: &Tensor) -> Tensor {
+        unimplemented!()
+    }
+}
 impl TwoWayTransformer {
     // A transformer decoder that attends to an input image using
     //     queries whose positional embedding is supplied.

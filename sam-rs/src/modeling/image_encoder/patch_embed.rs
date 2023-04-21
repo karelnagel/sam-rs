@@ -10,6 +10,12 @@ use crate::sam_predictor::Size;
 pub struct PatchEmbed {
     proj: nn::Conv2D,
 }
+impl Module for PatchEmbed {
+    fn forward(&self, x: &Tensor) -> Tensor {
+        let x = self.proj.forward(x);
+        x.permute(&[0, 2, 3, 1])
+    }
+}
 impl PatchEmbed {
     // Args:
     //         kernel_size (Tuple): kernel size of the projection layer.
@@ -43,10 +49,6 @@ impl PatchEmbed {
         );
         Self { proj }
     }
-    pub fn forward(&self, x: &Tensor) -> Tensor {
-        let x = self.proj.forward(x);
-        x.permute(&[0, 2, 3, 1])
-    }
 }
 
 #[cfg(test)]
@@ -58,7 +60,7 @@ mod test {
             mocks::Mock,
         },
     };
-    use tch::{nn, Device};
+    use tch::{nn::{self, Module}, Device};
 
     use super::PatchEmbed;
     impl Mock for PatchEmbed {

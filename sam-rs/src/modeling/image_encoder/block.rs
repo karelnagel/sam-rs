@@ -19,6 +19,29 @@ pub struct Block {
     window_size: i64,
     mlp: MLPBlock,
 }
+impl Module for Block {
+    fn forward(&self, x: &Tensor) -> Tensor {
+        let shortcut = x.copy();
+        let mut x = self.norm1.forward(x);
+        let mut pad_hw = None;
+        // Window partition
+        let size = Size(x.size()[1], x.size()[2]);
+        if self.window_size > 0 {
+            let res = window_partition(x, self.window_size);
+            x = res.0;
+            pad_hw = Some(res.1);
+        };
+        x = self.attn.forward(&x);
+        // Reverse window partition
+        if self.window_size > 0 {
+            x = window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
+        };
+
+        x = shortcut + x;
+        x = &x + self.mlp.forward(&self.norm2.forward(&x));
+        x
+    }
+}
 impl Block {
     // Args:
     // dim (int): Number of input channels.
@@ -75,28 +98,6 @@ impl Block {
             mlp,
             window_size,
         }
-    }
-
-    pub fn forward(&self, x: &Tensor) -> Tensor {
-        let shortcut = x.copy();
-        let mut x = self.norm1.forward(x);
-        let mut pad_hw = None;
-        // Window partition
-        let size = Size(x.size()[1], x.size()[2]);
-        if self.window_size > 0 {
-            let res = window_partition(x, self.window_size);
-            x = res.0;
-            pad_hw = Some(res.1);
-        };
-        x = self.attn.forward(&x);
-        // Reverse window partition
-        if self.window_size > 0 {
-            x = window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
-        };
-
-        x = shortcut + x;
-        x = &x + self.mlp.forward(&self.norm2.forward(&x));
-        x
     }
 }
 
@@ -168,6 +169,8 @@ fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size)
 
 #[cfg(test)]
 mod test {
+    use tch::nn::Module;
+
     use crate::{
         modeling::common::activation::{Activation, ActivationType},
         sam_predictor::Size,

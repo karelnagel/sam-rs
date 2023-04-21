@@ -1,6 +1,6 @@
 use std::ops::Div;
 
-use tch::Tensor;
+use tch::{nn::Module, Tensor};
 
 use crate::sam_predictor::Size;
 
@@ -9,6 +9,12 @@ use crate::sam_predictor::Size;
 pub struct PositionEmbeddingRandom {
     positional_encoding_gaussian_matrix: Tensor,
 }
+impl Module for PositionEmbeddingRandom {
+    fn forward(&self, _: &Tensor) -> Tensor {
+        unimplemented!()
+    }
+}
+
 impl PositionEmbeddingRandom {
     pub fn new(num_pos_feats: Option<i64>, scale: Option<f32>) -> Self {
         let num_pos_feats = num_pos_feats.unwrap_or(64);

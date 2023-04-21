@@ -22,6 +22,11 @@ pub struct TwoWayAttentionBlock {
     mlp: MLPBlock,
     skip_first_layer_pe: bool,
 }
+impl Module for TwoWayAttentionBlock {
+    fn forward(&self, _: &Tensor) -> Tensor {
+        unimplemented!()
+    }
+}
 impl TwoWayAttentionBlock {
     // A transformer block with four layers: (1) self-attention of sparse
     // inputs, (2) cross attention of sparse inputs to dense inputs, (3) mlp

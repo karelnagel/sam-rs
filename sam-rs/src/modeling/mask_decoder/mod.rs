@@ -22,6 +22,11 @@ pub struct MaskDecoder {
     output_hypernetworks_mlps: Vec<MLP>,
     iou_prediction_head: MLP,
 }
+impl Module for MaskDecoder{
+    fn forward(&self, _: &Tensor) -> Tensor {
+       unimplemented!()
+    }
+}
 impl MaskDecoder {
     pub fn new(
         vs: &nn::Path,

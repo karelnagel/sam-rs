@@ -25,6 +25,11 @@ pub struct PromptEncoder {
     not_a_point_embed: nn::Embedding,
 }
 
+impl Module for PromptEncoder {
+    fn forward(&self, _x: &Tensor) -> Tensor {
+        unimplemented!()
+    }
+}
 impl PromptEncoder {
     // Encodes prompts for input to SAM's mask decoder.
     // Arguments:
