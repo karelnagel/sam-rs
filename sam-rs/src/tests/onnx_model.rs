@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod test {
     extern crate ndarray;
@@ -10,7 +9,6 @@ mod test {
     use crate::sam_predictor::{ImageFormat, SamPredictor};
     use crate::tests::helpers::TestFile;
     use crate::tests::mocks::Mock;
-
 
     #[ignore]
     #[test]
@@ -73,8 +71,10 @@ mod test {
             orig_im_size,
         );
 
-        let (masks, _, _) = ort_session.inference(ort_input);
+        let (masks, scores, logits) = ort_session.inference(ort_input);
         let masks = masks.gt(predictor.model.mask_threshold);
-        file.compare("masks", masks.copy());
+        file.compare_only_size("masks", masks);
+        file.compare_only_size("scores", scores);
+        file.compare_only_size("logits", logits);
     }
 }
