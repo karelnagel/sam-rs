@@ -20,6 +20,18 @@ pub struct ImageEncoderViT {
     _embed_dim: i64, //Needed for mocking
     _out_chans: i64, // Needed for mocking
 }
+impl Module for ImageEncoderViT {
+    fn forward(&self, x: &Tensor) -> Tensor {
+        let mut x = self.patch_embed.forward(x);
+        if let Some(pos_embed) = &self.pos_embed {
+            x = x + pos_embed
+        }
+        for blk in &self.blocks {
+            x = blk.forward(&x);
+        }
+        self.neck.forward(&x.permute(&[0, 3, 1, 2]))
+    }
+}
 impl ImageEncoderViT {
     // Args:
     //         img_size (int): Input image size.
@@ -145,21 +157,11 @@ impl ImageEncoderViT {
             _out_chans: out_chans,
         }
     }
-    pub fn forward(&self, x: &Tensor) -> Tensor {
-        let mut x = self.patch_embed.forward(x);
-        if let Some(pos_embed) = &self.pos_embed {
-            x = x + pos_embed
-        }
-        for blk in &self.blocks {
-            x = blk.forward(&x);
-        }
-        self.neck.forward(&x.permute(&[0, 3, 1, 2]))
-    }
 }
 
 #[cfg(test)]
 mod test {
-    use tch::nn::{self, ConvConfig};
+    use tch::nn::{self, ConvConfig, Module};
 
     use super::ImageEncoderViT;
     use crate::{

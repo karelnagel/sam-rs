@@ -26,9 +26,9 @@ impl MLP {
         }
 
         Self {
-            layers: layers,
-            num_layers: num_layers,
-            sigmoid_output: sigmoid_output,
+            layers,
+            num_layers,
+            sigmoid_output,
         }
     }
 }

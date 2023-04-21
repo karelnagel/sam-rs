@@ -17,7 +17,10 @@ impl MLPBlock {
         let lin2 = nn::linear(vs, mlp_dim, embedding_dim, Default::default());
         Self { lin1, lin2, act }
     }
-    pub fn forward(&self, x: &Tensor) -> Tensor {
+}
+
+impl Module for MLPBlock {
+    fn forward(&self, x: &Tensor) -> Tensor {
         self.lin2.forward(&self.act.forward(&self.lin1.forward(x)))
     }
 }

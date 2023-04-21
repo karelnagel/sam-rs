@@ -1,4 +1,4 @@
-use tch::Tensor;
+use tch::{Tensor, nn::Module};
 
 use crate::{
     modeling::{

@@ -16,6 +16,39 @@ pub struct Attention {
     rel_pos_h: Option<Tensor>,
     rel_pos_w: Option<Tensor>,
 }
+impl Module for Attention {
+    fn forward(&self, x: &Tensor) -> Tensor {
+        let (b, h, w, _) = x.size4().unwrap();
+        let qkv = self
+            .qkv
+            .forward(x)
+            .reshape(&[b, h * w, 3, self.num_heads, -1])
+            .permute(&[2, 0, 3, 1, 4]);
+        let qkv = qkv.reshape(&[3, b * self.num_heads, h * w, -1]).unbind(0);
+        let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
+
+        let mut attn = (q * self.scale).matmul(&k.transpose(-2, -1));
+        if self.use_rel_pos {
+            attn = add_decomposed_rel_pos(
+                &attn,
+                &q,
+                &self.rel_pos_h.as_ref().unwrap(),
+                &self.rel_pos_w.as_ref().unwrap(),
+                Size(h, w),
+                Size(h, w),
+            )
+        };
+        attn = attn.softmax(-1, Kind::Float);
+
+        let x = attn
+            .matmul(&v)
+            .view([b, self.num_heads, h, w, -1])
+            .permute(&[0, 2, 3, 1, 4])
+            .reshape(&[b, h, w, -1]);
+        let x = self.proj.forward(&x);
+        x
+    }
+}
 impl Attention {
     // Args:
     // dim (int): Number of input channels.
@@ -79,37 +112,6 @@ impl Attention {
             rel_pos_h,
             rel_pos_w,
         }
-    }
-    pub fn forward(&self, x: &Tensor) -> Tensor {
-        let (b, h, w, _) = x.size4().unwrap();
-        let qkv = self
-            .qkv
-            .forward(x)
-            .reshape(&[b, h * w, 3, self.num_heads, -1])
-            .permute(&[2, 0, 3, 1, 4]);
-        let qkv = qkv.reshape(&[3, b * self.num_heads, h * w, -1]).unbind(0);
-        let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
-
-        let mut attn = (q * self.scale).matmul(&k.transpose(-2, -1));
-        if self.use_rel_pos {
-            attn = add_decomposed_rel_pos(
-                &attn,
-                &q,
-                &self.rel_pos_h.as_ref().unwrap(),
-                &self.rel_pos_w.as_ref().unwrap(),
-                Size(h, w),
-                Size(h, w),
-            )
-        };
-        attn = attn.softmax(-1, Kind::Float);
-
-        let x = attn
-            .matmul(&v)
-            .view([b, self.num_heads, h, w, -1])
-            .permute(&[0, 2, 3, 1, 4])
-            .reshape(&[b, h, w, -1]);
-        let x = self.proj.forward(&x);
-        x
     }
 }
 
@@ -184,6 +186,8 @@ fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
 
 #[cfg(test)]
 pub mod test {
+    use tch::nn::Module;
+
     use crate::{
         sam_predictor::Size,
         tests::{

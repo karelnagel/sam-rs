@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use tch::nn::Module;
 use tch::{Kind, Tensor};
 
 use crate::sam::Sam;
