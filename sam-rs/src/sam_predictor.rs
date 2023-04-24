@@ -1,37 +1,42 @@
+use burn::module::Module;
+use burn::tensor::backend::Backend;
+use burn::tensor::{Bool, Tensor};
 use serde::{Deserialize, Serialize};
-use tch::nn::Module;
-use tch::{Kind, Tensor};
 
+use crate::burn_helpers::TensorAddons;
 use crate::sam::Sam;
 use crate::utils::transforms::ResizeLongestSide;
 
-pub struct SamPredictor {
+pub struct SamPredictor<B: Backend> {
     is_image_set: bool,
-    features: Option<Tensor>,
+    features: Option<Tensor<B, 4>>,
     orig_h: Option<i64>,
     orig_w: Option<i64>,
     input_h: Option<i64>,
     input_w: Option<i64>,
     input_size: Option<Size>,
     original_size: Option<Size>,
-    pub model: Sam,
+    pub model: Sam<B>,
     pub transfrom: ResizeLongestSide,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Module)]
 pub enum ImageFormat {
     RGB,
     BGR,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Size(pub i64, pub i64);
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Module)]
+pub struct Size(pub usize, pub usize);
 
-impl SamPredictor {
+impl<B: Backend> SamPredictor<B>
+where
+    <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
+{
     /// Uses SAM to calculate the image embedding for an image, and then
     /// allow repeated, efficient mask prediction given prompts.
     /// Arguments:
     ///   sam_model (Sam): The model to use for mask prediction.
-    pub fn new(sam_model: Sam) -> SamPredictor {
+    pub fn new(sam_model: Sam<B>) -> Self {
         let target_length = sam_model.image_encoder.img_size;
         SamPredictor {
             model: sam_model,
@@ -53,23 +58,23 @@ impl SamPredictor {
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: &Tensor, image_format: ImageFormat) {
-        assert!(
-            image.kind() == Kind::Uint8,
-            "Image should be uint8, but is {:?}",
-            image.kind()
-        );
+    pub fn set_image(&mut self, image: Tensor<B, 3>, image_format: ImageFormat) {
+        // assert!(
+        //     image.kind() == ,
+        //     "Image should be uint8, but is {:?}",
+        //     image.kind()
+        // );
 
         let image = if image_format != self.model.image_format {
-            image.flip(&[-1])
+            image.flip(vec![usize::MAX])
         } else {
-            image.copy()
+            image.clone()
         };
 
-        let mut input_image = self.transfrom.apply_image(&image);
-        input_image = input_image.permute(&[2, 0, 1]).unsqueeze(0);
-        let shape = image.size();
-        self.set_torch_image(&input_image, Size(shape[0] as i64, shape[1] as i64));
+        let input_image = self.transfrom.apply_image(image.clone());
+        let input_image = input_image.permute([2, 0, 1]).unsqueeze();
+        let shape = image.shape().dims;
+        self.set_torch_image(input_image, Size(shape[0], shape[1]));
     }
 
     /// Calculates the image embeddings for the provided image, allowing
@@ -80,8 +85,8 @@ impl SamPredictor {
     ///     1x3xHxW, which has been transformed with ResizeLongestSide.
     ///   original_image_size (tuple(int, int)): The size of the image
     ///     before transformation, in (H, W) format.
-    pub fn set_torch_image(&mut self, transformed_image: &Tensor, original_size: Size) {
-        let shape = transformed_image.size();
+    pub fn set_torch_image(&mut self, transformed_image: Tensor<B, 4>, original_size: Size) {
+        let shape = transformed_image.shape().dims;
         assert!(
             shape.len() == 4
                 && shape[1] == 3
@@ -91,8 +96,8 @@ impl SamPredictor {
         );
         self.original_size = Some(original_size);
         self.input_size = Some(Size(shape[2], shape[3]));
-        let input_image = self.model.preprocess(&transformed_image);
-        let features = self.model.image_encoder.forward(&input_image);
+        let input_image = self.model.preprocess(transformed_image.unsqueeze());
+        let features = self.model.image_encoder.forward(input_image.unsqueeze());
         self.features = Some(features);
         self.is_image_set = true;
     }
@@ -127,18 +132,18 @@ impl SamPredictor {
     ///     a subsequent iteration as mask input.
     pub fn predict(
         &self,
-        point_coords: Option<&Tensor>,
-        point_labels: Option<&Tensor>,
-        boxes: Option<&Tensor>,
-        mask_input: Option<&Tensor>,
+        point_coords: Option<Tensor<B, 2>>,
+        point_labels: Option<Tensor<B, 1>>,
+        boxes: Option<Tensor<B, 2>>,
+        mask_input: Option<Tensor<B, 3>>,
         multimask_output: bool,
-        return_logits: bool,
-    ) -> (Tensor, Tensor, Tensor) {
-        assert_eq!(
-            &point_labels.unwrap().kind(),
-            &Kind::Int,
-            "point_labels must be int."
-        );
+        _return_logits: bool,
+    ) -> (Tensor<B, 3, Bool>, Tensor<B, 1>, Tensor<B, 3>) {
+        // assert_eq!(
+        //     &point_labels.unwrap().kind(),
+        //     &Kind::Int,
+        //     "point_labels must be int."
+        // );
         assert!(self.is_image_set, "Must set image before predicting.");
         let (mut coords_torch, mut labels_torch, mut box_torch, mut mask_input_torch) =
             (None, None, None, None);
@@ -149,26 +154,26 @@ impl SamPredictor {
             );
             let point_coords = self
                 .transfrom
-                .apply_coords(&point_coords, self.original_size.unwrap());
-            coords_torch = Some(point_coords.unsqueeze(0));
-            labels_torch = Some(point_labels.unwrap().unsqueeze(0));
+                .apply_coords(point_coords, self.original_size.unwrap());
+            coords_torch = Some(point_coords.unsqueeze());
+            labels_torch = Some(point_labels.unwrap().unsqueeze());
         }
         if let Some(boxes) = boxes {
             let boxes = self
                 .transfrom
-                .apply_boxes(&boxes, self.original_size.unwrap());
-            box_torch = Some(boxes.unsqueeze(0));
+                .apply_boxes(boxes, self.original_size.unwrap());
+            box_torch = Some(boxes.unsqueeze());
         }
         if let Some(mask_input) = mask_input {
-            mask_input_torch = Some(mask_input.unsqueeze(0));
+            mask_input_torch = Some(mask_input.unsqueeze());
         }
         let (masks, iou_predictions, low_res_masks) = self.predict_torch(
-            coords_torch.as_ref(),
-            labels_torch.as_ref(),
-            box_torch.as_ref(),
-            mask_input_torch.as_ref(),
+            coords_torch,
+            labels_torch,
+            box_torch,
+            mask_input_torch,
             multimask_output,
-            return_logits,
+            _return_logits,
         );
         let masks = masks.select(0, 0);
         let iou_predictions = iou_predictions.select(0, 0);
@@ -210,13 +215,13 @@ impl SamPredictor {
     ///     a subsequent iteration as mask input.
     pub fn predict_torch(
         &self,
-        point_coords: Option<&Tensor>,
-        point_labels: Option<&Tensor>,
-        boxes: Option<&Tensor>,
-        mask_input: Option<&Tensor>,
+        point_coords: Option<Tensor<B, 3>>,
+        point_labels: Option<Tensor<B, 2>>,
+        boxes: Option<Tensor<B, 3>>,
+        mask_input: Option<Tensor<B, 4>>,
         multimask_output: bool,
-        return_logits: bool,
-    ) -> (Tensor, Tensor, Tensor) {
+        _return_logits: bool,
+    ) -> (Tensor<B, 4, Bool>, Tensor<B, 2>, Tensor<B, 4>) {
         assert!(self.is_image_set, "Must set image before predicting.");
         let point = match point_coords {
             Some(point_coords) => Some((point_coords, point_labels.unwrap())),
@@ -226,28 +231,26 @@ impl SamPredictor {
             self.model.prompt_encoder.forward(point, boxes, mask_input);
 
         let (low_res_masks, iou_predictions) = self.model.mask_decoder.forward(
-            self.features.as_ref().unwrap(),
-            &self.model.prompt_encoder.get_dense_pe(),
-            &sparse_embeddings,
-            &dense_embeddings,
+            self.features.clone().unwrap(),
+            self.model.prompt_encoder.get_dense_pe(),
+            sparse_embeddings,
+            dense_embeddings,
             multimask_output,
         );
-        let mut masks = self.model.postprocess_masks(
-            &low_res_masks,
-            &self.input_size.unwrap(),
-            &self.original_size.unwrap(),
+        let masks = self.model.postprocess_masks(
+            low_res_masks.clone(),
+            self.input_size.unwrap(),
+            self.original_size.unwrap(),
         );
-        if !return_logits {
-            masks = masks.gt(self.model.mask_threshold)
-        }
+        let masks = masks.greater_elem(self.model.mask_threshold);
         return (masks, iou_predictions, low_res_masks);
     }
     /// Returns the image embeddings for the currently set image, with
     /// shape 1xCxHxW, where C is the embedding dimension and (H,W) are
     /// the embedding spatial dimension of SAM (typically C=256, H=W=64).
-    pub fn get_image_embedding(&self) -> &Tensor {
+    pub fn get_image_embedding(&self) -> Tensor<B, 4> {
         assert!(self.is_image_set, "Must set image before predicting.");
-        return self.features.as_ref().unwrap();
+        return self.features.clone().unwrap();
     }
 
     /// Resets the currently set image.
@@ -268,21 +271,16 @@ mod test {
 
     use crate::{
         build_sam::build_sam_vit_b,
-        tests::{
-            helpers::{random_tensor, TestFile},
-            mocks::Mock,
-        },
+        tests::helpers::{random_tensor, Test, TestBackend},
     };
 
     use super::{SamPredictor, Size};
-
-    fn init(with_set_image: bool) -> SamPredictor {
-        let mut sam = build_sam_vit_b(None);
-        sam.mock();
+    fn init(with_set_image: bool) -> SamPredictor<TestBackend> {
+        let sam = build_sam_vit_b(None);
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = (random_tensor(&[120, 180, 3], 1) * 255).to_kind(tch::Kind::Uint8);
-            predictor.set_image(&image, super::ImageFormat::RGB);
+            let image = random_tensor([120, 180, 3], 1) * 255;
+            predictor.set_image(image, super::ImageFormat::RGB);
         }
 
         predictor
@@ -292,7 +290,7 @@ mod test {
     fn test_predictor_set_image() {
         let predictor = init(true);
 
-        let file = TestFile::open("predictor_set_image");
+        let file = Test::open("predictor_set_image");
         file.compare("original_size", predictor.original_size.unwrap());
         file.compare("input_size", predictor.input_size.unwrap());
         file.compare("features", predictor.features.unwrap());
@@ -303,10 +301,10 @@ mod test {
     fn test_predictor_set_torch_image() {
         let mut predictor = init(false);
 
-        let image = random_tensor(&[1, 3, 683, 1024], 1);
+        let image = random_tensor([1, 3, 683, 1024], 1);
         let original_size = Size(120, 180);
-        predictor.set_torch_image(&image, original_size);
-        let file = TestFile::open("predictor_set_torch_image");
+        predictor.set_torch_image(image, original_size);
+        let file = Test::open("predictor_set_torch_image");
         file.compare("original_size", predictor.original_size.unwrap());
         file.compare("input_size", predictor.input_size.unwrap());
         file.compare("features", predictor.features.unwrap());
@@ -317,17 +315,17 @@ mod test {
     fn test_predictor_predict() {
         let predictor = init(true);
 
-        let point_coords = random_tensor(&[1, 2], 1);
-        let point_labels = (random_tensor(&[1], 1) * 255).to_kind(tch::Kind::Int);
+        let point_coords = random_tensor([1, 2], 1);
+        let point_labels = random_tensor([1], 1) * 255;
         let (masks, iou_predictions, low_res_masks) = predictor.predict(
-            Some(&point_coords),
-            Some(&point_labels),
+            Some(point_coords),
+            Some(point_labels),
             None,
             None,
             true,
             false,
         );
-        let file = TestFile::open("predictor_predict");
+        let file = Test::open("predictor_predict");
         file.compare("masks", masks);
         file.compare("iou_predictions", iou_predictions);
         file.compare("low_res_masks", low_res_masks);
@@ -337,18 +335,18 @@ mod test {
     fn test_predictor_predict_torch() {
         let predictor = init(true);
 
-        let point_coords = random_tensor(&[1, 1, 2], 1);
-        let point_labels = random_tensor(&[1, 1], 1);
+        let point_coords = random_tensor([1, 1, 2], 1);
+        let point_labels = random_tensor([1, 1], 1);
 
         let (masks, iou_predictions, low_res_masks) = predictor.predict_torch(
-            Some(&point_coords),
-            Some(&point_labels),
+            Some(point_coords),
+            Some(point_labels),
             None,
             None,
             true,
             false,
         );
-        let file = TestFile::open("predictor_predict_torch");
+        let file = Test::open("predictor_predict_torch");
         file.compare("masks", masks);
         file.compare("iou_predictions", iou_predictions);
         file.compare("low_res_masks", low_res_masks);

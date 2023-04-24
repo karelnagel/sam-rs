@@ -2,50 +2,48 @@
 mod test {
     extern crate ndarray;
     extern crate opencv;
-    use tch::{Kind, Tensor};
+
+    use burn::tensor::Tensor;
 
     use crate::build_sam::build_sam_vit_h;
-    use crate::onnx_helpers::load_image;
+    use crate::burn_helpers::TensorSlice;
+    use crate::helpers::load_image;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
-    use crate::tests::helpers::TestFile;
-    use crate::tests::mocks::Mock;
+    use crate::tests::helpers::{Test, TestBackend};
 
     #[ignore]
     #[test]
     fn test_prediction() {
-        let file = TestFile::open("prediction");
+        let file = Test::open("prediction");
         let image_path = "../images/dog.jpg";
         // let checkpoint = Some("../sam_vit_h_4b8939.pth");
         let checkpoint = None;
-        let mut sam = build_sam_vit_h(checkpoint);
-        sam.mock();
+        let sam = build_sam_vit_h::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
         // Loading image
         let (image, _) = load_image(image_path);
-        file.compare("image", image.copy());
+        file.compare("image", image.clone());
 
         // Setting image
-        predictor.set_image(&image, ImageFormat::RGB);
+        predictor.set_image(image, ImageFormat::RGB);
 
         //Example inputs
-        let input_point = Tensor::of_slice(&[170, 375])
-            .reshape(&[1, 2])
-            .to_kind(Kind::Float);
-        let input_label = Tensor::of_slice(&[1.0]).to_kind(Kind::Int);
-        file.compare("input_point", input_point.copy());
-        file.compare("input_label", input_label.copy());
+        let input_point = Tensor::of_slice(vec![170., 375.], [1, 2]);
+        let input_label = Tensor::of_slice(vec![1.0], [1]);
+        file.compare("input_point", input_point.clone());
+        file.compare("input_label", input_label.clone());
 
         let (masks, scores, logits) = predictor.predict(
-            Some(&input_point),
-            Some(&input_label),
+            Some(input_point),
+            Some(input_label),
             None,
             None,
             true,
             false,
         );
-        file.compare("masks", masks.copy());
-        file.compare("scores", scores.copy());
-        file.compare("logits", logits.copy());
+        file.compare("masks", masks);
+        file.compare("scores", scores);
+        file.compare("logits", logits);
     }
 }

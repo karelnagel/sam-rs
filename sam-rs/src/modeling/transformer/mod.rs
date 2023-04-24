@@ -1,30 +1,28 @@
 mod attention;
 mod two_way_attention;
-use tch::{
-    nn::{self, Module},
-    Tensor,
+use burn::{
+    module::Module,
+    nn::{LayerNorm, LayerNormConfig},
+    tensor::{backend::Backend, Tensor},
 };
+
+use crate::burn_helpers::TensorAddons;
 
 use self::{attention::Attention, two_way_attention::TwoWayAttentionBlock};
 
 use super::common::activation::{Activation, ActivationType};
 
-#[derive(Debug)]
-pub struct TwoWayTransformer {
-    _depth: i64,
-    _embedding_dim: i64,
-    _num_heads: i64,
-    _mlp_dim: i64,
-    layers: Vec<TwoWayAttentionBlock>,
-    final_attn_token_to_image: Attention,
-    norm_final_attn: nn::LayerNorm,
+#[derive(Debug, Module)]
+pub struct TwoWayTransformer<B: Backend> {
+    _depth: usize,
+    _embedding_dim: usize,
+    _num_heads: usize,
+    _mlp_dim: usize,
+    layers: Vec<TwoWayAttentionBlock<B>>,
+    final_attn_token_to_image: Attention<B>,
+    norm_final_attn: LayerNorm<B>,
 }
-impl Module for TwoWayTransformer {
-    fn forward(&self, _: &Tensor) -> Tensor {
-        unimplemented!()
-    }
-}
-impl TwoWayTransformer {
+impl<B: Backend> TwoWayTransformer<B> {
     // A transformer decoder that attends to an input image using
     //     queries whose positional embedding is supplied.
 
@@ -36,20 +34,18 @@ impl TwoWayTransformer {
     //       mlp_dim (int): the channel dimension internal to the MLP block
     //       activation (nn.Module): the activation to use in the MLP block
     pub fn new(
-        vs: &nn::Path,
-        depth: i64,
-        embedding_dim: i64,
-        num_heads: i64,
-        mlp_dim: i64,
+        depth: usize,
+        embedding_dim: usize,
+        num_heads: usize,
+        mlp_dim: usize,
         activation: Option<Activation>,
-        attention_downsample_rate: Option<i64>,
+        attention_downsample_rate: Option<usize>,
     ) -> Self {
         let activation = activation.unwrap_or(Activation::new(ActivationType::ReLU));
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
-        let mut layers: Vec<TwoWayAttentionBlock> = vec![];
+        let mut layers: Vec<TwoWayAttentionBlock<B>> = vec![];
         for i in 0..depth {
             layers.push(TwoWayAttentionBlock::new(
-                vs,
                 embedding_dim,
                 num_heads,
                 Some(mlp_dim),
@@ -58,13 +54,9 @@ impl TwoWayTransformer {
                 Some(i == 0),
             ));
         }
-        let final_attn_token_to_image = Attention::new(
-            vs,
-            embedding_dim,
-            num_heads,
-            Some(attention_downsample_rate),
-        );
-        let norm_final_attn = nn::layer_norm(vs, vec![embedding_dim], Default::default());
+        let final_attn_token_to_image =
+            Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
+        let norm_final_attn = LayerNormConfig::new(embedding_dim).init();
         Self {
             _depth: depth,
             _embedding_dim: embedding_dim,
@@ -89,25 +81,28 @@ impl TwoWayTransformer {
     //     torch.Tensor: the processed image_embedding
     pub fn forward(
         &self,
-        image_embedding: &Tensor,
-        image_pe: &Tensor,
-        point_embedding: &Tensor,
-    ) -> (Tensor, Tensor) {
+        image_embedding: Tensor<B, 4>,
+        image_pe: Tensor<B, 4>,
+        point_embedding: Tensor<B, 3>,
+    ) -> (Tensor<B, 3>, Tensor<B, 3>) {
         // BxCxHxW -> BxHWxC == B x N_image_tokens x C
-        let image_embedding = image_embedding.flatten(2, -1).permute(&[0, 2, 1]);
-        let image_pe = image_pe.flatten(2, -1).permute(&[0, 2, 1]);
+        let image_embedding = image_embedding
+            .flatten::<2>(2, usize::MAX)
+            .permute([0, 2, 1]);
+        let image_pe = image_pe.flatten::<2>(2, usize::MAX).permute([0, 2, 1]);
 
         //  Prepare queries
-        let mut queries = point_embedding.copy();
+        let mut queries = point_embedding.clone();
         let mut keys = image_embedding;
         for layer in &self.layers {
-            (queries, keys) = layer.forward(&queries, &keys, &point_embedding, &image_pe);
+            (queries, keys) =
+                layer.forward(queries, keys, point_embedding.clone(), image_pe.clone());
         }
-        let q = &queries + point_embedding;
-        let k = &keys + image_pe;
-        let attn_out = &self.final_attn_token_to_image.forward(&q, &k, &keys);
-        queries = &queries + attn_out;
-        queries = self.norm_final_attn.forward(&queries);
+        let q = queries.clone() + point_embedding;
+        let k = keys.clone() + image_pe;
+        let attn_out = self.final_attn_token_to_image.forward(q, k, keys.clone());
+        queries = queries + attn_out;
+        queries = self.norm_final_attn.forward(queries);
         (queries, keys)
     }
 }
@@ -116,27 +111,11 @@ impl TwoWayTransformer {
 mod test {
     use crate::{
         modeling::common::activation::{Activation, ActivationType},
-        tests::{
-            helpers::{random_tensor, TestFile},
-            mocks::Mock,
-        },
+        tests::helpers::{random_tensor, Test, TestBackend},
     };
-
-    use super::TwoWayTransformer;
-    impl Mock for TwoWayTransformer {
-        fn mock(&mut self) {
-            self.final_attn_token_to_image.mock();
-            self.norm_final_attn.mock();
-            for layer in &mut self.layers {
-                layer.mock();
-            }
-        }
-    }
     #[test]
     fn test_two_way_transformer() {
-        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let mut transformer = super::TwoWayTransformer::new(
-            &vs.root(),
+        let mut transformer = super::TwoWayTransformer::<TestBackend>::new(
             2,
             64,
             4,
@@ -144,22 +123,23 @@ mod test {
             Some(Activation::new(ActivationType::ReLU)),
             Some(2),
         );
-        let file = TestFile::open("transformer_two_way_transformer");
+        let file = Test::open("transformer_two_way_transformer");
         file.compare("depth", transformer._depth);
         file.compare("embedding_dim", transformer._embedding_dim);
         file.compare("num_heads", transformer._num_heads);
         file.compare("mlp_dim", transformer._mlp_dim);
         file.compare("layers_len", transformer.layers.len());
 
-        // Mocking
-        transformer.mock();
-
         // Forward
-        let image_embedding = random_tensor(&[1, 64, 16, 16], 1);
-        let image_pe = random_tensor(&[1, 64, 16, 16], 2);
-        let point_embedding = random_tensor(&[16, 256, 64], 3);
-        let (queries, keys) = transformer.forward(&image_embedding, &image_pe, &point_embedding);
-        let file = TestFile::open("transformer_two_way_transformer_forward");
+        let image_embedding = random_tensor([1, 64, 16, 16], 1);
+        let image_pe = random_tensor([1, 64, 16, 16], 2);
+        let point_embedding = random_tensor([16, 256, 64], 3);
+        let (queries, keys) = transformer.forward(
+            image_embedding.clone(),
+            image_pe.clone(),
+            point_embedding.clone(),
+        );
+        let file = Test::open("transformer_two_way_transformer_forward");
         file.compare("image_embedding", image_embedding);
         file.compare("image_pe", image_pe);
         file.compare("point_embedding", point_embedding);

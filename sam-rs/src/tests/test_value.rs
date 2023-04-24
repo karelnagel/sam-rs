@@ -1,0 +1,96 @@
+use burn::tensor::{backend::Backend, Bool, Tensor};
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    burn_helpers::TensorSlice,
+    modeling::common::activation::ActivationType,
+    sam_predictor::{ImageFormat, Size},
+};
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub struct TestTensor<T> {
+    shape: Vec<usize>,
+    values: Vec<T>,
+}
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+pub enum TestValue {
+    TensorFloat(TestTensor<f32>),
+    TensorBool(TestTensor<bool>),
+    Float(f64),
+    Int(i64),
+    String(String),
+    Bool(bool),
+    List(Vec<usize>),
+    ActivationType(ActivationType),
+    Size(Size),
+}
+
+impl<B: Backend, const D: usize> From<Tensor<B, D>> for TestValue {
+    fn from(tensor: Tensor<B, D>) -> Self {
+        let (values, shape) = tensor.to_slice();
+        TestValue::TensorFloat(TestTensor {
+            shape: shape.to_vec(),
+            values,
+        })
+    }
+}
+impl<B: Backend, const D: usize> From<Tensor<B, D, Bool>> for TestValue {
+    fn from(tensor: Tensor<B, D, Bool>) -> Self {
+        let (values, shape) = tensor.to_slice();
+        TestValue::TensorBool(TestTensor {
+            shape: shape.to_vec(),
+            values,
+        })
+    }
+}
+
+impl From<f64> for TestValue {
+    fn from(item: f64) -> Self {
+        TestValue::Float(item)
+    }
+}
+impl From<Size> for TestValue {
+    fn from(item: Size) -> Self {
+        TestValue::Size(item)
+    }
+}
+impl From<i64> for TestValue {
+    fn from(item: i64) -> Self {
+        TestValue::Int(item)
+    }
+}
+impl From<usize> for TestValue {
+    fn from(item: usize) -> Self {
+        TestValue::Int(item as i64)
+    }
+}
+impl From<String> for TestValue {
+    fn from(item: String) -> Self {
+        TestValue::String(item.to_string())
+    }
+}
+impl From<bool> for TestValue {
+    fn from(item: bool) -> Self {
+        TestValue::Bool(item)
+    }
+}
+impl From<ActivationType> for TestValue {
+    fn from(item: ActivationType) -> Self {
+        TestValue::ActivationType(item)
+    }
+}
+impl From<Vec<usize>> for TestValue {
+    fn from(item: Vec<usize>) -> Self {
+        TestValue::List(item)
+    }
+}
+impl From<ImageFormat> for TestValue {
+    fn from(item: ImageFormat) -> Self {
+        TestValue::String(
+            match item {
+                ImageFormat::BGR => "BGR",
+                ImageFormat::RGB => "RGB",
+            }
+            .to_string(),
+        )
+    }
+}

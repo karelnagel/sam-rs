@@ -1,18 +1,22 @@
-use tch::{nn, Tensor};
+use burn::tensor::activation::{relu, sigmoid};
+use burn::{
+    module::Module,
+    nn::{Linear, LinearConfig},
+    tensor::{backend::Backend, Tensor},
+};
 
-#[derive(Debug)]
-pub struct MLP {
-    layers: Vec<nn::Linear>,
+#[derive(Debug, Module)]
+pub struct MLP<B: Backend> {
+    layers: Vec<Linear<B>>,
     num_layers: usize,
     sigmoid_output: bool,
 }
 
-impl MLP {
+impl<B: Backend> MLP<B> {
     pub fn new(
-        vs: &nn::Path,
-        input_dim: i64,
-        hidden_dim: i64,
-        output_dim: i64,
+        input_dim: usize,
+        hidden_dim: usize,
+        output_dim: usize,
         num_layers: usize,
         sigmoid_output: bool,
     ) -> Self {
@@ -22,7 +26,7 @@ impl MLP {
         let n_values = std::iter::once(input_dim).chain(h.clone());
         let k_values = h.into_iter().chain(std::iter::once(output_dim));
         for (n, k) in n_values.zip(k_values) {
-            layers.push(nn::linear(vs, n, k, Default::default()));
+            layers.push(LinearConfig::new(n, k).init());
         }
 
         Self {
@@ -31,60 +35,40 @@ impl MLP {
             sigmoid_output,
         }
     }
-}
-impl nn::Module for MLP {
-    fn forward(&self, x: &Tensor) -> Tensor {
-        let mut x = x.copy();
+    pub fn forward<const D: usize>(&self, x: Tensor<B, D>) -> Tensor<B, D> {
+        let mut x = x;
 
         for (i, layer) in self.layers.iter().enumerate() {
             x = if i < self.num_layers - 1 {
-                layer.forward(&x).relu() // Assuming forward and relu functions are defined
+                relu(layer.forward(x))
             } else {
-                layer.forward(&x)
+                layer.forward(x)
             };
         }
         if self.sigmoid_output {
-            x = x.sigmoid();
+            x = sigmoid(x);
         }
-        x.copy()
+        x
     }
 }
 
 #[cfg(test)]
 mod test {
-    use tch::nn::Module;
 
-    use crate::tests::{
-        helpers::{random_tensor, TestFile},
-        mocks::Mock,
-    };
+    use crate::tests::helpers::{random_tensor, Test, TestBackend};
 
-    impl Mock for super::MLP {
-        fn mock(&mut self) {
-            for layer in self.layers.iter_mut() {
-                layer.mock();
-            }
-        }
-    }
     #[test]
     fn test_mlp() {
-        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let mut mlp = super::MLP::new(&vs.root(), 256, 256, 256, 4, false);
-        let file = TestFile::open("mlp");
+        let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, false);
+        let file = Test::open("mlp");
         file.compare("num_layers", mlp.num_layers);
         file.compare("sigmoid_output", mlp.sigmoid_output);
         file.compare("layers_len", mlp.layers.len());
-        for (i, layer) in mlp.layers.iter().enumerate() {
-            file.compare(&format!("layer{}", i), layer.ws.size());
-        }
-
-        // Mocking
-        mlp.mock();
 
         // Forward
-        let input = random_tensor(&[1, 256], 1);
-        let output = mlp.forward(&input);
-        let file = TestFile::open("mlp_forward");
+        let input = random_tensor([1, 256], 1);
+        let output = mlp.forward(input.clone());
+        let file = Test::open("mlp_forward");
         file.compare("input", input);
         file.compare("output", output);
     }

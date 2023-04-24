@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+burn = { git = "https://github.com/burn-rs/burn" }
+burn-ndarray = { git = "https://github.com/burn-rs/burn" }
+burn-tch = { git = "https://github.com/burn-rs/burn" }
 image = "0.24.6"
 md-5 = "0.10.5"
 ndarray = "0.15.6"
@@ -11,6 +14,5 @@ onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
 opencv = "0.78.2"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
-tch = "0.11.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"
