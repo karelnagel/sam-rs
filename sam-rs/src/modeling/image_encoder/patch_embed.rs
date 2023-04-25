@@ -49,7 +49,7 @@ mod test {
 
     #[test]
     fn test_patch_embed() {
-        let patch_embed = PatchEmbed::<TestBackend>::new(
+        let mut patch_embed = PatchEmbed::<TestBackend>::new(
             Some(Size(16, 16)),
             Some(Size(16, 16)),
             Some(Size(0, 0)),
@@ -57,12 +57,11 @@ mod test {
             Some(320),
         );
         let file = Test::open("patch_embed");
-        // file.compare("proj_size", patch_embed.proj);
+        patch_embed = file.load(patch_embed);
 
         // Forward
         let input = random_tensor([1, 3, 512, 512], 3);
         let output = patch_embed.forward(input.clone());
-        let file = Test::open("patch_embed_forward");
         file.compare("input", input);
         file.compare("output", output);
     }

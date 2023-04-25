@@ -231,15 +231,12 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        let file = Test::open("attention");
-        file.compare("num_heads", attention.num_heads);
-        file.compare("scale", attention.scale);
-        file.compare("use_rel_pos", attention.use_rel_pos);
+        let file = Test::open("attention_forward");
+        attention = file.load(attention);
 
         // Forward
         let input = random_tensor([25, 14, 14, 320], 1);
         let output = attention.forward(input.clone());
-        let file = Test::open("attention_forward");
         file.compare("input", input);
         file.compare("output", output);
     }

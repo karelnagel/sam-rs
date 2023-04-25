@@ -44,15 +44,11 @@ mod test {
     fn test_layer_norm_2d() {
         // New
         let layer_norm = LayerNorm2d::<TestBackend>::new(256, Some(0.1));
-        let file = Test::open("layer_norm_2d");
-        file.compare("weight", layer_norm.weight.val());
-        file.compare("bias", layer_norm.bias.val());
-        file.compare("eps", layer_norm.eps);
 
         // Forward
         let input = random_tensor::<TestBackend, 4>([2, 256, 16, 16], 1);
         let output = layer_norm.forward(input.clone());
-        let file = Test::open("layer_norm_2d_forward");
+        let file = Test::open("layer_norm_2d");
         file.compare("input", input);
         file.compare("output", output);
     }

@@ -61,14 +61,11 @@ mod test {
     fn test_mlp() {
         let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, false);
         let file = Test::open("mlp");
-        file.compare("num_layers", mlp.num_layers);
-        file.compare("sigmoid_output", mlp.sigmoid_output);
-        file.compare("layers_len", mlp.layers.len());
+        mlp = file.load(mlp);
 
         // Forward
         let input = random_tensor([1, 256], 1);
         let output = mlp.forward(input.clone());
-        let file = Test::open("mlp_forward");
         file.compare("input", input);
         file.compare("output", output);
     }

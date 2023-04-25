@@ -200,7 +200,7 @@ mod test {
 
     #[test]
     fn test_block() {
-        let block = super::Block::<TestBackend>::new(
+        let mut block = super::Block::<TestBackend>::new(
             320,
             16,
             Some(4.0),
@@ -212,12 +212,11 @@ mod test {
             Some(Size(64, 64)),
         );
         let file = Test::open("block");
-        file.compare("window_size", block.window_size);
+        block = file.load(block);
 
         // Forward
         let input = random_tensor([1, 64, 64, 320], 1);
         let output = block.forward(input.clone());
-        let file = Test::open("block_forward");
         file.compare("input", input);
         file.compare("output", output);
     }

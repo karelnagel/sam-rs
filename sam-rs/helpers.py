@@ -53,9 +53,12 @@ def random_tensor(shape:list,seed:int=0):
 def random_ndarray(shape:list,seed:int=0)->np.ndarray:
     return random_tensor(shape,seed).detach().cpu().numpy()
 
+from functools import reduce
 
-def input_to_file(file_name:str,model:nn.Module):
-    # Initialize the JSON data structure
+def set_nested_key(dct, keys, value):
+    reduce(lambda d, k: d.setdefault(k, {}), keys[:-1], dct)[keys[-1]] = value
+
+def input_to_file(file_name: str, model: nn.Module):
     json_data = {
         "metadata": {
             "float": "f32",
@@ -64,32 +67,23 @@ def input_to_file(file_name:str,model:nn.Module):
             "version": "0.6.0",
             "settings": "DebugRecordSettings"
         },
-        "item": {"act":None}
+        "item": {"act": None}
     }
-
-    # Iterate through the model's named parameters (weights and biases)
     for name, param in model.named_parameters():
-        # Extract layer name and parameter type (weight or bias)
-        layer_name, param_type = name.split('.')
-        
-        # Create a unique ID for each parameter
+        keys = name.split('.')
         param_id = str(uuid.uuid4())
-
-        # Convert the parameter values and shape to lists
         param_shape = list(param.size())
         param_value = param.flatten().detach().cpu().numpy().tolist()
-
-        # Update the JSON data structure
-        if layer_name not in json_data["item"]:
-            json_data["item"][layer_name] = {}
-        json_data["item"][layer_name][param_type] = {
+        param_data = {
             "id": param_id,
             "param": {
                 "value": param_value,
                 "shape": param_shape
             }
         }
-    path = "test-inputs/"+file_name+'.json'
+        set_nested_key(json_data["item"], keys, param_data)
+    
+    path = "test-inputs/" + file_name + '.json'
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as json_file:
         json.dump(json_data, json_file, indent=2)
