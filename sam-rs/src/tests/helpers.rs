@@ -1,6 +1,10 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use burn::tensor::{backend::Backend, Tensor};
+use burn::{
+    module::Module,
+    record::{DebugRecordSettings, Record},
+    tensor::{backend::Backend, Tensor},
+};
 use burn_ndarray::NdArrayBackend;
 use serde::{Deserialize, Serialize};
 
@@ -15,20 +19,30 @@ pub struct TestFile {
 
 pub type TestBackend = NdArrayBackend<f32>;
 pub struct Test {
+    name: String,
     file: TestFile,
 }
 impl Test {
     pub fn open(name: &str) -> Self {
-        let path = format!("./test-files/{}.json", name);
+        let path = format!("./test-outputs/{}.json", name);
         let file = std::fs::File::open(path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
         let file = serde_json::from_reader(reader).unwrap();
-        Self { file }
+        Self {
+            file,
+            name: name.into(),
+        }
     }
     pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
         let file_value = self.file.values.get(key).unwrap().clone();
         assert_eq!(file_value, &value.into(), "key: '{}'", key);
         println!("{}: OK", key);
+    }
+    pub fn load<B: Backend, D: Module<B>>(&self, module: D) -> D {
+        let record =
+            Record::load::<DebugRecordSettings>(format!("./test-inputs/{}.json", self.name).into())
+                .unwrap();
+        module.load_record(record)
     }
 }
 fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
@@ -49,4 +63,9 @@ fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
 pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize) -> Tensor<B, D> {
     let slice = random_slice(&shape, seed);
     Tensor::of_slice(slice, shape)
+}
+
+fn load_test(name: &str) {
+    let record = Record::load::<DebugRecordSettings>("./model.json".into()).unwrap();
+    record
 }

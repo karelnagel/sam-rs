@@ -4,10 +4,7 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::modeling::common::{
-    activation::{Activation, ActivationType},
-    mlp_block::MLPBlock,
-};
+use crate::modeling::common::{activation::Activation, mlp_block::MLPBlock};
 
 use super::attention::Attention;
 
@@ -44,7 +41,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
         skip_first_layer_pe: Option<bool>,
     ) -> Self {
         let mlp_dim = mlp_dim.unwrap_or(2048);
-        let activation = activation.unwrap_or(Activation::new(ActivationType::ReLU));
+        let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let skip_first_layer_pe = skip_first_layer_pe.unwrap_or(false);
 
@@ -82,15 +79,19 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
         let mut keys = keys;
         // Self attention block
         if self.skip_first_layer_pe {
-            queries = self.self_attn.forward(queries.clone(), queries.clone(), queries.clone());
+            queries = self
+                .self_attn
+                .forward(queries.clone(), queries.clone(), queries.clone());
         } else {
             let q = queries.clone() + query_pe.clone();
-            let attn_out = self.self_attn.forward(q.clone(), q.clone(), queries.clone());
+            let attn_out = self
+                .self_attn
+                .forward(q.clone(), q.clone(), queries.clone());
             queries = queries + attn_out;
         }
         queries = self.norm1.forward(queries);
         // Cross attention block, tokens attending to image embedding
-        let q = queries .clone()+ query_pe.clone();
+        let q = queries.clone() + query_pe.clone();
         let k = keys.clone() + key_pe.clone();
         let attn_out = self.cross_attn_token_to_image.forward(q, k, keys.clone());
         queries = queries + attn_out;
@@ -105,7 +106,9 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
 
         let q = queries.clone() + query_pe;
         let k = keys.clone() + key_pe;
-        let attn_out = self.cross_attn_image_to_token.forward(k, q, queries.clone());
+        let attn_out = self
+            .cross_attn_image_to_token
+            .forward(k, q, queries.clone());
 
         keys = keys + attn_out;
         keys = self.norm4.forward(keys);
@@ -117,7 +120,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
 #[cfg(test)]
 mod test {
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::activation::Activation,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
 
@@ -127,7 +130,7 @@ mod test {
             256,
             8,
             Some(2048),
-            Some(Activation::new(ActivationType::ReLU)),
+            Some(Activation::ReLU),
             Some(2),
             Some(false),
         );
@@ -143,7 +146,12 @@ mod test {
         let keys = random_tensor([1, 256, 256], 2);
         let query_pe = random_tensor([1, 256, 256], 3);
         let key_pe = random_tensor([1, 256, 256], 4);
-        let (out_queries, out_keys) = block.forward(queries.clone(), keys.clone(), query_pe.clone(), key_pe.clone());
+        let (out_queries, out_keys) = block.forward(
+            queries.clone(),
+            keys.clone(),
+            query_pe.clone(),
+            key_pe.clone(),
+        );
         let file = Test::open("transformer_two_way_attention_block_forward");
         file.compare("queries", queries);
         file.compare("keys", keys);

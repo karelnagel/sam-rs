@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     burn_helpers::TensorSlice,
-    modeling::common::activation::ActivationType,
+    modeling::common::activation::Activation,
     sam_predictor::{ImageFormat, Size},
 };
 #[derive(Deserialize, PartialEq, Serialize)]
@@ -32,7 +32,7 @@ pub enum TestValue {
     String(String),
     Bool(bool),
     List(Vec<usize>),
-    ActivationType(ActivationType),
+    ActivationType(Activation),
     Size(Size),
 }
 
@@ -85,8 +85,8 @@ impl From<bool> for TestValue {
         TestValue::Bool(item)
     }
 }
-impl From<ActivationType> for TestValue {
-    fn from(item: ActivationType) -> Self {
+impl From<Activation> for TestValue {
+    fn from(item: Activation) -> Self {
         TestValue::ActivationType(item)
     }
 }

@@ -163,7 +163,7 @@ mod test {
 
     #[test]
     fn test_image_encoder() {
-        let act = Activation::new(crate::modeling::common::activation::ActivationType::GELU);
+        let act = Activation::GELU;
         let img_size = 128;
         let image_encoder = ImageEncoderViT::<TestBackend>::new(
             Some(img_size),

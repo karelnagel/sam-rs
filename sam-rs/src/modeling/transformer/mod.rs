@@ -8,7 +8,7 @@ use burn::{
 
 use self::{attention::Attention, two_way_attention::TwoWayAttentionBlock};
 
-use super::common::activation::{Activation, ActivationType};
+use super::common::activation::Activation;
 
 #[derive(Debug, Module)]
 pub struct TwoWayTransformer<B: Backend> {
@@ -39,7 +39,7 @@ impl<B: Backend> TwoWayTransformer<B> {
         activation: Option<Activation>,
         attention_downsample_rate: Option<usize>,
     ) -> Self {
-        let activation = activation.unwrap_or(Activation::new(ActivationType::ReLU));
+        let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
         let mut layers: Vec<TwoWayAttentionBlock<B>> = vec![];
         for i in 0..depth {
@@ -108,7 +108,7 @@ impl<B: Backend> TwoWayTransformer<B> {
 #[cfg(test)]
 mod test {
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::activation::Activation,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
     #[test]
@@ -118,7 +118,7 @@ mod test {
             64,
             4,
             256,
-            Some(Activation::new(ActivationType::ReLU)),
+            Some(Activation::ReLU),
             Some(2),
         );
         let file = Test::open("transformer_two_way_transformer");

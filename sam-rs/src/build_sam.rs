@@ -2,11 +2,8 @@ use burn::tensor::backend::Backend;
 
 use crate::{
     modeling::{
-        common::activation::{Activation, ActivationType},
-        image_encoder::ImageEncoderViT,
-        mask_decoder::MaskDecoder,
-        prompt_encoder::PromptEncoder,
-        transformer::TwoWayTransformer,
+        common::activation::Activation, image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder,
+        prompt_encoder::PromptEncoder, transformer::TwoWayTransformer,
     },
     sam::Sam,
     sam_predictor::Size,
@@ -45,8 +42,8 @@ where
     let img_size = 1024;
     let vit_patch_size = 16;
     let image_embedding_size = img_size / vit_patch_size;
-    let activation = Activation::new(ActivationType::GELU);
-    let activation_relu = Activation::new(ActivationType::ReLU);
+    let activation = Activation::GELU;
+    let activation_relu = Activation::ReLU;
     Sam::new(
         ImageEncoderViT::new(
             Some(img_size),

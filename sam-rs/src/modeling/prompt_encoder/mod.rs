@@ -278,7 +278,7 @@ where
 mod test {
 
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::activation::Activation,
         sam_predictor::Size,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
@@ -288,7 +288,7 @@ mod test {
     const EMBED_DIM: usize = 128;
 
     fn _init() -> PromptEncoder<TestBackend> {
-        let act = Activation::new(ActivationType::GELU);
+        let act = Activation::GELU;
         PromptEncoder::new(EMBED_DIM, Size(32, 32), Size(512, 512), MASK_IN_CHANS, act)
     }
     #[test]

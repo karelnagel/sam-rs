@@ -173,7 +173,7 @@ fn window_unpartition<B: Backend>(
 mod test {
 
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::activation::Activation,
         sam_predictor::Size,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
@@ -205,7 +205,7 @@ mod test {
             16,
             Some(4.0),
             Some(true),
-            Activation::new(ActivationType::GELU),
+            Activation::GELU,
             Some(true),
             Some(true),
             Some(14),

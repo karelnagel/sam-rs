@@ -188,17 +188,14 @@ impl<B: Backend> MaskDecoder<B> {
 mod test {
 
     use crate::{
-        modeling::{
-            common::activation::{Activation, ActivationType},
-            transformer::TwoWayTransformer,
-        },
+        modeling::{common::activation::Activation, transformer::TwoWayTransformer},
         tests::helpers::{random_tensor, Test, TestBackend},
     };
 
     #[test]
     fn test_mask_decoder() {
-        let gelu = Activation::new(ActivationType::GELU);
-        let relu = Activation::new(ActivationType::ReLU);
+        let gelu = Activation::GELU;
+        let relu = Activation::ReLU;
         let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
         let mut mask_decoder =
             super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
@@ -230,8 +227,8 @@ mod test {
 
     #[test]
     fn test_mask_decoder_predict() {
-        let gelu = Activation::new(ActivationType::GELU);
-        let relu = Activation::new(ActivationType::ReLU);
+        let gelu = Activation::GELU;
+        let relu = Activation::ReLU;
         let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
         let mut mask_decoder =
             super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
