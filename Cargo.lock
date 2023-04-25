@@ -138,7 +138,7 @@ checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 [[package]]
 name = "burn"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-core",
  "burn-train",
@@ -147,7 +147,7 @@ dependencies = [
 [[package]]
 name = "burn-autodiff"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-common",
  "burn-tensor",
@@ -159,7 +159,7 @@ dependencies = [
 [[package]]
 name = "burn-common"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "const-random",
  "rand",
@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "burn-core"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "bincode",
  "burn-autodiff",
@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "burn-dataset"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "derive-new",
  "dirs",
@@ -206,7 +206,7 @@ dependencies = [
 [[package]]
 name = "burn-derive"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "burn-ndarray"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-autodiff",
  "burn-common",
@@ -234,7 +234,7 @@ dependencies = [
 [[package]]
 name = "burn-tch"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-tensor",
  "half",
@@ -246,7 +246,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-tensor-testgen",
  "derive-new",
@@ -262,7 +262,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor-testgen"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -272,7 +272,7 @@ dependencies = [
 [[package]]
 name = "burn-train"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c5e31b272f84e3d600ddf597c5a602256fc9b9d5"
+source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
 dependencies = [
  "burn-core",
  "derive-new",
@@ -2217,13 +2217,13 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.23"
+version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4017f8f45139870ca7e672686113917c71c7a6e02d4924eda67186083c03081a"
+checksum = "0f57e3ca2a01450b1a921183a9c9cbfda207fd822cef4ccb00a65402cbba7a74"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.15",
 ]
 
 [[package]]

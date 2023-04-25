@@ -6,11 +6,23 @@ use crate::{
     modeling::common::activation::ActivationType,
     sam_predictor::{ImageFormat, Size},
 };
-#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Deserialize, PartialEq, Serialize)]
 pub struct TestTensor<T> {
-    shape: Vec<usize>,
+    size: Vec<usize>,
     values: Vec<T>,
 }
+
+impl<T: std::fmt::Debug + Clone> std::fmt::Debug for TestTensor<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let len = &self.values.len();
+        f.debug_struct("TestTensor")
+            .field("size", &self.size)
+            .field("start", &self.values[0..5].to_vec())
+            .field("end", &self.values[len - 6..len - 1].to_vec())
+            .finish()
+    }
+}
+
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub enum TestValue {
     TensorFloat(TestTensor<f32>),
@@ -28,7 +40,7 @@ impl<B: Backend, const D: usize> From<Tensor<B, D>> for TestValue {
     fn from(tensor: Tensor<B, D>) -> Self {
         let (values, shape) = tensor.to_slice();
         TestValue::TensorFloat(TestTensor {
-            shape: shape.to_vec(),
+            size: shape.to_vec(),
             values,
         })
     }
@@ -37,7 +49,7 @@ impl<B: Backend, const D: usize> From<Tensor<B, D, Bool>> for TestValue {
     fn from(tensor: Tensor<B, D, Bool>) -> Self {
         let (values, shape) = tensor.to_slice();
         TestValue::TensorBool(TestTensor {
-            shape: shape.to_vec(),
+            size: shape.to_vec(),
             values,
         })
     }

@@ -28,9 +28,9 @@ impl<B: Backend> LayerNorm2d<B> {
         let s = (x.clone() - u.clone()).powf(2.0).mean_dim(1);
         let x = (x - u) / (s + self.eps).sqrt();
 
-        let ws = self.weight.val().unsqueeze();
-        let bias: Tensor<B, D> = self.bias.val().unsqueeze();
-        x * ws + bias
+        let ws: Tensor<B, D> = self.weight.val().unsqueeze().transpose();
+        let bias: Tensor<B, D> = self.bias.val().reshape(x.shape().dims);
+        ws.mul(x).add(bias)
     }
 }
 
@@ -45,12 +45,12 @@ mod test {
         // New
         let layer_norm = LayerNorm2d::<TestBackend>::new(256, Some(0.1));
         let file = Test::open("layer_norm_2d");
-        // file.compare("weight", layer_norm.weight);
-        // file.compare("bias", layer_norm.bias);
+        file.compare("weight", layer_norm.weight.val());
+        file.compare("bias", layer_norm.bias.val());
         file.compare("eps", layer_norm.eps);
 
         // Forward
-        let input = random_tensor([2, 256, 16, 16], 0);
+        let input = random_tensor::<TestBackend, 4>([2, 256, 16, 16], 1);
         let output = layer_norm.forward(input.clone());
         let file = Test::open("layer_norm_2d_forward");
         file.compare("input", input);

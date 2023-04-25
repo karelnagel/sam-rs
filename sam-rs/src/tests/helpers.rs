@@ -27,18 +27,15 @@ impl Test {
     }
     pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
         let file_value = self.file.values.get(key).unwrap().clone();
-        if file_value == &value.into() {
-            println!("{}: OK", key);
-        } else {
-            panic!("Key '{}' is not the same!", key);
-        }
+        assert_eq!(file_value, &value.into(), "key: '{}'", key);
+        println!("{}: OK", key);
     }
 }
 fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
     let n = shape.iter().product::<usize>();
-    let a: usize = 3;
-    let c: usize = 23;
-    let m: usize = 2_i32.pow(32) as usize;
+    let a = 3_usize;
+    let c = 23_usize;
+    let m = 2_usize.pow(4);
 
     let mut result = Vec::new();
     let mut x = seed;

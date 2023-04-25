@@ -53,7 +53,7 @@ def random_tensor(shape:list,seed:int=0):
 
     a = 3
     c = 23
-    m = 2**32
+    m = 2**4
     
     result = []
     x = seed
