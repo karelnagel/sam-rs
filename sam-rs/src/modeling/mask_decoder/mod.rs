@@ -6,7 +6,7 @@ use burn::{
 };
 use mlp::MLP;
 
-use crate::burn_helpers::{ConvTranspose2d, TensorAddons};
+use crate::burn_helpers::ConvTranspose2d;
 
 use super::{
     common::{activation::Activation, layer_norm_2d::LayerNorm2d},
@@ -142,14 +142,14 @@ impl<B: Backend> MaskDecoder<B> {
         );
         let tokens = Tensor::cat(vec![output_tokens, sparse_prompt_embeddings], 1);
 
-        let src = image_embeddings.repeat_interleave_self_int(tokens.shape().dims[0], 0, None)
+        let src = image_embeddings//.repeat_interleave_self_int(tokens.shape().dims[0], 0, None)
             + dense_prompt_embeddings;
-        let pos_src = image_pe.repeat_interleave_self_int(tokens.shape().dims[0], 0, None);
+        let pos_src = image_pe; //.repeat_interleave_self_int(tokens.shape().dims[0], 0, None);
 
         let shape = src.shape().dims;
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
         let (hs, src) = self.transformer.forward(src, pos_src, tokens);
-        let iou_token_out = hs.narrow(1, 0, 1).squeeze_dim(1);
+        let iou_token_out = hs.narrow(1, 0, 1);
         let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
 
         let src = src.transpose().reshape([b, c, h, w]);
@@ -157,7 +157,7 @@ impl<B: Backend> MaskDecoder<B> {
         let upscaled_embedding = self.output_upscaling(src);
         let mut hyper_in_list: Vec<Tensor<B, 3>> = vec![];
         for i in 0..self.num_mask_tokens {
-            let input = mask_tokens_out.narrow(1, i, 1).squeeze_dim(1);
+            let input = mask_tokens_out.narrow(1, i, 1); //.squeeze_dim(1);
             let item = self.output_hypernetworks_mlps[i as usize].forward(input);
             hyper_in_list.push(item);
         }
@@ -169,7 +169,7 @@ impl<B: Backend> MaskDecoder<B> {
             .matmul(upscaled_embedding.reshape([b, c, h * w]))
             .reshape([b, usize::MAX, h, w]);
 
-        let iou_pred = self.iou_prediction_head.forward(iou_token_out);
+        let iou_pred = self.iou_prediction_head.forward(iou_token_out).unsqueeze();
         return (masks, iou_pred);
     }
 

@@ -2,7 +2,6 @@ mod positional_embedding;
 
 use self::positional_embedding::PositionEmbeddingRandom;
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::burn_helpers::TensorAddons;
 use crate::sam_predictor::Size;
 use burn::{
     module::Module,
@@ -121,34 +120,36 @@ where
         let mask_zero = labels.clone().equal_elem(0.);
         let mask_one = labels.equal_elem(1.);
 
-        point_embedding = point_embedding
-            .zeros_like()
-            .where_self(mask_minus_one.clone().unsqueeze(), point_embedding);
+        point_embedding = point_embedding.zeros_like();
+        // .where_self(mask_minus_one.clone().unsqueeze(), point_embedding);
 
         point_embedding = (point_embedding.clone()
             + self
-                .not_a_point_embed.clone()
+                .not_a_point_embed
+                .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze())
-        .where_self(mask_minus_one.unsqueeze(), point_embedding);
+                .unsqueeze());
+        // .where_self(mask_minus_one.unsqueeze(), point_embedding);
 
         point_embedding = (point_embedding.clone()
-            + self.point_embeddings[0].clone()
+            + self.point_embeddings[0]
+                .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze())
-        .where_self(mask_zero.unsqueeze(), point_embedding);
+                .unsqueeze());
+        // .where_self(mask_zero.unsqueeze(), point_embedding);
 
         point_embedding = (point_embedding.clone()
-            + self.point_embeddings[1].clone()
+            + self.point_embeddings[1]
+                .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze())
-        .where_self(mask_one.unsqueeze(), point_embedding);
+                .unsqueeze());
+        // .where_self(mask_one.unsqueeze(), point_embedding);
         point_embedding
     }
 
@@ -164,19 +165,23 @@ where
         let corner_embedding_1 = corner_embedding.narrow(1, 1, 1);
 
         let updated_corner_embedding_0 = corner_embedding_0.clone()
-            + self.point_embeddings[2].clone()
+            + self.point_embeddings[2]
+                .clone()
                 .into_record()
                 .weight
                 .val()
-                .squeeze_dim(0)
-                .expand_as(corner_embedding_0.clone());
+                .unsqueeze();
+        // .squeeze_dim(0)
+        // .expand_as(corner_embedding_0.clone());
         let updated_corner_embedding_1 = corner_embedding_1.clone()
-            + self.point_embeddings[3].clone()
+            + self.point_embeddings[3]
+                .clone()
                 .into_record()
                 .weight
                 .val()
-                .squeeze_dim(0)
-                .expand_as(corner_embedding_1);
+                .unsqueeze();
+        // .squeeze_dim(0)
+        // .expand(corner_embedding_1);
 
         corner_embedding = Tensor::cat(
             vec![updated_corner_embedding_0, updated_corner_embedding_1],
@@ -249,7 +254,8 @@ where
         let dense_embeddings = match masks {
             Some(masks) => self._embed_masks(masks),
             None => self
-                .no_mask_embed.clone()
+                .no_mask_embed
+                .clone()
                 .into_record()
                 .weight
                 .val()
@@ -299,7 +305,7 @@ mod test {
 
     #[test]
     fn test_prompt_encoder_embed_points() {
-        let  prompt_encoder = _init();
+        let prompt_encoder = _init();
 
         let points = random_tensor([32, 1, 2], 1);
         let labels = random_tensor([32, 1], 2);
@@ -337,7 +343,8 @@ mod test {
 
         let points = random_tensor([8, 1, 2], 1);
         let labels = random_tensor([8, 1], 2);
-        let (sparse, dense) = prompt_encoder.forward(Some((points.clone(), labels.clone())), None, None);
+        let (sparse, dense) =
+            prompt_encoder.forward(Some((points.clone(), labels.clone())), None, None);
         let file = Test::open("prompt_encoder_forward");
         file.compare("points", points);
         file.compare("labels", labels);

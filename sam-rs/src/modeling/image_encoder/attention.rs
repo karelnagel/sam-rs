@@ -4,7 +4,7 @@ use burn::{
     tensor::{activation::softmax, backend::Backend, Tensor},
 };
 
-use crate::{burn_helpers::TensorAddons, sam_predictor::Size};
+use crate::sam_predictor::Size;
 
 ///Multi-head Attention block with relative position embeddings.
 #[derive(Debug, Module)]

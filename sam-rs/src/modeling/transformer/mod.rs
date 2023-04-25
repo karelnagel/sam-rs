@@ -6,8 +6,6 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::burn_helpers::TensorAddons;
-
 use self::{attention::Attention, two_way_attention::TwoWayAttentionBlock};
 
 use super::common::activation::{Activation, ActivationType};
@@ -87,9 +85,9 @@ impl<B: Backend> TwoWayTransformer<B> {
     ) -> (Tensor<B, 3>, Tensor<B, 3>) {
         // BxCxHxW -> BxHWxC == B x N_image_tokens x C
         let image_embedding = image_embedding
-            .flatten::<2>(2, usize::MAX)
+            .flatten::<3>(2, usize::MAX)
             .permute([0, 2, 1]);
-        let image_pe = image_pe.flatten::<2>(2, usize::MAX).permute([0, 2, 1]);
+        let image_pe = image_pe.flatten::<3>(2, usize::MAX).permute([0, 2, 1]);
 
         //  Prepare queries
         let mut queries = point_embedding.clone();

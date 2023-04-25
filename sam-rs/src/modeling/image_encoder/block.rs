@@ -5,7 +5,6 @@ use burn::{
 };
 
 use crate::{
-    burn_helpers::TensorAddons,
     modeling::common::{activation::Activation, mlp_block::MLPBlock},
     sam_predictor::Size,
 };
@@ -164,7 +163,7 @@ fn window_unpartition<B: Backend>(
         .permute([0, 1, 3, 2, 4, 5])
         .reshape([b, hp, wp, usize::MAX]);
     if hp > h || wp > w {
-        x.slice(1, 0, h, 1).slice(2, 0, w, 1)
+        x.narrow(1, 0, h).narrow(2, 0, w)
     } else {
         x
     }

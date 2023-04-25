@@ -1,10 +1,7 @@
 use burn::tensor::{backend::Backend, Tensor};
 use image::{imageops::FilterType, ImageBuffer};
 
-use crate::{
-    burn_helpers::{TensorAddons, TensorSlice},
-    sam_predictor::Size,
-};
+use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
 
 /// Resizes images to the longest side 'target_length', as well as provides
 ///  methods for resizing coordinates and boxes. Provides methods for
@@ -83,19 +80,19 @@ impl ResizeLongestSide {
     ) -> Tensor<B, 3> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
-        let coords = coords.clone();
+        let mut coords = coords.clone();
 
         // Update the first column of coords
         let coords_0 = coords
             .select::<2>(1, 0)
             .mul_scalar(new_w as f32 / old_w as f32);
-        coords.select(1, 0).copy_(coords_0);
+        coords = coords.select(1, 0);
 
         // Update the second column of coords
         let coords_1 = coords
             .select::<2>(1, 1)
             .mul_scalar(new_h as f32 / old_h as f32);
-        coords.select(1, 1).copy_(coords_1);
+        coords = coords.select(1, 1);
         coords
     }
 

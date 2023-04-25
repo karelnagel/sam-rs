@@ -1,4 +1,3 @@
-use crate::burn_helpers::TensorAddons;
 use crate::sam_predictor::Size;
 use burn::module::Module;
 use burn::nn::conv::Conv2d;

@@ -3,7 +3,6 @@ use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Tensor};
 use serde::{Deserialize, Serialize};
 
-use crate::burn_helpers::TensorAddons;
 use crate::sam::Sam;
 use crate::utils::transforms::ResizeLongestSide;
 
@@ -175,7 +174,7 @@ where
             multimask_output,
             _return_logits,
         );
-        let masks = masks.select(0, 0);
+        let masks = masks.unsqueeze(); //.select(0, 0);
         let iou_predictions = iou_predictions.select(0, 0);
         let low_res_masks = low_res_masks.select(0, 0);
         (masks, iou_predictions, low_res_masks)

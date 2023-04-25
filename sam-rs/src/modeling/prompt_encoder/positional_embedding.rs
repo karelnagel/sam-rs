@@ -3,7 +3,7 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::{burn_helpers::TensorAddons, sam_predictor::Size};
+use crate::sam_predictor::Size;
 
 /// Positional encoding using random spatial frequencies.
 #[derive(Debug, Module)]
@@ -47,12 +47,12 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
     /// Positionally encode points that are not normalized to [0,1].
     pub fn forward_with_coords(&self, coords: Tensor<B, 3>, image_size: Size) -> Tensor<B, 3> {
         let mut coords = coords;
-        coords
-            .narrow(2, 0, 1) //Todo
-            .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f32));
-        coords
-            .narrow(2, 1, 1)
-            .copy_(coords.narrow(2, 1, 1).div_scalar(image_size.0 as f32));
+        // coords
+        //     .narrow(2, 0, 1) //Todo
+        //     .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f32));
+        // coords
+        //     .narrow(2, 1, 1)
+        //     .copy_(coords.narrow(2, 1, 1).div_scalar(image_size.0 as f32));
 
         self._pe_encoding(coords)
     }

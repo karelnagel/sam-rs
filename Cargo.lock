@@ -138,7 +138,7 @@ checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 [[package]]
 name = "burn"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-core",
  "burn-train",
@@ -147,7 +147,7 @@ dependencies = [
 [[package]]
 name = "burn-autodiff"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-common",
  "burn-tensor",
@@ -159,7 +159,7 @@ dependencies = [
 [[package]]
 name = "burn-common"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "const-random",
  "rand",
@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "burn-core"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "bincode",
  "burn-autodiff",
@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "burn-dataset"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "derive-new",
  "dirs",
@@ -206,7 +206,7 @@ dependencies = [
 [[package]]
 name = "burn-derive"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -216,7 +216,7 @@ dependencies = [
 [[package]]
 name = "burn-ndarray"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-autodiff",
  "burn-common",
@@ -234,7 +234,7 @@ dependencies = [
 [[package]]
 name = "burn-tch"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-tensor",
  "half",
@@ -246,7 +246,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-tensor-testgen",
  "derive-new",
@@ -262,7 +262,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor-testgen"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -272,7 +272,7 @@ dependencies = [
 [[package]]
 name = "burn-train"
 version = "0.6.0"
-source = "git+https://github.com/burn-rs/burn#c9fda41846ab2c7442647d92ec4e2712a5a505b6"
+source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
 dependencies = [
  "burn-core",
  "derive-new",

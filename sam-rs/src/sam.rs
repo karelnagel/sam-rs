@@ -2,7 +2,7 @@ use burn::module::{Module, Param};
 use burn::tensor::Bool;
 use burn::tensor::{backend::Backend, Tensor};
 
-use crate::burn_helpers::{TensorAddons, TensorSlice};
+use crate::burn_helpers::TensorSlice;
 use crate::{
     modeling::{
         image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
@@ -174,8 +174,8 @@ where
     ) -> Tensor<B, 4> {
         let output_size = vec![self.image_encoder.img_size, self.image_encoder.img_size];
         let masks = masks.upsample_bilinear2d::<4>(output_size, false, None, None);
-        let masks = masks.slice(2, 0, input.0, 1);
-        let masks = masks.slice(3, 0, input.1, 1);
+        let masks: Tensor<B, 4> = masks.narrow(2, 0, input.0);
+        let masks = masks.narrow(3, 0, input.1);
         let output_size = vec![original.0, original.1];
         let masks = masks.upsample_bilinear2d(output_size, false, None, None);
         masks
@@ -189,7 +189,7 @@ where
 
         let padh = self.image_encoder.img_size - h;
         let padw = self.image_encoder.img_size - w;
-        let x = x.constant_pad_nd(vec![0, padw, 0, padh]);
+        let x = x.pad(&[0, padw, 0, padh], "", 0.);
         x
     }
 }
