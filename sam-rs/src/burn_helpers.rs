@@ -1,8 +1,6 @@
 use burn::{
     module::{Module, Param},
-    tensor::{
-        backend::Backend, Bool, Data, ElementConversion, Float, Int, Shape, Tensor, TensorKind,
-    },
+    tensor::{backend::Backend, BasicOps, Bool, Data, ElementConversion, Int, Shape, Tensor},
 };
 
 #[derive(Debug, Module)]
@@ -71,5 +69,30 @@ impl<B: Backend, const D: usize> TensorSlice<D, bool> for Tensor<B, D, Bool> {
         let value: Vec<bool> = data.value;
         let shape = data.shape.dims;
         (value, shape)
+    }
+}
+pub trait TensorHelpers<B: Backend, const D: usize, K: BasicOps<B>> {
+    fn calc_dims<const D2: usize>(&self, dims: [usize; D2]) -> [usize; D2];
+    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2, K>;
+}
+impl<B: Backend, const D: usize, K: BasicOps<B>> TensorHelpers<B, D, K> for Tensor<B, D, K> {
+    fn calc_dims<const D2: usize>(&self, dims: [usize; D2]) -> [usize; D2] {
+        let max_count = dims.iter().filter(|&&x| x == usize::MAX).count();
+        assert!(
+            max_count <= 1,
+            "There must be exactly one usize::MAX in the dims array"
+        );
+        if max_count == 0 {
+            return dims;
+        }
+        let elems = self.dims().iter().fold(1, |acc, &x| acc * x)
+            / dims
+                .iter()
+                .filter(|x| **x != usize::MAX)
+                .fold(1, |acc, &x| acc * x);
+        dims.map(|x| if x == usize::MAX { elems } else { x })
+    }
+    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2, K> {
+        self.clone().reshape(self.calc_dims(dims))
     }
 }

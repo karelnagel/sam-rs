@@ -2,7 +2,7 @@ use burn::module::{Module, Param};
 use burn::tensor::Bool;
 use burn::tensor::{backend::Backend, Tensor};
 
-use crate::burn_helpers::TensorSlice;
+use crate::burn_helpers::{TensorSlice, TensorHelpers};
 use crate::{
     modeling::{
         image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
@@ -57,9 +57,9 @@ where
         let pixel_mean = pixel_mean.unwrap_or(vec![123.675, 116.28, 103.53]);
         let pixel_std = pixel_std.unwrap_or(vec![58.395, 57.12, 57.375]);
         let pixel_mean =
-            Tensor::of_slice(pixel_mean.to_vec(), [pixel_mean.len()]).reshape([usize::MAX, 1, 1]);
+            Tensor::of_slice(pixel_mean.to_vec(), [pixel_mean.len()]).reshape_max([usize::MAX, 1, 1]);
         let pixel_std =
-            Tensor::of_slice(pixel_std.to_vec(), [pixel_std.len()]).reshape([usize::MAX, 1, 1]);
+            Tensor::of_slice(pixel_std.to_vec(), [pixel_std.len()]).reshape_max([usize::MAX, 1, 1]);
 
         Self {
             image_encoder,

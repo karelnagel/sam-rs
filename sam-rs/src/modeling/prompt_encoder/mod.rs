@@ -2,7 +2,7 @@ mod positional_embedding;
 
 use self::positional_embedding::PositionEmbeddingRandom;
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::sam_predictor::Size;
+use crate::{sam_predictor::Size, burn_helpers::TensorHelpers};
 use burn::{
     module::Module,
     nn::{
@@ -156,7 +156,7 @@ where
     ///Embeds box prompts.
     fn _embed_boxes(&self, boxes: Tensor<B, 3>) -> Tensor<B, 3> {
         let boxes = boxes + 0.5; // Shift to center of pixel
-        let coords = boxes.reshape([usize::MAX, 2, 2]);
+        let coords = boxes.reshape_max([usize::MAX, 2, 2]);
         let mut corner_embedding = self
             .pe_layer
             .forward_with_coords(coords, self.input_image_size);
@@ -259,7 +259,7 @@ where
                 .into_record()
                 .weight
                 .val()
-                .reshape([1, usize::MAX, 1, 1])
+                .reshape_max([1, usize::MAX, 1, 1])
                 .expand(
                     vec![
                         bs,

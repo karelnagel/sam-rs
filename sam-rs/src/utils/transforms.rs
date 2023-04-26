@@ -1,7 +1,7 @@
 use burn::tensor::{backend::Backend, Tensor};
 use image::{imageops::FilterType, ImageBuffer};
 
-use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
+use crate::{burn_helpers::{TensorSlice, TensorHelpers}, sam_predictor::Size};
 
 /// Resizes images to the longest side 'target_length', as well as provides
 ///  methods for resizing coordinates and boxes. Provides methods for
@@ -58,7 +58,7 @@ impl ResizeLongestSide {
         original_size: Size,
     ) -> Tensor<B, 2> {
         let boxes = self.apply_coords(boxes, original_size);
-        boxes.reshape([usize::MAX, 4])
+        boxes.reshape_max([usize::MAX, 4])
     }
     // Expects batched images with shape BxCxHxW and float format. This
     // transformation may not exactly match apply_image. apply_image is
@@ -103,8 +103,8 @@ impl ResizeLongestSide {
         boxes: Tensor<B, 2>,
         original_size: Size,
     ) -> Tensor<B, 2> {
-        let boxes = self.apply_coords_torch(boxes.reshape([usize::MAX, 2, 2]), original_size);
-        boxes.reshape([usize::MAX, 4])
+        let boxes = self.apply_coords_torch(boxes.reshape_max([usize::MAX, 2, 2]), original_size);
+        boxes.reshape_max([usize::MAX, 4])
     }
 
     // Compute the output size given input size and target long side length.

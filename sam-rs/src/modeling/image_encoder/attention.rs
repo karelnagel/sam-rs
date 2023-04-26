@@ -4,7 +4,7 @@ use burn::{
     tensor::{activation::softmax, backend::Backend, Tensor},
 };
 
-use crate::sam_predictor::Size;
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 
 ///Multi-head Attention block with relative position embeddings.
 #[derive(Debug, Module)]
@@ -77,10 +77,10 @@ impl<B: Backend> Attention<B> {
         let qkv = self
             .qkv
             .forward(x)
-            .reshape([b, h * w, 3, self.num_heads, usize::MAX])
+            .reshape_max([b, h * w, 3, self.num_heads, usize::MAX])
             .permute([2, 0, 3, 1, 4]);
         let qkv = qkv
-            .reshape([3, b * self.num_heads, h * w, usize::MAX])
+            .reshape_max([3, b * self.num_heads, h * w, usize::MAX])
             .unbind(0);
         let (q, k, v) = (qkv[0].clone(), qkv[1].clone(), qkv[2].clone());
 
@@ -99,9 +99,9 @@ impl<B: Backend> Attention<B> {
 
         let x = attn
             .matmul(v)
-            .reshape([b, self.num_heads, h, w, usize::MAX])
+            .reshape_max([b, self.num_heads, h, w, usize::MAX])
             .permute([0, 2, 3, 1, 4])
-            .reshape([b, h, w, usize::MAX]);
+            .reshape_max([b, h, w, usize::MAX]);
         let x = self.proj.forward(x);
         x
     }
@@ -160,11 +160,11 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
     let dim = rel_pos_resized.shape().dims[0];
     if dim != max_rel_dist {
         rel_pos_resized = rel_pos_resized
-            .reshape([1, dim, usize::MAX])
+            .reshape_max([1, dim, usize::MAX])
             .permute([0, 2, 1])
             .upsample_linear1d::<3>(&[max_rel_dist], false, None)
             // .squeeze_dim(0)
-            .reshape([usize::MAX, max_rel_dist])
+            .reshape_max([usize::MAX, max_rel_dist])
             .permute([1, 0])
     }
     let q_coords = Tensor::arange(0..q_size)
@@ -231,7 +231,7 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        let file = Test::open("attention_forward");
+        let file = Test::open("attention");
         attention = file.load(attention);
 
         // Forward

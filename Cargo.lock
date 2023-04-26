@@ -138,7 +138,7 @@ checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 [[package]]
 name = "burn"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-core",
  "burn-train",
@@ -147,7 +147,7 @@ dependencies = [
 [[package]]
 name = "burn-autodiff"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-common",
  "burn-tensor",
@@ -159,7 +159,7 @@ dependencies = [
 [[package]]
 name = "burn-common"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "const-random",
  "rand",
@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "burn-core"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "bincode",
  "burn-autodiff",
@@ -185,6 +185,7 @@ dependencies = [
  "libm",
  "log",
  "rand",
+ "rmp-serde",
  "serde",
  "serde_json",
  "spin 0.9.8",
@@ -193,7 +194,7 @@ dependencies = [
 [[package]]
 name = "burn-dataset"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "derive-new",
  "dirs",
@@ -206,7 +207,7 @@ dependencies = [
 [[package]]
 name = "burn-derive"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -216,7 +217,7 @@ dependencies = [
 [[package]]
 name = "burn-ndarray"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-autodiff",
  "burn-common",
@@ -234,7 +235,7 @@ dependencies = [
 [[package]]
 name = "burn-tch"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-tensor",
  "half",
@@ -246,7 +247,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-tensor-testgen",
  "derive-new",
@@ -262,7 +263,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor-testgen"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -272,7 +273,7 @@ dependencies = [
 [[package]]
 name = "burn-train"
 version = "0.6.0"
-source = "git+https://github.com/karelnagel/burn?branch=permute#cbf56e006129aea24b8466a571d770ec343e6527"
+source = "git+https://github.com/karelnagel/burn?branch=permute#74765ea9d0f7919bbb4322729b477af4cdec3366"
 dependencies = [
  "burn-core",
  "derive-new",
@@ -1474,6 +1475,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f746c4065a8fa3fe23974dd82f15431cc8d40779821001404d10d2e79ca7d79"
+
+[[package]]
 name = "pbkdf2"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1735,10 +1742,32 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustix"
-version = "0.37.14"
+name = "rmp"
+version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b864d3c18a5785a05953adeed93e2dca37ed30f18e69bba9f30079d51f363f"
+checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
+dependencies = [
+ "byteorder",
+ "num-traits",
+ "paste",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
+dependencies = [
+ "byteorder",
+ "rmp",
+ "serde",
+]
+
+[[package]]
+name = "rustix"
+version = "0.37.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0661814f891c57c930a610266415528da53c4933e6dea5fb350cbfe048a9ece"
 dependencies = [
  "bitflags",
  "errno",
@@ -2205,11 +2234,10 @@ dependencies = [
 
 [[package]]
 name = "tracing"
-version = "0.1.37"
+version = "0.1.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce8c33a8d48bd45d624a6e523445fd21ec13d3653cd51f681abf67418f54eb8"
+checksum = "cf9cf6a813d3f40c88b0b6b6f29a5c95c6cdbf97c1f9cc53fb820200f5ad814d"
 dependencies = [
- "cfg-if",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",

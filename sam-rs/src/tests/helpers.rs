@@ -5,7 +5,7 @@ use burn::{
     record::{DebugRecordSettings, Record},
     tensor::{backend::Backend, Tensor},
 };
-use burn_ndarray::NdArrayBackend;
+use burn_tch::TchBackend;
 use serde::{Deserialize, Serialize};
 
 use crate::burn_helpers::TensorSlice;
@@ -17,7 +17,7 @@ pub struct TestFile {
     pub values: HashMap<String, TestValue>,
 }
 
-pub type TestBackend = NdArrayBackend<f32>;
+pub type TestBackend = TchBackend<f32>;
 pub struct Test {
     name: String,
     file: TestFile,

@@ -6,7 +6,7 @@ use burn::{
 };
 use mlp::MLP;
 
-use crate::burn_helpers::ConvTranspose2d;
+use crate::burn_helpers::{ConvTranspose2d, TensorHelpers};
 
 use super::{
     common::{activation::Activation, layer_norm_2d::LayerNorm2d},
@@ -167,7 +167,7 @@ impl<B: Backend> MaskDecoder<B> {
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
         let masks = hyper_in
             .matmul(upscaled_embedding.reshape([b, c, h * w]))
-            .reshape([b, usize::MAX, h, w]);
+            .reshape_max([b, usize::MAX, h, w]);
 
         let iou_pred = self.iou_prediction_head.forward(iou_token_out).unsqueeze();
         return (masks, iou_pred);

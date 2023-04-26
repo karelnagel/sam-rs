@@ -6,7 +6,7 @@ use burn::{
 
 use crate::{
     modeling::common::{activation::Activation, mlp_block::MLPBlock},
-    sam_predictor::Size,
+    sam_predictor::Size, burn_helpers::TensorHelpers,
 };
 
 use super::attention::Attention;
@@ -129,7 +129,7 @@ fn window_partition<B: Backend>(x: Tensor<B, 4>, window_size: usize) -> (Tensor<
     ]);
     let windows = x
         .permute([0, 1, 3, 2, 4, 5])
-        .reshape([usize::MAX, window_size, window_size, c]);
+        .reshape_max([usize::MAX, window_size, window_size, c]);
     (windows, Size(hp, wp))
 }
 
@@ -161,7 +161,7 @@ fn window_unpartition<B: Backend>(
     ]);
     let x = x
         .permute([0, 1, 3, 2, 4, 5])
-        .reshape([b, hp, wp, usize::MAX]);
+        .reshape_max([b, hp, wp, usize::MAX]);
     if hp > h || wp > w {
         x.narrow(1, 0, h).narrow(2, 0, w)
     } else {
