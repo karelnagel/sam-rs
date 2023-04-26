@@ -64,8 +64,3 @@ pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize)
     let slice = random_slice(&shape, seed);
     Tensor::of_slice(slice, shape)
 }
-
-fn load_test(name: &str) {
-    let record = Record::load::<DebugRecordSettings>("./model.json".into()).unwrap();
-    record
-}
