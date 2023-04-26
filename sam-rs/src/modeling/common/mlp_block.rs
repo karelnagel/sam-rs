@@ -27,7 +27,7 @@ pub mod test {
 
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{random_tensor, Test, TestBackend, load_module},
     };
 
     use super::*;
@@ -36,12 +36,13 @@ pub mod test {
     fn test_mlp_block() {
         // New
         let mut mlp_block = MLPBlock::<TestBackend>::new(256, 256, Activation::GELU);
-        let file = Test::open("mlp_block");
-        mlp_block = file.load(mlp_block);
+        mlp_block = load_module("mlp_block", mlp_block);
 
         // Forward
         let input = random_tensor([256, 256], 5);
         let output = mlp_block.forward(input.clone());
+
+        let file = Test::open("mlp_block");
         file.compare("input", input);
         file.compare("output", output);
     }

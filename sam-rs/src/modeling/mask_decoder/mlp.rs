@@ -55,13 +55,13 @@ impl<B: Backend> MLP<B> {
 #[cfg(test)]
 mod test {
 
-    use crate::tests::helpers::{random_tensor, Test, TestBackend};
+    use crate::tests::helpers::{load_module, random_tensor, Test, TestBackend};
 
     #[test]
     fn test_mlp() {
         let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, false);
         let file = Test::open("mlp");
-        mlp = file.load(mlp);
+        mlp = load_module("mlp", mlp);
 
         // Forward
         let input = random_tensor([1, 256], 1);

@@ -42,7 +42,7 @@ impl<B: Backend> PatchEmbed<B> {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     use super::PatchEmbed;
@@ -56,12 +56,12 @@ mod test {
             Some(3),
             Some(320),
         );
-        let file = Test::open("patch_embed");
-        patch_embed = file.load(patch_embed);
+        patch_embed = load_module("patch_embed", patch_embed);
 
         // Forward
         let input = random_tensor([1, 3, 512, 512], 3);
         let output = patch_embed.forward(input.clone());
+        let file = Test::open("patch_embed");
         file.compare("input", input);
         file.compare("output", output);
     }

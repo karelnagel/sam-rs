@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torch import nn
 import uuid
+from segment_anything.build_sam import _build_sam
 
 class Item:
     def __init__(self, key, value, type:str):
@@ -87,3 +88,6 @@ def input_to_file(file_name: str, model: nn.Module):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as json_file:
         json.dump(json_data, json_file, indent=2)
+
+def build_sam_test(checkpoint:str=None):
+    return _build_sam(64,4,4,[2,5,8,11],checkpoint)

@@ -269,13 +269,13 @@ where
 mod test {
 
     use crate::{
-        build_sam::build_sam_vit_b,
+        build_sam::build_sam_test,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
 
     use super::{SamPredictor, Size};
     fn init(with_set_image: bool) -> SamPredictor<TestBackend> {
-        let sam = build_sam_vit_b(None);
+        let sam = build_sam_test(None);
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
             let image = random_tensor([120, 180, 3], 1) * 255;

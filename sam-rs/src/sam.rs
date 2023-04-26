@@ -2,7 +2,7 @@ use burn::module::{Module, Param};
 use burn::tensor::Bool;
 use burn::tensor::{backend::Backend, Tensor};
 
-use crate::burn_helpers::{TensorSlice, TensorHelpers};
+use crate::burn_helpers::{TensorHelpers, TensorSlice};
 use crate::{
     modeling::{
         image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
@@ -56,8 +56,11 @@ where
     ) -> Self {
         let pixel_mean = pixel_mean.unwrap_or(vec![123.675, 116.28, 103.53]);
         let pixel_std = pixel_std.unwrap_or(vec![58.395, 57.12, 57.375]);
-        let pixel_mean =
-            Tensor::of_slice(pixel_mean.to_vec(), [pixel_mean.len()]).reshape_max([usize::MAX, 1, 1]);
+        let pixel_mean = Tensor::of_slice(pixel_mean.to_vec(), [pixel_mean.len()]).reshape_max([
+            usize::MAX,
+            1,
+            1,
+        ]);
         let pixel_std =
             Tensor::of_slice(pixel_std.to_vec(), [pixel_std.len()]).reshape_max([usize::MAX, 1, 1]);
 
@@ -197,7 +200,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        build_sam::build_sam_vit_b,
+        build_sam::build_sam_test,
         sam_predictor::Size,
         tests::helpers::{random_tensor, Test, TestBackend},
     };
@@ -206,19 +209,19 @@ mod test {
 
     #[test]
     fn test_sam_forward() {
-        let mut sam = build_sam_vit_b::<TestBackend>(None);
+        let mut sam = build_sam_test::<TestBackend>(None);
         let input = vec![
             Input {
-                image: random_tensor([3, 171, 128], 1),
+                image: random_tensor([3, 8, 8], 1),
                 boxes: random_tensor([4, 4, 4], 1),
-                original_size: Size(300, 450),
+                original_size: Size(100, 200),
                 mask_inputs: None,
                 points: None,
             },
             Input {
-                image: random_tensor([3, 171, 128], 1),
+                image: random_tensor([3, 8, 8], 1),
                 boxes: random_tensor([4, 4, 4], 1),
-                original_size: Size(133, 200),
+                original_size: Size(50, 80),
                 mask_inputs: None,
                 points: None,
             },
@@ -238,7 +241,7 @@ mod test {
     }
     #[test]
     fn test_sam_postprocess_masks() {
-        let sam = build_sam_vit_b::<TestBackend>(None);
+        let sam = build_sam_test::<TestBackend>(None);
 
         let masks = random_tensor([4, 1, 256, 256], 1);
         let input = Size(684, 1024);
@@ -251,7 +254,7 @@ mod test {
     }
     #[test]
     fn test_sam_preprocess() {
-        let sam = build_sam_vit_b::<TestBackend>(None);
+        let sam = build_sam_test::<TestBackend>(None);
 
         let input = random_tensor([3, 171, 128], 1);
         let output = sam.preprocess(input.clone());

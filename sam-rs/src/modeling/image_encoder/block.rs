@@ -5,8 +5,9 @@ use burn::{
 };
 
 use crate::{
+    burn_helpers::TensorHelpers,
     modeling::common::{activation::Activation, mlp_block::MLPBlock},
-    sam_predictor::Size, burn_helpers::TensorHelpers,
+    sam_predictor::Size,
 };
 
 use super::attention::Attention;
@@ -127,9 +128,9 @@ fn window_partition<B: Backend>(x: Tensor<B, 4>, window_size: usize) -> (Tensor<
         window_size,
         c,
     ]);
-    let windows = x
-        .permute([0, 1, 3, 2, 4, 5])
-        .reshape_max([usize::MAX, window_size, window_size, c]);
+    let windows =
+        x.permute([0, 1, 3, 2, 4, 5])
+            .reshape_max([usize::MAX, window_size, window_size, c]);
     (windows, Size(hp, wp))
 }
 
@@ -175,7 +176,7 @@ mod test {
     use crate::{
         modeling::common::activation::Activation,
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     #[test]
@@ -211,12 +212,12 @@ mod test {
             Some(14),
             Some(Size(64, 64)),
         );
-        let file = Test::open("block");
-        block = file.load(block);
+        block = load_module("block", block);
 
         // Forward
         let input = random_tensor([1, 64, 64, 320], 1);
         let output = block.forward(input.clone());
+        let file = Test::open("block");
         file.compare("input", input);
         file.compare("output", output);
     }

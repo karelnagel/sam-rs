@@ -189,7 +189,7 @@ mod test {
 
     use crate::{
         modeling::{common::activation::Activation, transformer::TwoWayTransformer},
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     #[test]
@@ -199,9 +199,8 @@ mod test {
         let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
         let mut mask_decoder =
             super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
-        let file = Test::open("mask_decoder_predict");
-        mask_decoder = file.load(mask_decoder);
-        
+        mask_decoder = load_module("mask_decoder_predict", mask_decoder);
+
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);
         let image_pe = random_tensor([1, 64, 16, 16], 2);
@@ -214,6 +213,7 @@ mod test {
             dense_prompt_embeddings.clone(),
             true,
         );
+        let file = Test::open("mask_decoder_predict");
         file.compare("image_embedding", image_embedding);
         file.compare("image_pe", image_pe);
         file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
@@ -230,7 +230,7 @@ mod test {
         let mut mask_decoder =
             super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
         let file = Test::open("mask_decoder");
-        mask_decoder = file.load(mask_decoder);
+        mask_decoder = load_module("mask_decoder", mask_decoder);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);

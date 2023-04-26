@@ -83,7 +83,7 @@ mod test {
 
     #[test]
     fn test_attention() {
-        let mut attention = super::Attention::<TestBackend>::new(256, 8, Some(1));
+        let mut attention = super::Attention::<TestBackend>::new(32, 8, Some(1));
         let file = Test::open("transformer_attention");
         file.compare("embedding_dim", attention._embedding_dim);
         file.compare("internal_dim", attention._internal_dim);
@@ -94,9 +94,9 @@ mod test {
         // file.compare("out_proj_size", attention.out_proj.ws.size());
 
         // Forward
-        let q = random_tensor([1, 256, 256], 1);
-        let k = random_tensor([1, 256, 256], 2);
-        let v = random_tensor([1, 256, 256], 3);
+        let q = random_tensor([1, 32, 32], 1);
+        let k = random_tensor([1, 32, 32], 2);
+        let v = random_tensor([1, 32, 32], 3);
         let output = attention.forward(q.clone(), k.clone(), v.clone());
         let file = Test::open("transformer_attention_forward");
         file.compare("q", q);

@@ -35,16 +35,17 @@ impl Test {
     }
     pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
         let file_value = self.file.values.get(key).unwrap().clone();
-        assert_eq!(file_value, &value.into(), "key: '{}'", key);
+        assert_eq!(
+            file_value,
+            &value.into(),
+            "key '{}' failed in '{}' test",
+            key,
+            self.name
+        );
         println!("{}: OK", key);
     }
-    pub fn load<B: Backend, D: Module<B>>(&self, module: D) -> D {
-        let record =
-            Record::load::<DebugRecordSettings>(format!("./test-inputs/{}.json", self.name).into())
-                .unwrap();
-        module.load_record(record)
-    }
 }
+
 fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
     let n = shape.iter().product::<usize>();
     let a = 3_usize;
@@ -63,4 +64,9 @@ fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
 pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize) -> Tensor<B, D> {
     let slice = random_slice(&shape, seed);
     Tensor::of_slice(slice, shape)
+}
+pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
+    let record =
+        Record::load::<DebugRecordSettings>(format!("./test-inputs/{}.json", name).into()).unwrap();
+    module.load_record(record)
 }

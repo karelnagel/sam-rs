@@ -164,12 +164,12 @@ mod test {
     #[test]
     fn test_image_encoder() {
         let act = Activation::GELU;
-        let img_size = 128;
+        let img_size = 32;
         let image_encoder = ImageEncoderViT::<TestBackend>::new(
             Some(img_size),
             Some(4),
             Some(3),
-            Some(320),
+            Some(80),
             Some(32),
             Some(16),
             Some(4.0),

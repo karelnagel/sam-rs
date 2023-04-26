@@ -183,7 +183,7 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
 pub mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     #[test]
@@ -231,12 +231,12 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        let file = Test::open("attention");
-        attention = file.load(attention);
+        attention = load_module("attention", attention);
 
         // Forward
         let input = random_tensor([25, 14, 14, 320], 1);
         let output = attention.forward(input.clone());
+        let file = Test::open("attention");
         file.compare("input", input);
         file.compare("output", output);
     }

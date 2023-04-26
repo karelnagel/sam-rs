@@ -28,6 +28,14 @@ where
     _build_sam(768, 12, 12, vec![2, 5, 8, 11], checkpoint)
 }
 
+#[cfg(test)]
+pub fn build_sam_test<B: Backend>(checkpoint: Option<&str>) -> Sam<B>
+where
+    <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
+{
+    _build_sam(64, 4, 4, vec![2, 5, 8, 11], checkpoint)
+}
+
 fn _build_sam<B: Backend>(
     encoder_embed_dim: usize,
     encoder_depth: usize,
