@@ -23,13 +23,13 @@ impl<B: Backend> LayerNorm2d<B> {
             eps,
         }
     }
-    pub fn forward<const D: usize>(&self, x: Tensor<B, D>) -> Tensor<B, D> {
+    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let u = x.clone().mean_dim(1);
         let s = (x.clone() - u.clone()).powf(2.0).mean_dim(1);
         let x = (x - u) / (s + self.eps).sqrt();
 
-        let ws: Tensor<B, D> = self.weight.val().unsqueeze().swap_dims(D-1, 1);
-        let bias: Tensor<B, D> = self.bias.val().unsqueeze().swap_dims(D-1, 1);
+        let ws: Tensor<B, 4> = self.weight.val().unsqueeze().swap_dims(4-1, 1);
+        let bias: Tensor<B, 4> = self.bias.val().unsqueeze().swap_dims(4-1, 1);
         ws.mul(x).add(bias)
     }
 }

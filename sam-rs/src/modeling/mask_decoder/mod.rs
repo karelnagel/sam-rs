@@ -6,10 +6,14 @@ use burn::{
 };
 use mlp::MLP;
 
-use crate::burn_helpers::{ConvTranspose2d, TensorHelpers};
+use crate::burn_helpers::TensorHelpers;
 
 use super::{
-    common::{activation::Activation, layer_norm_2d::LayerNorm2d},
+    common::{
+        activation::Activation,
+        conv_transpose_2d::{ConvTranspose2d, ConvTranspose2dConfig},
+        layer_norm_2d::LayerNorm2d,
+    },
     transformer::TwoWayTransformer,
 };
 
@@ -43,10 +47,14 @@ impl<B: Backend> MaskDecoder<B> {
 
         let mask_tokens = EmbeddingConfig::new(num_mask_tokens, transformer_dim).init();
 
-        let seq1 = ConvTranspose2d::new(transformer_dim, transformer_dim / 4, 2, 2);
+        let seq1 = ConvTranspose2dConfig::new(transformer_dim, transformer_dim / 4, [2, 2])
+            .set_stride([2, 2])
+            .init();
         let seq2 = LayerNorm2d::new(transformer_dim / 4, None);
         let seq3 = activation;
-        let seq4 = ConvTranspose2d::new(transformer_dim / 4, transformer_dim / 8, 2, 2);
+        let seq4 = ConvTranspose2dConfig::new(transformer_dim / 4, transformer_dim / 8, [2, 2])
+            .set_stride([2, 2])
+            .init();
         let seq5 = activation;
 
         let mut output_hypernetworks_mlps = Vec::new();
@@ -173,7 +181,7 @@ impl<B: Backend> MaskDecoder<B> {
         return (masks, iou_pred);
     }
 
-    fn output_upscaling<const D: usize>(&self, x: Tensor<B, D>) -> Tensor<B, D> {
+    fn output_upscaling(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut x = x;
         x = self.seq1.forward(x);
         x = self.seq2.forward(x);

@@ -1821,6 +1821,7 @@ dependencies = [
  "opencv",
  "serde",
  "serde_json",
+ "tch",
  "tracing",
  "tracing-subscriber",
 ]

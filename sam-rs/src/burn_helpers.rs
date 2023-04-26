@@ -3,29 +3,6 @@ use burn::{
     tensor::{backend::Backend, BasicOps, Bool, Data, ElementConversion, Int, Shape, Tensor},
 };
 
-#[derive(Debug, Module)]
-pub struct ConvTranspose2d<B: Backend> {
-    pub in_channels: usize,
-    pub out_channels: usize,
-    pub kernel_size: usize,
-    pub stride: usize,
-    idk: Param<Tensor<B, 2>>, //Just added to use generic B
-}
-impl<B: Backend> ConvTranspose2d<B> {
-    pub fn new(in_channels: usize, out_channels: usize, kernel_size: usize, stride: usize) -> Self {
-        Self {
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            idk: Tensor::zeros([1, 1]).into(),
-        }
-    }
-    pub fn forward<const D2: usize>(&self, x: Tensor<B, D2>) -> Tensor<B, D2> {
-        unimplemented!()
-    }
-}
-
 pub trait TensorSlice<const D: usize, E> {
     fn of_slice<E2: Into<E>>(slice: Vec<E2>, shape: [usize; D]) -> Self;
     fn to_slice(&self) -> (Vec<E>, [usize; D]);

@@ -46,7 +46,7 @@ impl Test {
     }
 }
 
-fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
+pub fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
     let n = shape.iter().product::<usize>();
     let a = 3_usize;
     let c = 23_usize;
