@@ -121,8 +121,8 @@ impl<B: Backend> MaskDecoder<B> {
 
         if multimask_output {
             (
-                masks.narrow(1, 1, masks.shape().dims[1] - 1),
-                iou_pred.narrow(1, 1, iou_pred.shape().dims[1] - 1),
+                masks.narrow(1, 1, masks.dims()[1] - 1),
+                iou_pred.narrow(1, 1, iou_pred.dims()[1] - 1),
             )
         } else {
             (masks.narrow(1, 0, 1), iou_pred.narrow(1, 0, 1))
@@ -141,20 +141,16 @@ impl<B: Backend> MaskDecoder<B> {
         let ws2 = self.mask_tokens.clone().into_record().weight.val();
         let output_tokens = Tensor::cat(vec![ws1, ws2], 0);
         let output_tokens = output_tokens.unsqueeze().expand(
-            vec![
-                sparse_prompt_embeddings.shape().dims[0],
-                usize::MAX,
-                usize::MAX,
-            ],
+            vec![sparse_prompt_embeddings.dims()[0], usize::MAX, usize::MAX],
             false,
         );
         let tokens = Tensor::cat(vec![output_tokens, sparse_prompt_embeddings], 1);
 
-        let src = image_embeddings//.repeat_interleave_self_int(tokens.shape().dims[0], 0, None)
+        let src = image_embeddings//.repeat_interleave_self_int(tokens.dims()[0], 0, None)
             + dense_prompt_embeddings;
-        let pos_src = image_pe; //.repeat_interleave_self_int(tokens.shape().dims[0], 0, None);
+        let pos_src = image_pe; //.repeat_interleave_self_int(tokens.dims()[0], 0, None);
 
-        let shape = src.shape().dims;
+        let shape = src.dims();
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
         let (hs, src) = self.transformer.forward(src, pos_src, tokens);
         let iou_token_out = hs.narrow(1, 0, 1);
@@ -171,7 +167,7 @@ impl<B: Backend> MaskDecoder<B> {
         }
         let hyper_in = Tensor::stack(hyper_in_list, 1);
 
-        let shape = upscaled_embedding.shape().dims;
+        let shape = upscaled_embedding.dims();
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
         let masks = hyper_in
             .matmul(upscaled_embedding.reshape([b, c, h * w]))

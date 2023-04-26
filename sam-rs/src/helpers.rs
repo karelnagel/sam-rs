@@ -15,7 +15,7 @@ pub fn load_image<B: Backend>(image_path: &str) -> (Tensor<B, 3>, Size) {
     let slice: Vec<f32> = vec![];
     let shape = [arr.shape()[0], arr.shape()[1], arr.shape()[2]];
     let image = Tensor::of_slice(slice, shape);
-    let size = Size(image.shape().dims[0], image.shape().dims[1]);
+    let size = Size(image.dims()[0], image.dims()[1]);
     (image, size)
 }
 

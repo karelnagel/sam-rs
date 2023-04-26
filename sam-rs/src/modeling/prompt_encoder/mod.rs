@@ -2,7 +2,7 @@ mod positional_embedding;
 
 use self::positional_embedding::PositionEmbeddingRandom;
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::{sam_predictor::Size, burn_helpers::TensorHelpers};
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 use burn::{
     module::Module,
     nn::{
@@ -107,8 +107,8 @@ where
         let mut points = points + 0.5; // Shift to center of pixel
         let mut labels = labels;
         if pad {
-            let padding_point = Tensor::zeros([points.shape().dims[0], 1, 2]);
-            let padding_label = -Tensor::ones([labels.shape().dims[0], 1]);
+            let padding_point = Tensor::zeros([points.dims()[0], 1, 2]);
+            let padding_label = -Tensor::ones([labels.dims()[0], 1]);
             points = Tensor::cat(vec![points, padding_point], 1);
             labels = Tensor::cat(vec![labels, padding_label], 1);
         }
@@ -212,11 +212,11 @@ where
         masks: Option<Tensor<B, 4>>,
     ) -> usize {
         if let Some((point, _)) = points {
-            return point.shape().dims[0];
+            return point.dims()[0];
         } else if let Some(boxes) = boxes {
-            return boxes.shape().dims[0];
+            return boxes.dims()[0];
         } else if let Some(masks) = masks {
-            return masks.shape().dims[0];
+            return masks.dims()[0];
         } else {
             return 1;
         }

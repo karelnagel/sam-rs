@@ -72,7 +72,7 @@ where
 
         let input_image = self.transfrom.apply_image(image.clone());
         let input_image = input_image.permute([2, 0, 1]).unsqueeze();
-        let shape = image.shape().dims;
+        let shape = image.dims();
         self.set_torch_image(input_image, Size(shape[0], shape[1]));
     }
 
@@ -85,7 +85,7 @@ where
     ///   original_image_size (tuple(int, int)): The size of the image
     ///     before transformation, in (H, W) format.
     pub fn set_torch_image(&mut self, transformed_image: Tensor<B, 4>, original_size: Size) {
-        let shape = transformed_image.shape().dims;
+        let shape = transformed_image.dims();
         assert!(
             shape.len() == 4
                 && shape[1] == 3

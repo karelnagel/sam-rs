@@ -142,7 +142,7 @@ where
                 dense_embeddings,
                 multimask_output,
             );
-            let size = image_record.image.shape().dims;
+            let size = image_record.image.dims();
             let masks = self.postprocess_masks(
                 low_res_masks.clone(),
                 Size(size[size.len() - 2], size[size.len() - 1]),
@@ -187,7 +187,7 @@ where
     /// Normalize pixel values and pad to a square input.
     pub fn preprocess(&self, x: Tensor<B, 3>) -> Tensor<B, 3> {
         let x = (x - self.pixel_mean.val()) / self.pixel_std.val();
-        let size = x.shape().dims;
+        let size = x.dims();
         let (h, w) = (size[1], size[2]);
 
         let padh = self.image_encoder.img_size - h;

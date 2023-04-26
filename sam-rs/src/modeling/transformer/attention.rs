@@ -37,7 +37,7 @@ impl<B: Backend> Attention<B> {
     }
 
     fn _separate_heads(&self, x: Tensor<B, 3>, num_heads: usize) -> Tensor<B, 4> {
-        let shape = x.shape().dims;
+        let shape = x.dims();
         let (b, n, c) = (shape[0], shape[1], shape[2]);
         let x = x.reshape([b, n, num_heads, c / num_heads]);
         // x.transpose(1, 2)
@@ -45,7 +45,7 @@ impl<B: Backend> Attention<B> {
     }
 
     fn _recombine_heads(&self, x: Tensor<B, 4>) -> Tensor<B, 3> {
-        let shape = x.shape().dims;
+        let shape = x.dims();
         let (b, n_heads, n_tokens, c_per_head) = (shape[0], shape[1], shape[2], shape[3]);
         x.transpose()
             // x.transpose(1, 2)
@@ -64,7 +64,7 @@ impl<B: Backend> Attention<B> {
         let v = self._separate_heads(v, self.num_heads);
 
         // # Attention
-        let c_per_head = q.shape().dims[3];
+        let c_per_head = q.dims()[3];
         let mut attn = q.matmul(k.transpose());
         // let mut attn = q.matmul(&k.transpose(2, 3)); // B x N_heads x N_tokens x N_tokens
         attn = attn / (c_per_head as f64).sqrt();

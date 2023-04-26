@@ -81,7 +81,7 @@ impl<B: Backend> Block<B> {
         let mut x = self.norm1.forward(x);
         let mut pad_hw = None;
         // Window partition
-        let shape = x.shape().dims;
+        let shape = x.dims();
         let size = Size(shape[1], shape[2]);
         if self.window_size > 0 {
             let (res, size) = window_partition(x, self.window_size);
@@ -109,7 +109,7 @@ impl<B: Backend> Block<B> {
 //     windows: windows after partition with [B * num_windows, window_size, window_size, C].
 //     (Hp, Wp): padded height and width before partition
 fn window_partition<B: Backend>(x: Tensor<B, 4>, window_size: usize) -> (Tensor<B, 4>, Size) {
-    let shape = x.shape().dims;
+    let shape = x.dims();
     let (b, h, w, c) = (shape[0], shape[1], shape[2], shape[3]);
 
     let pad_h = (window_size - h % window_size) % window_size;
@@ -151,7 +151,7 @@ fn window_unpartition<B: Backend>(
 ) -> Tensor<B, 4> {
     let Size(hp, wp) = pad_hw;
     let Size(h, w) = hw;
-    let b = windows.shape().dims[0] / (hp * wp / window_size / window_size);
+    let b = windows.dims()[0] / (hp * wp / window_size / window_size);
     let x = windows.reshape([
         b,
         hp / window_size,

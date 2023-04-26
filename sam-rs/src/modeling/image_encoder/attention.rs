@@ -72,7 +72,7 @@ impl<B: Backend> Attention<B> {
         }
     }
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
-        let shape = x.shape().dims;
+        let shape = x.dims();
         let (b, h, w) = (shape[0], shape[1], shape[2]);
         let qkv = self
             .qkv
@@ -132,7 +132,7 @@ fn add_decomposed_rel_pos<B: Backend>(
     let rh = get_rel_pos(q_h, k_h, rel_pos_h);
     let rw = get_rel_pos(q_w, k_w, rel_pos_w);
 
-    let shape = q.shape().dims;
+    let shape = q.dims();
     let (b, dim) = (shape[0], shape[2]);
     let r_q = q.reshape([b, q_h, q_w, dim]);
 
@@ -157,7 +157,7 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
     let max_rel_dist = 2 * q_size.max(k_size) - 1;
     let mut rel_pos_resized = rel_pos;
 
-    let dim = rel_pos_resized.shape().dims[0];
+    let dim = rel_pos_resized.dims()[0];
     if dim != max_rel_dist {
         rel_pos_resized = rel_pos_resized
             .reshape_max([1, dim, usize::MAX])

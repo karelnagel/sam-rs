@@ -1,7 +1,10 @@
 use burn::tensor::{backend::Backend, Tensor};
 use image::{imageops::FilterType, ImageBuffer};
 
-use crate::{burn_helpers::{TensorSlice, TensorHelpers}, sam_predictor::Size};
+use crate::{
+    burn_helpers::{TensorHelpers, TensorSlice},
+    sam_predictor::Size,
+};
 
 /// Resizes images to the longest side 'target_length', as well as provides
 ///  methods for resizing coordinates and boxes. Provides methods for
@@ -30,7 +33,7 @@ impl ResizeLongestSide {
         //     image.kind() == tch::Kind::Uint8,
         //     "Image must be uint8 format"
         // );
-        let shape = image.shape().dims;
+        let shape = image.dims();
         let target_size = self.get_preprocess_shape(shape[0], shape[1], self.target_length);
         return Self::resize(image, target_size);
     }
@@ -65,7 +68,7 @@ impl ResizeLongestSide {
     // the transformation expected by the model.
     //  Expects an image in BCHW format. May not exactly match apply_image.
     pub fn apply_image_torch<B: Backend>(&self, image: Tensor<B, 4>) -> Tensor<B, 4> {
-        let shape = image.shape().dims;
+        let shape = image.dims();
         let (h, w) = (shape[2], shape[3]);
         let target_size = self.get_preprocess_shape(h, w, self.target_length);
         image.upsample_bilinear2d(vec![target_size.0, target_size.1], false, None, None)
