@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Bool, Tensor};
+use burn::tensor::{backend::Backend, Bool, Int, Tensor};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -27,6 +27,7 @@ impl<T: std::fmt::Debug + Clone> std::fmt::Debug for TestTensor<T> {
 pub enum TestValue {
     TensorFloat(TestTensor<f32>),
     TensorBool(TestTensor<bool>),
+    TensorInt(TestTensor<i32>),
     Float(f64),
     Int(i64),
     String(String),
@@ -49,6 +50,15 @@ impl<B: Backend, const D: usize> From<Tensor<B, D, Bool>> for TestValue {
     fn from(tensor: Tensor<B, D, Bool>) -> Self {
         let (values, shape) = tensor.to_slice();
         TestValue::TensorBool(TestTensor {
+            size: shape.to_vec(),
+            values,
+        })
+    }
+}
+impl<B: Backend, const D: usize> From<Tensor<B, D, Int>> for TestValue {
+    fn from(tensor: Tensor<B, D, Int>) -> Self {
+        let (values, shape) = tensor.to_slice();
+        TestValue::TensorInt(TestTensor {
             size: shape.to_vec(),
             values,
         })

@@ -26,9 +26,10 @@ impl Test {
     pub fn open(name: &str) -> Self {
         let home = home::home_dir().unwrap();
         let path = home.join(format!("Documents/test-outputs/{}.json", name));
-        let file = std::fs::File::open(path).expect(format!("file {} not found", name).as_str());
+        let file = std::fs::File::open(&path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
-        let file = serde_json::from_reader(reader).unwrap();
+        let file =
+            serde_json::from_reader(reader).expect(format!("file {:?} not valid", path).as_str());
         Self {
             file,
             name: name.into(),
