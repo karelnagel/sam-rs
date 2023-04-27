@@ -1,7 +1,7 @@
 use burn::{
     module::{Module, Param},
     nn::{Initializer, Linear, LinearConfig},
-    tensor::{activation::softmax, backend::Backend, Int, Tensor},
+    tensor::{activation::softmax, backend::Backend, Tensor},
 };
 
 use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
@@ -136,11 +136,11 @@ fn add_decomposed_rel_pos<B: Backend>(
     let (b, dim) = (shape[0], shape[2]);
     let r_q = q.reshape([b, q_h, q_w, dim]);
 
-    // let rel_h = Tensor::einsum("bhwc,hkc->bhwk", &[&r_q, &rh], None);
-    // let rel_w = Tensor::einsum("bhwc,wkc->bhwk", &[&r_q, &rw], None);
-    let rel_h = Tensor::zeros([2, 2, 2]);
-    let rel_w = Tensor::zeros([2, 2, 2]);
-    let attn = attn.reshape([b, q_h, q_w, k_h, k_w]) + rel_h.unsqueeze() + rel_w.unsqueeze();
+    let rel_h: Tensor<B, 4> = Tensor::einsum("bhwc,hkc->bhwk", r_q.clone(), rh);
+    let rel_w: Tensor<B, 4> = Tensor::einsum("bhwc,wkc->bhwk", r_q, rw);
+    dbg!(&rel_h.shape());
+    dbg!(&rel_w.shape());
+    let attn = attn.reshape([b, q_h, q_w, k_h, k_w]) + rel_h.unsqueeze().permute([1,2,3,4,0]) + rel_w.unsqueeze().permute([1,2,3,0,4]);
     attn.reshape([b, q_h * q_w, k_h * k_w])
 }
 
@@ -153,7 +153,7 @@ fn add_decomposed_rel_pos<B: Backend>(
 
 // Returns:
 // Extracted positional embeddings according to relative positions.
-fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) -> Tensor<B, 2> {
+fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) -> Tensor<B, 3> {
     let max_rel_dist = 2 * q_size.max(k_size) - 1;
     let mut rel_pos_resized = rel_pos;
 
@@ -175,7 +175,7 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
         .mul_scalar((q_size as f64 / k_size as f64).max(1.0));
     let relative_coords =
         (q_coords - k_coords) + (k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0);
-    let idk = rel_pos_resized.index_select(relative_coords * 0.69); // Todo 40 out of range
+    let idk = rel_pos_resized.index_tch(vec![relative_coords]); // Todo 40 out of range
     idk
 }
 
