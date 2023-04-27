@@ -177,7 +177,7 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
         (q_coords - k_coords) + (k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0);
     dbg!(relative_coords.dims());
     dbg!(rel_pos_resized.dims());
-    let idk = rel_pos_resized.index_select(relative_coords);
+    let idk = rel_pos_resized.index_select(relative_coords);// Todo 40 out of range
     idk
 }
 
