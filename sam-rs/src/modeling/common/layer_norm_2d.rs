@@ -28,8 +28,8 @@ impl<B: Backend> LayerNorm2d<B> {
         let s = (x.clone() - u.clone()).powf(2.0).mean_dim(1);
         let x = (x - u) / (s + self.eps).sqrt();
 
-        let ws: Tensor<B, 4> = self.weight.val().unsqueeze().swap_dims(4-1, 1);
-        let bias: Tensor<B, 4> = self.bias.val().unsqueeze().swap_dims(4-1, 1);
+        let ws: Tensor<B, 4> = self.weight.val().unsqueeze().swap_dims(4 - 1, 1);
+        let bias: Tensor<B, 4> = self.bias.val().unsqueeze().swap_dims(4 - 1, 1);
         ws.mul(x).add(bias)
     }
 }

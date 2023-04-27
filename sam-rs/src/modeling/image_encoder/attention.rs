@@ -41,13 +41,7 @@ impl<B: Backend> Attention<B> {
 
         let head_dim = dim / num_heads;
         let scale = (head_dim as f64).powf(-0.5);
-        let qkv = LinearConfig {
-            d_input: dim,
-            d_output: dim * 3,
-            bias: qkv_bias,
-            initializer: Initializer::UniformDefault,
-        }
-        .init();
+        let qkv = LinearConfig::new(dim, 3 * dim).with_bias(qkv_bias).init();
         let proj = LinearConfig::new(dim, dim).init();
         let mut rel_pos_h = None;
         let mut rel_pos_w = None;
@@ -74,6 +68,7 @@ impl<B: Backend> Attention<B> {
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let shape = x.dims();
         let (b, h, w) = (shape[0], shape[1], shape[2]);
+
         let qkv = self
             .qkv
             .forward(x)
@@ -140,7 +135,9 @@ fn add_decomposed_rel_pos<B: Backend>(
     let rel_w: Tensor<B, 4> = Tensor::einsum("bhwc,wkc->bhwk", r_q, rw);
     dbg!(&rel_h.shape());
     dbg!(&rel_w.shape());
-    let attn = attn.reshape([b, q_h, q_w, k_h, k_w]) + rel_h.unsqueeze().permute([1,2,3,4,0]) + rel_w.unsqueeze().permute([1,2,3,0,4]);
+    let attn = attn.reshape([b, q_h, q_w, k_h, k_w])
+        + rel_h.unsqueeze().permute([1, 2, 3, 4, 0])
+        + rel_w.unsqueeze().permute([1, 2, 3, 0, 4]);
     attn.reshape([b, q_h * q_w, k_h * k_w])
 }
 

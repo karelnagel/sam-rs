@@ -69,7 +69,7 @@ def input_to_file(file_name: str, model: nn.Module):
             "version": "0.6.0",
             "settings": "DebugRecordSettings"
         },
-        "item": {"act": None}
+        "item": {"act": None,"num_heads":None,"scale":None,"use_rel_pos":None}
     }
     for name, param in model.named_parameters():
         keys = name.split('.')
