@@ -24,7 +24,8 @@ pub struct Test {
 }
 impl Test {
     pub fn open(name: &str) -> Self {
-        let path = format!("./test-outputs/{}.json", name);
+        let home = home::home_dir().unwrap();
+        let path = home.join(format!("Documents/test-outputs/{}.json", name));
         let file = std::fs::File::open(path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
         let file = serde_json::from_reader(reader).unwrap();
@@ -66,7 +67,9 @@ pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize)
     Tensor::of_slice(slice, shape)
 }
 pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
-    let record =
-        Record::load::<DebugRecordSettings>(format!("./test-inputs/{}.json", name).into()).unwrap();
+    let home = home::home_dir().unwrap();
+    let path = home.join(format!("Documents/test-inputs/{}.json", name));
+    dbg!(&path);
+    let record = Record::load::<DebugRecordSettings>(path).unwrap();
     module.load_record(record)
 }

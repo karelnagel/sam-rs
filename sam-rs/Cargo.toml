@@ -7,10 +7,11 @@ edition = "2021"
 burn = { path = "../../burn/burn" }
 burn-ndarray = { path = "../../burn/burn-ndarray" }
 burn-tch = { path = "../../burn/burn-tch" }
+home = "0.5.5"
 image = "0.24.6"
 md-5 = "0.10.5"
 ndarray = "0.15.6"
-onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
+# onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
 opencv = "0.78.2"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"

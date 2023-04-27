@@ -1,5 +1,5 @@
 use burn::tensor::{backend::Backend, Tensor};
-use onnxruntime::{environment::Environment, session::Session, GraphOptimizationLevel};
+// use onnxruntime::{environment::Environment, session::Session, GraphOptimizationLevel};
 use opencv::{
     imgcodecs, imgproc,
     prelude::{Mat, MatTraitConstManual},
@@ -19,21 +19,21 @@ pub fn load_image<B: Backend>(image_path: &str) -> (Tensor<B, 3>, Size) {
     (image, size)
 }
 
-pub fn get_ort_env() -> Environment {
-    Environment::builder().build().unwrap()
-}
-pub fn get_ort_session<'a>(pth: &'a str, env: &'a Environment) -> Session<'a> {
-    let session: Session = env
-        .new_session_builder()
-        .unwrap()
-        .with_optimization_level(GraphOptimizationLevel::Basic)
-        .unwrap()
-        .with_number_threads(1)
-        .unwrap()
-        .with_model_from_file(pth)
-        .unwrap();
-    session
-}
+// pub fn get_ort_env() -> Environment {
+//     Environment::builder().build().unwrap()
+// }
+// pub fn get_ort_session<'a>(pth: &'a str, env: &'a Environment) -> Session<'a> {
+//     let session: Session = env
+//         .new_session_builder()
+//         .unwrap()
+//         .with_optimization_level(GraphOptimizationLevel::Basic)
+//         .unwrap()
+//         .with_number_threads(1)
+//         .unwrap()
+//         .with_model_from_file(pth)
+//         .unwrap();
+//     session
+// }
 // pub struct OnnxInput<B: Backend> {
 //     image_embedding: Tensor<B, 4>,
 //     coord: Tensor<B, 2>,

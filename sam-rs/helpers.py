@@ -24,7 +24,8 @@ class Item:
 
 
 def output_to_file(name:str,items:list):
-    path = "test-outputs/"+name+".json"
+    path = "~/Documents/test-outputs/"+name+".json"
+    path = os.path.expanduser(path)
     values = {}
     for item in items:
         values.update(item.to_dict())
@@ -84,7 +85,8 @@ def input_to_file(file_name: str, model: nn.Module):
         }
         set_nested_key(json_data["item"], keys, param_data)
     
-    path = "test-inputs/" + file_name + '.json'
+    path = "~/Documents/test-inputs/" + file_name + '.json'
+    path = os.path.expanduser(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as json_file:
         json.dump(json_data, json_file, indent=2)
