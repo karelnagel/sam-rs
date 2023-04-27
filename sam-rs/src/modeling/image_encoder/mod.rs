@@ -2,7 +2,7 @@ use self::block::Block;
 use self::patch_embed::PatchEmbed;
 
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::sam_predictor::Size;
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 use burn::{
     module::{Module, Param},
     nn::conv::{Conv2d, Conv2dConfig},

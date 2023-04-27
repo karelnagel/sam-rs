@@ -6,6 +6,8 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
+use crate::burn_helpers::TensorHelpers;
+
 use self::{attention::Attention, two_way_attention::TwoWayAttentionBlock};
 
 use super::common::activation::Activation;

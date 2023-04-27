@@ -3,6 +3,7 @@ use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Tensor};
 use serde::{Deserialize, Serialize};
 
+use crate::burn_helpers::TensorHelpers;
 use crate::sam::Sam;
 use crate::utils::transforms::ResizeLongestSide;
 

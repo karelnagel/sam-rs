@@ -3,7 +3,7 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::sam_predictor::Size;
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 
 /// Positional encoding using random spatial frequencies.
 #[derive(Debug, Module)]

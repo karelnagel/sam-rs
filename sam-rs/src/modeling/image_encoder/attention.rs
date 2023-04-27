@@ -163,18 +163,20 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
             .reshape_max([1, dim, usize::MAX])
             .permute([0, 2, 1])
             .upsample_linear1d::<3>(&[max_rel_dist], false, None)
-            // .squeeze_dim(0)
             .reshape_max([usize::MAX, max_rel_dist])
-            .permute([1, 0])
+            .permute([1, 0]);
     }
     let q_coords = Tensor::arange(0..q_size)
         .unsqueeze()
-        .mul_scalar((k_size as f64 / q_size as f64).max(1.0));
+        .mul_scalar((k_size as f64 / q_size as f64).max(1.0))
+        .permute([1, 0]);
     let k_coords = Tensor::arange(0..k_size)
         .unsqueeze()
         .mul_scalar((q_size as f64 / k_size as f64).max(1.0));
-    let relative_coords = q_coords
-        .sub(k_coords.add_scalar((k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0)));
+    let relative_coords =
+        (q_coords - k_coords) + (k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0);
+    dbg!(relative_coords.dims());
+    dbg!(rel_pos_resized.dims());
     let idk = rel_pos_resized.index_select(relative_coords);
     idk
 }
