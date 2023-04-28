@@ -2,6 +2,7 @@ use crate::sam_predictor::Size;
 use burn::module::Module;
 use burn::nn::conv::Conv2d;
 use burn::nn::conv::Conv2dConfig;
+use burn::nn::conv::Conv2dPaddingConfig;
 use burn::tensor::backend::Backend;
 use burn::tensor::Tensor;
 
@@ -29,7 +30,10 @@ impl<B: Backend> PatchEmbed<B> {
         let padding = padding.unwrap_or(Size(0, 0));
         let in_chans = in_chans.unwrap_or(3);
         let embed_dim = embed_dim.unwrap_or(768);
-        let proj = Conv2dConfig::new([in_chans, embed_dim], [kernel_size.0, kernel_size.0]).init();
+        let proj = Conv2dConfig::new([in_chans, embed_dim], [kernel_size.0, kernel_size.1])
+            .with_stride([stride.0, stride.1])
+            .with_padding(Conv2dPaddingConfig::Explicit(padding.0, padding.1))
+            .init();
         Self { proj: proj.into() }
     }
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
@@ -56,7 +60,7 @@ mod test {
             Some(3),
             Some(320),
         );
-        patch_embed = load_module("patch_embed", patch_embed);
+        // patch_embed = load_module("patch_embed", patch_embed);
 
         // Forward
         let input = random_tensor([1, 3, 512, 512], 3);
