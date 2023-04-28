@@ -75,7 +75,7 @@ where
             Size(image_embedding_size, image_embedding_size),
             Size(img_size, img_size),
             16,
-            activation,
+            Some(activation),
         ),
         MaskDecoder::new(
             prompt_embed_dim,

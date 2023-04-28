@@ -19,8 +19,6 @@ pub struct PromptEncoder<B: Backend> {
     image_embedding_size: Size,
     pe_layer: PositionEmbeddingRandom<B>,
     point_embeddings: Vec<Embedding<B>>,
-    _num_point_embeddings: usize,
-    _mask_input_size: Size,
     no_mask_embed: Embedding<B>,
     not_a_point_embed: Embedding<B>,
     seq1: Conv2d<B>,
@@ -52,8 +50,10 @@ where
         image_embedding_size: Size,
         input_image_size: Size,
         mask_in_chans: usize,
-        activation: Activation,
+        activation: Option<Activation>,
     ) -> Self {
+        let activation = activation.unwrap_or(Activation::GELU);
+
         let pe_layer = PositionEmbeddingRandom::new(Some(embed_dim / 2), None);
         let num_point_embeddings: usize = 4; // pos/neg point + 2 box corners
 
@@ -64,24 +64,28 @@ where
         }
         let not_a_point_embed = EmbeddingConfig::new(1, embed_dim).init();
         let mask_input_size = Size(4 * image_embedding_size.0, 4 * image_embedding_size.1);
-        let seq1 = Conv2dConfig::new([1, mask_in_chans / 3], [2, 2]).init();
+
+        let seq1 = Conv2dConfig::new([1, mask_in_chans / 3], [2, 2])
+            .with_stride([2, 2])
+            .init();
         let seq2 = LayerNorm2d::new(mask_in_chans / 4, None);
         let seq3 = activation;
-        let seq4 = Conv2dConfig::new([mask_in_chans / 4, mask_in_chans], [2, 2]).init();
+        let seq4 = Conv2dConfig::new([mask_in_chans / 4, mask_in_chans], [2, 2])
+            .with_stride([2, 2])
+            .init();
         let seq5 = LayerNorm2d::new(mask_in_chans, None);
         let seq6 = activation;
         let seq7 = Conv2dConfig::new([mask_in_chans, embed_dim], [1, 1]).init();
+
         let no_mask_embed = EmbeddingConfig::new(1, embed_dim).init();
         Self {
             embed_dim,
             input_image_size,
             image_embedding_size,
-            pe_layer: pe_layer.into(),
-            point_embeddings: point_embeddings.into(),
-            _num_point_embeddings: num_point_embeddings,
-            _mask_input_size: mask_input_size,
-            no_mask_embed: no_mask_embed.into(),
-            not_a_point_embed: not_a_point_embed.into(),
+            pe_layer,
+            point_embeddings,
+            no_mask_embed,
+            not_a_point_embed,
             seq1,
             seq2,
             seq3,
@@ -123,32 +127,32 @@ where
         point_embedding = point_embedding.zeros_like();
         // .where_self(mask_minus_one.clone().unsqueeze(), point_embedding);
 
-        point_embedding = (point_embedding.clone()
+        point_embedding = point_embedding.clone()
             + self
                 .not_a_point_embed
                 .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze());
+                .unsqueeze();
         // .where_self(mask_minus_one.unsqueeze(), point_embedding);
 
-        point_embedding = (point_embedding.clone()
+        point_embedding = point_embedding.clone()
             + self.point_embeddings[0]
                 .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze());
+                .unsqueeze();
         // .where_self(mask_zero.unsqueeze(), point_embedding);
 
-        point_embedding = (point_embedding.clone()
+        point_embedding = point_embedding.clone()
             + self.point_embeddings[1]
                 .clone()
                 .into_record()
                 .weight
                 .val()
-                .unsqueeze());
+                .unsqueeze();
         // .where_self(mask_one.unsqueeze(), point_embedding);
         point_embedding
     }
@@ -267,7 +271,7 @@ where
                         self.image_embedding_size.0,
                         self.image_embedding_size.1,
                     ],
-                    true,
+                    false,
                 ),
         };
         (sparse_embeddings, dense_embeddings)
@@ -280,7 +284,7 @@ mod test {
     use crate::{
         modeling::common::activation::Activation,
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     use super::PromptEncoder;
@@ -288,19 +292,15 @@ mod test {
     const EMBED_DIM: usize = 128;
 
     fn _init() -> PromptEncoder<TestBackend> {
-        let act = Activation::GELU;
-        PromptEncoder::new(EMBED_DIM, Size(32, 32), Size(512, 512), MASK_IN_CHANS, act)
-    }
-    #[test]
-    fn test_prompt_encoder_new() {
-        let prompt_encoder = _init();
-
-        let file = Test::open("prompt_encoder");
-        file.compare("embed_dim", prompt_encoder.embed_dim);
-        file.compare("input_image_size", prompt_encoder.input_image_size);
-        file.compare("image_embedding_size", prompt_encoder.image_embedding_size);
-        file.compare("num_point_embeddings", prompt_encoder._num_point_embeddings);
-        file.compare("mask_input_size", prompt_encoder._mask_input_size);
+        let mut prompt_encoder = PromptEncoder::new(
+            EMBED_DIM,
+            Size(32, 32),
+            Size(512, 512),
+            MASK_IN_CHANS,
+            Some(Activation::GELU),
+        );
+        // prompt_encoder = load_module("prompt_encoder", prompt_encoder);
+        prompt_encoder
     }
 
     #[test]
@@ -318,7 +318,7 @@ mod test {
 
     #[test]
     fn test_prompt_encoder_embed_boxes() {
-        let mut prompt_encoder = _init();
+        let prompt_encoder = _init();
 
         let boxes = random_tensor([32, 1, 2], 1);
         let output = prompt_encoder._embed_boxes(boxes.clone());
@@ -329,7 +329,7 @@ mod test {
 
     #[test]
     fn test_prompt_encoder_embed_masks() {
-        let mut prompt_encoder = _init();
+        let prompt_encoder = _init();
 
         let masks = random_tensor([8, 1, 4, 4], 1);
         let output = prompt_encoder._embed_masks(masks.clone());
@@ -339,7 +339,7 @@ mod test {
     }
     #[test]
     fn test_prompt_encoder_forward() {
-        let mut prompt_encoder = _init();
+        let prompt_encoder = _init();
 
         let points = random_tensor([8, 1, 2], 1);
         let labels = random_tensor([8, 1], 2);
