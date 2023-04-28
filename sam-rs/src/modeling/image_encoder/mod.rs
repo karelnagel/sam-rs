@@ -2,10 +2,10 @@ use self::block::Block;
 use self::patch_embed::PatchEmbed;
 
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
+use crate::sam_predictor::Size;
 use burn::{
     module::{Module, Param},
-    nn::conv::{Conv2d, Conv2dConfig},
+    nn::conv::{Conv2d, Conv2dConfig, Conv2dPaddingConfig},
     tensor::{backend::Backend, Tensor},
 };
 mod attention;
@@ -23,8 +23,6 @@ pub struct ImageEncoderViT<B: Backend> {
     neck2: LayerNorm2d<B>,
     neck3: Conv2d<B>,
     neck4: LayerNorm2d<B>,
-    _embed_dim: usize, //Needed for mocking
-    _out_chans: usize, // Needed for mocking
 }
 impl<B: Backend> ImageEncoderViT<B> {
     // Args:
@@ -109,29 +107,29 @@ impl<B: Backend> ImageEncoderViT<B> {
                 Some(use_rel_pos),
                 Some(rel_pos_zero_init),
                 Some(window_size),
-                // window_size=window_size if i not in global_attn_indexes else 0, // Todo
                 Some(Size(img_size / patch_size, img_size / patch_size)),
             );
             blocks.push(block);
         }
 
-        let neck1 = Conv2dConfig::new([embed_dim, out_chans], [1, 1]).init();
-        let neck2 = LayerNorm2d::new(out_chans, Default::default());
-        let neck3 = Conv2dConfig::new([out_chans, out_chans], [3, 3])
+        let neck1 = Conv2dConfig::new([embed_dim, out_chans], [1, 1])
             .with_bias(false)
             .init();
-        let neck4 = LayerNorm2d::new(out_chans, Default::default());
+        let neck2 = LayerNorm2d::new(out_chans, None);
+        let neck3 = Conv2dConfig::new([out_chans, out_chans], [3, 3])
+            .with_bias(false)
+            .with_padding(Conv2dPaddingConfig::Explicit(1, 1))
+            .init();
+        let neck4 = LayerNorm2d::new(out_chans, None);
         Self {
             img_size,
-            patch_embed: patch_embed,
-            pos_embed: pos_embed,
+            patch_embed,
+            pos_embed,
             blocks,
             neck1,
             neck2,
             neck3,
             neck4,
-            _embed_dim: embed_dim,
-            _out_chans: out_chans,
         }
     }
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
@@ -158,14 +156,14 @@ mod test {
     use super::ImageEncoderViT;
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     #[test]
     fn test_image_encoder() {
         let act = Activation::GELU;
         let img_size = 32;
-        let image_encoder = ImageEncoderViT::<TestBackend>::new(
+        let mut image_encoder = ImageEncoderViT::<TestBackend>::new(
             Some(img_size),
             Some(4),
             Some(3),
@@ -182,13 +180,12 @@ mod test {
             Some(14),
             Some(vec![7, 15, 23, 31]),
         );
-        let file = Test::open("image_encoder");
-        file.compare("img_size", img_size);
+        // image_encoder = load_module("image_encoder", image_encoder);
 
         // Forward
         let input = random_tensor([1, 3, img_size, img_size], 1);
         let output = image_encoder.forward(input.clone());
-        let file = Test::open("image_encoder_forward");
+        let file = Test::open("image_encoder");
         file.compare("input", input);
         file.compare("output", output);
     }
