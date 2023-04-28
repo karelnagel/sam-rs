@@ -2,14 +2,17 @@ mod positional_embedding;
 
 use self::positional_embedding::PositionEmbeddingRandom;
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
+use crate::{
+    burn_helpers::{TensorHelpers, TensorHelpers2},
+    sam_predictor::Size,
+};
 use burn::{
     module::Module,
     nn::{
         conv::{Conv2d, Conv2dConfig},
         Embedding, EmbeddingConfig,
     },
-    tensor::{backend::Backend, Tensor},
+    tensor::{backend::Backend, Bool, Tensor},
 };
 
 #[derive(Debug, Module)]
@@ -120,40 +123,47 @@ where
             .pe_layer
             .forward_with_coords(points, self.input_image_size);
 
-        let mask_minus_one = labels.clone().equal_elem(-1.);
-        let mask_zero = labels.clone().equal_elem(0.);
-        let mask_one = labels.equal_elem(1.);
+        let mask_minus_one: Tensor<B, 3, Bool> = labels.clone().equal_elem(-1.).unsqueeze_end();
+        let mask_zero: Tensor<B, 3, Bool> = labels.clone().equal_elem(0.).unsqueeze_end();
+        let mask_one: Tensor<B, 3, Bool> = labels.clone().equal_elem(1.).unsqueeze_end();
 
-        point_embedding = point_embedding.zeros_like();
-        // .where_self(mask_minus_one.clone().unsqueeze(), point_embedding);
+        point_embedding = Tensor::zeros_like(&point_embedding)
+            .where_self(mask_minus_one.clone(), point_embedding);
 
-        point_embedding = point_embedding.clone()
-            + self
-                .not_a_point_embed
-                .clone()
-                .into_record()
-                .weight
-                .val()
-                .unsqueeze();
-        // .where_self(mask_minus_one.unsqueeze(), point_embedding);
-
-        point_embedding = point_embedding.clone()
-            + self.point_embeddings[0]
-                .clone()
-                .into_record()
-                .weight
-                .val()
-                .unsqueeze();
-        // .where_self(mask_zero.unsqueeze(), point_embedding);
-
-        point_embedding = point_embedding.clone()
-            + self.point_embeddings[1]
-                .clone()
-                .into_record()
-                .weight
-                .val()
-                .unsqueeze();
-        // .where_self(mask_one.unsqueeze(), point_embedding);
+        point_embedding = Tensor::where_self(
+            point_embedding.clone()
+                + self
+                    .not_a_point_embed
+                    .clone()
+                    .into_record()
+                    .weight
+                    .val()
+                    .unsqueeze(),
+            mask_minus_one,
+            point_embedding,
+        );
+        point_embedding = Tensor::where_self(
+            point_embedding.clone()
+                + self.point_embeddings[0]
+                    .clone()
+                    .into_record()
+                    .weight
+                    .val()
+                    .unsqueeze(),
+            mask_zero,
+            point_embedding,
+        );
+        point_embedding = Tensor::where_self(
+            point_embedding.clone()
+                + self.point_embeddings[1]
+                    .clone()
+                    .into_record()
+                    .weight
+                    .val()
+                    .unsqueeze(),
+            mask_one,
+            point_embedding,
+        );
         point_embedding
     }
 
@@ -165,27 +175,23 @@ where
             .pe_layer
             .forward_with_coords(coords, self.input_image_size);
 
-        let corner_embedding_0 = corner_embedding.narrow(1, 0, 1);
-        let corner_embedding_1 = corner_embedding.narrow(1, 1, 1);
+        let corner_embedding_0 = Tensor::narrow(&corner_embedding, 1, 0, 1);
+        let corner_embedding_1 = Tensor::narrow(&corner_embedding, 1, 1, 1);
 
-        let updated_corner_embedding_0 = corner_embedding_0.clone()
+        let updated_corner_embedding_0 = corner_embedding_0
             + self.point_embeddings[2]
                 .clone()
                 .into_record()
                 .weight
                 .val()
                 .unsqueeze();
-        // .squeeze_dim(0)
-        // .expand_as(corner_embedding_0.clone());
-        let updated_corner_embedding_1 = corner_embedding_1.clone()
+        let updated_corner_embedding_1 = corner_embedding_1
             + self.point_embeddings[3]
                 .clone()
                 .into_record()
                 .weight
                 .val()
                 .unsqueeze();
-        // .squeeze_dim(0)
-        // .expand(corner_embedding_1);
 
         corner_embedding = Tensor::cat(
             vec![updated_corner_embedding_0, updated_corner_embedding_1],

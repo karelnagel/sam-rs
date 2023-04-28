@@ -1,4 +1,6 @@
-use burn::tensor::{backend::Backend, Bool, Data, ElementConversion, Int, Shape, Tensor};
+use burn::tensor::{
+    backend::Backend, BasicOps, Bool, Data, ElementConversion, Int, Shape, Tensor, TensorKind,
+};
 
 pub trait TensorSlice<const D: usize, E> {
     fn of_slice<E2: Into<E>>(slice: Vec<E2>, shape: [usize; D]) -> Self;
@@ -68,5 +70,26 @@ impl<B: Backend, const D: usize> TensorHelpers<B, D> for Tensor<B, D> {
     }
     fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2> {
         self.clone().reshape(self.calc_dims(dims))
+    }
+}
+
+pub trait TensorHelpers2<B: Backend, const D: usize, K: TensorKind<B>> {
+    fn unsqueeze_end<const D2: usize>(self) -> Tensor<B, D2, K>;
+}
+impl<B: Backend, const D: usize, K: TensorKind<B> + BasicOps<B>> TensorHelpers2<B, D, K>
+    for Tensor<B, D, K>
+{
+    fn unsqueeze_end<const D2: usize>(self) -> Tensor<B, D2, K> {
+        let tensor = self.unsqueeze();
+        let mut dims = [0; D2];
+        let diff = D2 - D;
+        for i in 0..D2 {
+            dims[i] = match i < D {
+                true => i + diff,
+                false => i - D,
+            }
+        }
+        let tensor = tensor.permute(dims);
+        tensor
     }
 }
