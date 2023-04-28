@@ -37,11 +37,16 @@ impl<B: Backend> MaskDecoder<B> {
     pub fn new(
         transformer_dim: usize,
         transformer: TwoWayTransformer<B>,
-        num_multimask_outputs: usize,
-        activation: Activation,
-        iou_head_depth: usize,
-        iou_head_hidden_dim: usize,
+        num_multimask_outputs: Option<usize>,
+        activation: Option<Activation>,
+        iou_head_depth: Option<usize>,
+        iou_head_hidden_dim: Option<usize>,
     ) -> Self {
+        let num_multimask_outputs = num_multimask_outputs.unwrap_or(3);
+        let activation = activation.unwrap_or(Activation::GELU);
+        let iou_head_depth = iou_head_depth.unwrap_or(3);
+        let iou_head_hidden_dim = iou_head_hidden_dim.unwrap_or(256);
+
         let iou_token = EmbeddingConfig::new(1, transformer_dim).init();
         let num_mask_tokens = num_multimask_outputs + 1;
 
@@ -64,7 +69,7 @@ impl<B: Backend> MaskDecoder<B> {
                 transformer_dim,
                 transformer_dim / 8,
                 3,
-                false,
+                None,
             ));
         }
         let iou_prediction_head = MLP::new(
@@ -72,7 +77,7 @@ impl<B: Backend> MaskDecoder<B> {
             iou_head_hidden_dim,
             num_mask_tokens,
             iou_head_depth,
-            false,
+            None,
         );
         MaskDecoder {
             _transformer_dim: transformer_dim,
@@ -152,12 +157,12 @@ impl<B: Backend> MaskDecoder<B> {
 
         let shape = src.dims();
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
+
         let (hs, src) = self.transformer.forward(src, pos_src, tokens);
         let iou_token_out = hs.narrow(1, 0, 1);
         let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
 
-        let src = src.transpose().reshape([b, c, h, w]);
-        // let src = src.transpose(1, 2).view([b, c, h, w]); //Todo it was this one
+        let src = src.swap_dims(1, 2).reshape([b, c, h, w]);
         let upscaled_embedding = self.output_upscaling(src);
         let mut hyper_in_list: Vec<Tensor<B, 3>> = vec![];
         for i in 0..self.num_mask_tokens {
@@ -173,7 +178,7 @@ impl<B: Backend> MaskDecoder<B> {
             .matmul(upscaled_embedding.reshape([b, c, h * w]))
             .reshape_max([b, usize::MAX, h, w]);
 
-        let iou_pred = self.iou_prediction_head.forward(iou_token_out).unsqueeze();
+        let iou_pred = self.iou_prediction_head.forward(iou_token_out).unsqueeze(); // Todo check
         return (masks, iou_pred);
     }
 
@@ -201,8 +206,14 @@ mod test {
         let gelu = Activation::GELU;
         let relu = Activation::ReLU;
         let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
-        let mut mask_decoder =
-            super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
+        let mut mask_decoder = super::MaskDecoder::<TestBackend>::new(
+            64,
+            two_way_transformer,
+            Some(3),
+            Some(gelu),
+            Some(3),
+            Some(64),
+        );
         mask_decoder = load_module("mask_decoder_predict", mask_decoder);
 
         // Forward
@@ -228,13 +239,18 @@ mod test {
 
     #[test]
     fn test_mask_decoder_predict() {
-        let gelu = Activation::GELU;
-        let relu = Activation::ReLU;
-        let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
-        let mut mask_decoder =
-            super::MaskDecoder::<TestBackend>::new(64, two_way_transformer, 3, gelu, 3, 64);
+        let two_way_transformer =
+            TwoWayTransformer::new(2, 64, 2, 512, Some(Activation::ReLU), Some(2));
+        let mut mask_decoder = super::MaskDecoder::<TestBackend>::new(
+            64,
+            two_way_transformer,
+            Some(3),
+            Some(Activation::GELU),
+            Some(3),
+            Some(64),
+        );
         let file = Test::open("mask_decoder");
-        mask_decoder = load_module("mask_decoder", mask_decoder);
+        // mask_decoder = load_module("mask_decoder", mask_decoder);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);

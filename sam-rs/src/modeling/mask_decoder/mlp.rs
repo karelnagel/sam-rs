@@ -18,8 +18,9 @@ impl<B: Backend> MLP<B> {
         hidden_dim: usize,
         output_dim: usize,
         num_layers: usize,
-        sigmoid_output: bool,
+        sigmoid_output: Option<bool>,
     ) -> Self {
+        let sigmoid_output = sigmoid_output.unwrap_or(false);
         let h = vec![hidden_dim; num_layers - 1];
         let mut layers = vec![];
 
@@ -59,7 +60,7 @@ mod test {
 
     #[test]
     fn test_mlp() {
-        let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, false);
+        let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, None);
         let file = Test::open("mlp");
         // mlp = load_module("mlp", mlp);
 
