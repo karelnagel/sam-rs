@@ -43,7 +43,7 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
         let mut x_embed = grid.cumsum(1) - 0.5;
         y_embed = y_embed / h as f64;
         x_embed = x_embed / w as f64;
-        let pe: Tensor<B, 3> = self._pe_encoding(Tensor::stack(vec![x_embed, y_embed], usize::MAX));
+        let pe: Tensor<B, 3> = self._pe_encoding(Tensor::stack(vec![x_embed, y_embed], 2));
         pe.permute([2, 0, 1])
     }
 
