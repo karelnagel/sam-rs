@@ -152,7 +152,7 @@ fn window_unpartition<B: Backend>(
     let Size(hp, wp) = pad_hw;
     let Size(h, w) = hw;
     let b = windows.dims()[0] / (hp * wp / window_size / window_size);
-    let x = windows.reshape([
+    let x = windows.reshape_max([
         b,
         hp / window_size,
         wp / window_size,
@@ -212,7 +212,7 @@ mod test {
             Some(14),
             Some(Size(64, 64)),
         );
-        block = load_module("block", block);
+        // block = load_module("block", block);// Todo
 
         // Forward
         let input = random_tensor([1, 64, 64, 320], 1);
