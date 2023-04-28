@@ -6,18 +6,12 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::burn_helpers::TensorHelpers;
-
 use self::{attention::Attention, two_way_attention::TwoWayAttentionBlock};
 
 use super::common::activation::Activation;
 
 #[derive(Debug, Module)]
 pub struct TwoWayTransformer<B: Backend> {
-    _depth: usize,
-    _embedding_dim: usize,
-    _num_heads: usize,
-    _mlp_dim: usize,
     layers: Vec<TwoWayAttentionBlock<B>>,
     final_attn_token_to_image: Attention<B>,
     norm_final_attn: LayerNorm<B>,
@@ -43,6 +37,7 @@ impl<B: Backend> TwoWayTransformer<B> {
     ) -> Self {
         let activation = activation.unwrap_or(Activation::ReLU);
         let attention_downsample_rate = attention_downsample_rate.unwrap_or(2);
+
         let mut layers: Vec<TwoWayAttentionBlock<B>> = vec![];
         for i in 0..depth {
             layers.push(TwoWayAttentionBlock::new(
@@ -58,10 +53,6 @@ impl<B: Backend> TwoWayTransformer<B> {
             Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
         let norm_final_attn = LayerNormConfig::new(embedding_dim).init();
         Self {
-            _depth: depth,
-            _embedding_dim: embedding_dim,
-            _num_heads: num_heads,
-            _mlp_dim: mlp_dim,
             layers,
             final_attn_token_to_image,
             norm_final_attn,
@@ -86,18 +77,20 @@ impl<B: Backend> TwoWayTransformer<B> {
         point_embedding: Tensor<B, 3>,
     ) -> (Tensor<B, 3>, Tensor<B, 3>) {
         // BxCxHxW -> BxHWxC == B x N_image_tokens x C
-        let image_embedding = image_embedding
-            .flatten::<3>(2, usize::MAX)
-            .permute([0, 2, 1]);
-        let image_pe = image_pe.flatten::<3>(2, usize::MAX).permute([0, 2, 1]);
+        let image_embedding = image_embedding.flatten::<3>(2, 3).permute([0, 2, 1]);
+        let image_pe = image_pe.flatten::<3>(2, 3).permute([0, 2, 1]);
 
         //  Prepare queries
         let mut queries = point_embedding.clone();
         let mut keys = image_embedding;
+
+        // Apply transformer blocks and final layernorm
         for layer in &self.layers {
             (queries, keys) =
                 layer.forward(queries, keys, point_embedding.clone(), image_pe.clone());
         }
+
+        // Apply the final attention layer from the points to the image
         let q = queries.clone() + point_embedding;
         let k = keys.clone() + image_pe;
         let attn_out = self.final_attn_token_to_image.forward(q, k, keys.clone());
@@ -111,7 +104,7 @@ impl<B: Backend> TwoWayTransformer<B> {
 mod test {
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
     #[test]
     fn test_two_way_transformer() {
@@ -123,12 +116,7 @@ mod test {
             Some(Activation::ReLU),
             Some(2),
         );
-        let file = Test::open("transformer_two_way_transformer");
-        file.compare("depth", transformer._depth);
-        file.compare("embedding_dim", transformer._embedding_dim);
-        file.compare("num_heads", transformer._num_heads);
-        file.compare("mlp_dim", transformer._mlp_dim);
-        file.compare("layers_len", transformer.layers.len());
+        // transformer = load_module("transformer_two_way_transformer", transformer);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);
@@ -139,7 +127,7 @@ mod test {
             image_pe.clone(),
             point_embedding.clone(),
         );
-        let file = Test::open("transformer_two_way_transformer_forward");
+        let file = Test::open("transformer_two_way_transformer");
         file.compare("image_embedding", image_embedding);
         file.compare("image_pe", image_pe);
         file.compare("point_embedding", point_embedding);
