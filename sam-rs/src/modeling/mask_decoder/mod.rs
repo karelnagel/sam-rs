@@ -208,18 +208,17 @@ mod test {
 
     #[test]
     fn test_mask_decoder() {
-        let gelu = Activation::GELU;
-        let relu = Activation::ReLU;
-        let two_way_transformer = TwoWayTransformer::new(2, 64, 2, 512, Some(relu), Some(2));
+        let two_way_transformer =
+            TwoWayTransformer::new(2, 64, 2, 512, Some(Activation::ReLU), Some(2));
         let mut mask_decoder = super::MaskDecoder::<TestBackend>::new(
             64,
             two_way_transformer,
             Some(3),
-            Some(gelu),
+            Some(Activation::GELU),
             Some(3),
             Some(64),
         );
-        mask_decoder = load_module("mask_decoder_predict", mask_decoder);
+        // mask_decoder = load_module("mask_decoder", mask_decoder);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);
@@ -233,7 +232,7 @@ mod test {
             dense_prompt_embeddings.clone(),
             true,
         );
-        let file = Test::open("mask_decoder_predict");
+        let file = Test::open("mask_decoder");
         file.compare("image_embedding", image_embedding);
         file.compare("image_pe", image_pe);
         file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
