@@ -56,14 +56,14 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
         let cross_attn_image_to_token =
             Attention::new(embedding_dim, num_heads, Some(attention_downsample_rate));
         Self {
-            self_attn: self_attn,
-            norm1: norm1,
-            norm2: norm2,
-            norm3: norm3,
-            norm4: norm4,
-            cross_attn_token_to_image: cross_attn_token_to_image,
-            cross_attn_image_to_token: cross_attn_image_to_token,
-            mlp: mlp,
+            self_attn,
+            norm1,
+            norm2,
+            norm3,
+            norm4,
+            cross_attn_token_to_image,
+            cross_attn_image_to_token,
+            mlp,
             skip_first_layer_pe,
         }
     }
@@ -77,6 +77,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
     ) -> (Tensor<B, 3>, Tensor<B, 3>) {
         let mut queries = queries;
         let mut keys = keys;
+        
         // Self attention block
         if self.skip_first_layer_pe {
             queries = self
@@ -90,6 +91,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
             queries = queries + attn_out;
         }
         queries = self.norm1.forward(queries);
+
         // Cross attention block, tokens attending to image embedding
         let q = queries.clone() + query_pe.clone();
         let k = keys.clone() + key_pe.clone();
@@ -121,7 +123,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
 mod test {
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     #[test]
@@ -134,12 +136,7 @@ mod test {
             Some(2),
             Some(false),
         );
-        let file = Test::open("transformer_two_way_attention_block");
-        // file.compare("norm1_size", block.norm1.ws.as_ref().unwrap().size());
-        // file.compare("norm2_size", block.norm2.ws.as_ref().unwrap().size());
-        // file.compare("norm3_size", block.norm3.ws.as_ref().unwrap().size());
-        // file.compare("norm4_size", block.norm4.ws.as_ref().unwrap().size());
-        file.compare("skip_first_layer_pe", block.skip_first_layer_pe);
+        // block = load_module("transformer_two_way_attention_block", block);
 
         // Forward
         let queries = random_tensor([1, 256, 256], 1);
@@ -152,7 +149,7 @@ mod test {
             query_pe.clone(),
             key_pe.clone(),
         );
-        let file = Test::open("transformer_two_way_attention_block_forward");
+        let file = Test::open("transformer_two_way_attention_block");
         file.compare("queries", queries);
         file.compare("keys", keys);
         file.compare("query_pe", query_pe);
