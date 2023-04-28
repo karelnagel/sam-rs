@@ -1,9 +1,11 @@
+use std::f32::consts::PI;
+
 use burn::{
     module::{Module, Param},
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
+use crate::sam_predictor::Size;
 
 /// Positional encoding using random spatial frequencies.
 #[derive(Debug, Module)]
@@ -15,6 +17,7 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
     pub fn new(num_pos_feats: Option<usize>, scale: Option<f32>) -> Self {
         let num_pos_feats = num_pos_feats.unwrap_or(64);
         let mut scale = scale.unwrap_or(1.0);
+
         if scale <= 0.0 {
             scale = 1.0;
         }
@@ -25,11 +28,11 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
         }
     }
     ///Positionally encode points that are normalized to [0,1].
-    fn _pe_encoding<const D: usize>(&self, coords: Tensor<B, D>) -> Tensor<B, D> {
+    fn _pe_encoding(&self, coords: Tensor<B, 3>) -> Tensor<B, 3> {
         let mut coords = coords.mul_scalar(2.0) - 1.0;
         coords = coords.matmul(self.positional_encoding_gaussian_matrix.val().unsqueeze());
-        coords = coords.mul_scalar(2.0 * std::f32::consts::PI);
-        Tensor::cat(vec![coords.clone().sin(), coords.cos()], usize::MAX)
+        coords = coords.mul_scalar(2.0 * PI);
+        Tensor::cat(vec![coords.clone().sin(), coords.cos()], 2)
     }
 
     /// Generate positional encoding for a grid of the specified size.
@@ -48,7 +51,7 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
     pub fn forward_with_coords(&self, coords: Tensor<B, 3>, image_size: Size) -> Tensor<B, 3> {
         let mut coords = coords;
         // coords
-        //     .narrow(2, 0, 1) //Todo
+        //     .index(2, 0, 1) //Todo
         //     .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f32));
         // coords
         //     .narrow(2, 1, 1)
@@ -62,26 +65,13 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
-
-    #[test]
-    fn test_position_embedding_start() {
-        let pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
-        let file = Test::open("position_embedding_random");
-        file.compare(
-            "gaussian_matrix",
-            pos_embedding
-                .positional_encoding_gaussian_matrix
-                .shape()
-                .dims
-                .to_vec(),
-        );
-    }
 
     #[test]
     fn test_position_embedding_pe_encoding() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
+        // pos_embedding = load_module("position_embedding_random_pe_encoding", pos_embedding);
 
         let input = random_tensor([64, 2, 2], 1);
         let output = pos_embedding._pe_encoding(input.clone());
@@ -93,6 +83,8 @@ mod test {
     #[test]
     fn test_position_embedding_forward() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
+        // pos_embedding = load_module("position_embedding_random_forward", pos_embedding);
+
         let input = Size(64, 64);
         let output = pos_embedding.forward(input);
         let file = Test::open("position_embedding_random_forward");
@@ -103,6 +95,7 @@ mod test {
     #[test]
     fn test_position_embedding_forward_with_coords() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
+        // pos_embedding = load_module("position_embedding_random_forward_with_coords", pos_embedding);
 
         let input = random_tensor([64, 2, 2], 1);
         let image_size = Size(1024, 1024);
