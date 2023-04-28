@@ -1,6 +1,6 @@
 use burn::{
     module::{Module, Param},
-    nn::{Initializer, Linear, LinearConfig},
+    nn::{Linear, LinearConfig},
     tensor::{activation::softmax, backend::Backend, Tensor},
 };
 
@@ -58,11 +58,11 @@ impl<B: Backend> Attention<B> {
         Self {
             num_heads,
             scale,
-            qkv: qkv.into(),
-            proj: proj.into(),
+            qkv,
+            proj,
             use_rel_pos,
-            rel_pos_h: rel_pos_h,
-            rel_pos_w: rel_pos_w,
+            rel_pos_h,
+            rel_pos_w,
         }
     }
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
@@ -90,7 +90,7 @@ impl<B: Backend> Attention<B> {
                 Size(h, w),
             )
         };
-        attn = softmax(attn, usize::MAX);
+        attn = softmax(attn, 2);
 
         let x = attn
             .matmul(v)
@@ -178,6 +178,7 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
 
 #[cfg(test)]
 pub mod test {
+
     use crate::{
         sam_predictor::Size,
         tests::helpers::{load_module, random_tensor, Test, TestBackend},
@@ -228,7 +229,7 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        attention = load_module("attention", attention);
+        // attention = load_module("attention", attention); // Todo
 
         // Forward
         let input = random_tensor([25, 14, 14, 320], 1);
