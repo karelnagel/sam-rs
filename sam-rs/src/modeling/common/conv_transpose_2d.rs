@@ -56,8 +56,8 @@ impl ConvTranspose2dConfig {
     pub fn init<B: Backend>(&self) -> ConvTranspose2d<B> {
         ConvTranspose2d {
             weight: Tensor::ones([
-                self.out_channels,
                 self.in_channels,
+                self.out_channels,
                 self.kernel_size[0],
                 self.kernel_size[1],
             ])
@@ -90,7 +90,7 @@ impl<B: Backend> ConvTranspose2d<B> {
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let weight = self.weight.val();
 
-        let res = conv_transpose2d(
+        let res: Tensor<B, 4> = conv_transpose2d(
             x,
             weight,
             match &self.bias {
@@ -128,10 +128,10 @@ mod test {
     #[test]
     fn test_conv_transpose_2d() {
         // Params
-        let i: usize = 3;
-        let o: usize = 3;
-        let k: usize = 3;
-        let stride = 1;
+        let i: usize = 64;
+        let o: usize = 16;
+        let k: usize = 2;
+        let stride = 2;
 
         let vs = tch::nn::VarStore::new(tch::Device::Cpu);
         let tch_conv = tch::nn::conv_transpose2d(
@@ -150,7 +150,7 @@ mod test {
             .set_stride([stride, stride])
             .init::<Backend>();
 
-        let shape: [usize; 4] = [2, i, 8, 8];
+        let shape: [usize; 4] = [16, i, 16, 16];
         let seed = 1;
         let tch_input = random_tch_tensor(&shape, seed);
         let burn_input = random_tensor(shape, seed);
