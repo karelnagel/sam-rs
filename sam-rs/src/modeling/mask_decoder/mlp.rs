@@ -61,7 +61,7 @@ mod test {
     fn test_mlp() {
         let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, false);
         let file = Test::open("mlp");
-        mlp = load_module("mlp", mlp);
+        // mlp = load_module("mlp", mlp);
 
         // Forward
         let input = random_tensor([1, 256], 1);
