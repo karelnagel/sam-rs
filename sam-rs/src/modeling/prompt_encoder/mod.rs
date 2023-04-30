@@ -305,7 +305,7 @@ mod test {
             MASK_IN_CHANS,
             Some(Activation::GELU),
         );
-        // prompt_encoder = load_module("prompt_encoder", prompt_encoder);
+        prompt_encoder = load_module("prompt_encoder", prompt_encoder);
         prompt_encoder
     }
 

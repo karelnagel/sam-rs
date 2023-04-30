@@ -78,7 +78,7 @@ mod test {
     #[test]
     fn test_attention() {
         let mut attention = super::Attention::<TestBackend>::new(32, 8, Some(1));
-        // attention = load_module("transformer_attention", attention);
+        attention = load_module("transformer_attention", attention);
 
         // Forward
         let q = random_tensor([1, 32, 32], 1);

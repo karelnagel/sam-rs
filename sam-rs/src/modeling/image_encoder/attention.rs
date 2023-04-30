@@ -229,7 +229,7 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        // attention = load_module("attention", attention); // Todo
+        attention = load_module("attention", attention); // Todo
 
         // Forward
         let input = random_tensor([25, 14, 14, 320], 1);

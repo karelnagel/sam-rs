@@ -212,7 +212,7 @@ mod test {
             Some(14),
             Some(Size(64, 64)),
         );
-        // block = load_module("block", block);// Todo
+        block = load_module("block", block);// Todo
 
         // Forward
         let input = random_tensor([1, 64, 64, 320], 1);

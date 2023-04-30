@@ -180,7 +180,7 @@ mod test {
             Some(14),
             Some(vec![7, 15, 23, 31]),
         );
-        // image_encoder = load_module("image_encoder", image_encoder);
+        image_encoder = load_module("image_encoder", image_encoder);
 
         // Forward
         let input = random_tensor([1, 3, img_size, img_size], 1);

@@ -136,7 +136,7 @@ mod test {
             Some(2),
             Some(false),
         );
-        // block = load_module("transformer_two_way_attention_block", block);
+        block = load_module("transformer_two_way_attention_block", block);
 
         // Forward
         let queries = random_tensor([1, 256, 256], 1);

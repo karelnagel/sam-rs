@@ -116,7 +116,7 @@ mod test {
             Some(Activation::ReLU),
             Some(2),
         );
-        // transformer = load_module("transformer_two_way_transformer", transformer);
+        transformer = load_module("transformer_two_way_transformer", transformer);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);

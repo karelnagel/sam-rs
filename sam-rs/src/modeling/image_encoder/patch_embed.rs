@@ -60,7 +60,7 @@ mod test {
             Some(3),
             Some(320),
         );
-        // patch_embed = load_module("patch_embed", patch_embed);
+        patch_embed = load_module("patch_embed", patch_embed);
 
         // Forward
         let input = random_tensor([1, 3, 512, 512], 3);

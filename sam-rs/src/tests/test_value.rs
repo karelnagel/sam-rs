@@ -13,7 +13,7 @@ pub struct TestTensor<T> {
 }
 impl<T: PartialEq> PartialEq for TestTensor<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.size == other.size //&& self.values == other.values
+        self.size == other.size && self.values == other.values
     }
 }
 
