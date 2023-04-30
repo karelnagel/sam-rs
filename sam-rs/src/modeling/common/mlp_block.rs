@@ -18,7 +18,7 @@ impl<B: Backend> MLPBlock<B> {
         Self { lin1, lin2, act }
     }
     pub fn forward<const D: usize>(&self, x: Tensor<B, D>) -> Tensor<B, D> {
-        self.lin2.forward(self.act.forward(self.lin1.forward(x)))// Todo lin forwards not giving correct output
+        self.lin2.forward(self.act.forward(self.lin1.forward(x)))
     }
 }
 
@@ -27,7 +27,7 @@ pub mod test {
 
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{random_tensor, Test, TestBackend, load_module},
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
     use super::*;

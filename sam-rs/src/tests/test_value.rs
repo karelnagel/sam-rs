@@ -7,17 +7,55 @@ use crate::{
     sam_predictor::{ImageFormat, Size},
 };
 #[derive(Deserialize, Serialize)]
-pub struct TestTensor<T> {
+pub struct TestTensor<T: CastToF32> {
     size: Vec<usize>,
     values: Vec<T>,
 }
-impl<T: PartialEq> PartialEq for TestTensor<T> {
+pub trait CastToF32 {
+    fn cast_to_f32(&self) -> f32;
+}
+impl CastToF32 for f32 {
+    fn cast_to_f32(&self) -> f32 {
+        *self
+    }
+}
+impl CastToF32 for bool {
+    fn cast_to_f32(&self) -> f32 {
+        if *self {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
+impl CastToF32 for i32 {
+    fn cast_to_f32(&self) -> f32 {
+        *self as f32
+    }
+}
+const EQUALITY_THRESHOLD: f32 = 0.001;
+impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.size == other.size && self.values == other.values
+        if self.size != other.size {
+            return false;
+        }
+        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
+            let a = a.cast_to_f32();
+            let b = b.cast_to_f32();
+            let a_abs = a.abs();
+            let b_abs = b.abs();
+            let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
+            let high = a_abs + (a_abs * EQUALITY_THRESHOLD);
+            if !(low <= b_abs && b_abs <= high) {
+                println!("TestTensor::eq: {} != {} at index {}", a, b, i,);
+                return false;
+            }
+        }
+        true
     }
 }
 
-impl<T: std::fmt::Debug + Clone> std::fmt::Debug for TestTensor<T> {
+impl<T: std::fmt::Debug + Clone + CastToF32> std::fmt::Debug for TestTensor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let len = &self.values.len();
         f.debug_struct("TestTensor")

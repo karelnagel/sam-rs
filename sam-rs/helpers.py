@@ -6,8 +6,6 @@ import os
 import torch
 import torch
 import numpy as np
-from torch import nn
-import uuid
 from segment_anything.build_sam import _build_sam
 
 class Item:
@@ -54,42 +52,6 @@ def random_tensor(shape:list,seed:int=0):
 
 def random_ndarray(shape:list,seed:int=0)->np.ndarray:
     return random_tensor(shape,seed).detach().cpu().numpy()
-
-from functools import reduce
-
-def set_nested_key(dct, keys, value):
-    reduce(lambda d, k: d.setdefault(k, {}), keys[:-1], dct)[keys[-1]] = value
-
-def input_to_file(file_name: str, model: nn.Module):
-    json_data = {
-        "metadata": {
-            "float": "f32",
-            "int": "i32",
-            "format": "burn_core::record::file::FilePrettyJsonRecorder",
-            "version": "0.6.0",
-            "settings": "DebugRecordSettings"
-        },
-        "item": {"act": None,"num_heads":None,"scale":None,"use_rel_pos":None}
-    }
-    for name, param in model.named_parameters():
-        keys = name.split('.')
-        param_id = str(uuid.uuid4())
-        param_shape = list(param.size())
-        param_value = param.flatten().detach().cpu().numpy().tolist()
-        param_data = {
-            "id": param_id,
-            "param": {
-                "value": param_value,
-                "shape": param_shape
-            }
-        }
-        set_nested_key(json_data["item"], keys, param_data)
-    
-    path = "~/Documents/test-inputs/" + file_name + '.json'
-    path = os.path.expanduser(path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as json_file:
-        json.dump(json_data, json_file, indent=2)
 
 def build_sam_test(checkpoint:str=None):
     return _build_sam(64,4,4,[2,5,8,11],checkpoint)
