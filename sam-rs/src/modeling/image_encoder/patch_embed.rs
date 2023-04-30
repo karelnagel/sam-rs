@@ -44,6 +44,7 @@ impl<B: Backend> PatchEmbed<B> {
 
 #[cfg(test)]
 mod test {
+
     use crate::{
         sam_predictor::Size,
         tests::helpers::{load_module, random_tensor, Test, TestBackend},
