@@ -249,7 +249,7 @@ mod test {
             Some(3),
             Some(64),
         );
-        mask_decoder = load_module("mask_decoder", mask_decoder);
+        mask_decoder = load_module("mask_decoder_predict", mask_decoder);
 
         // Forward
         let image_embedding = random_tensor([1, 64, 16, 16], 1);
