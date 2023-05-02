@@ -61,12 +61,12 @@ mod test {
     #[test]
     fn test_mlp() {
         let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, None);
-        let file = Test::open("mlp");
         mlp = load_module("mlp", mlp);
 
         // Forward
         let input = random_tensor([1, 256], 1);
         let output = mlp.forward(input.clone());
+        let file = Test::open("mlp");
         file.compare("input", input);
         file.compare("output", output);
     }

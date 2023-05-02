@@ -19,19 +19,17 @@ use super::{
 
 #[derive(Debug, Module)]
 pub struct MaskDecoder<B: Backend> {
-    _transformer_dim: usize,
     transformer: TwoWayTransformer<B>,
-    _num_multimask_outputs: usize,
     iou_token: Embedding<B>,
     pub num_mask_tokens: usize,
     mask_tokens: Embedding<B>,
     output_hypernetworks_mlps: Vec<MLP<B>>,
     iou_prediction_head: MLP<B>,
-    seq1: ConvTranspose2d<B>,
-    seq2: LayerNorm2d<B>,
-    seq3: Activation,
-    seq4: ConvTranspose2d<B>,
-    seq5: Activation,
+    output_upscaling0: ConvTranspose2d<B>,
+    output_upscaling1: LayerNorm2d<B>,
+    output_upscaling2: Activation,
+    output_upscaling3: ConvTranspose2d<B>,
+    output_upscaling4: Activation,
 }
 impl<B: Backend> MaskDecoder<B> {
     pub fn new(
@@ -52,15 +50,15 @@ impl<B: Backend> MaskDecoder<B> {
 
         let mask_tokens = EmbeddingConfig::new(num_mask_tokens, transformer_dim).init();
 
-        let seq1 = ConvTranspose2dConfig::new(transformer_dim, transformer_dim / 4, [2, 2])
+        let output_upscaling0 = ConvTranspose2dConfig::new(transformer_dim, transformer_dim / 4, [2, 2])
             .set_stride([2, 2])
             .init();
-        let seq2 = LayerNorm2d::new(transformer_dim / 4, None);
-        let seq3 = activation;
-        let seq4 = ConvTranspose2dConfig::new(transformer_dim / 4, transformer_dim / 8, [2, 2])
+        let output_upscaling1 = LayerNorm2d::new(transformer_dim / 4, None);
+        let output_upscaling2 = activation;
+        let output_upscaling3 = ConvTranspose2dConfig::new(transformer_dim / 4, transformer_dim / 8, [2, 2])
             .set_stride([2, 2])
             .init();
-        let seq5 = activation;
+        let output_upscaling4 = activation;
 
         let mut output_hypernetworks_mlps = Vec::new();
         for _ in 0..num_mask_tokens {
@@ -80,19 +78,17 @@ impl<B: Backend> MaskDecoder<B> {
             None,
         );
         MaskDecoder {
-            _transformer_dim: transformer_dim,
             transformer,
-            _num_multimask_outputs: num_multimask_outputs,
             num_mask_tokens,
             iou_token,
             mask_tokens,
             output_hypernetworks_mlps,
             iou_prediction_head,
-            seq1,
-            seq2,
-            seq3,
-            seq4,
-            seq5,
+            output_upscaling0,
+            output_upscaling1,
+            output_upscaling2,
+            output_upscaling3,
+            output_upscaling4,
         }
     }
 
@@ -189,11 +185,11 @@ impl<B: Backend> MaskDecoder<B> {
 
     fn output_upscaling(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut x = x;
-        x = self.seq1.forward(x);
-        x = self.seq2.forward(x);
-        x = self.seq3.forward(x);
-        x = self.seq4.forward(x);
-        x = self.seq5.forward(x);
+        x = self.output_upscaling0.forward(x);
+        x = self.output_upscaling1.forward(x);
+        x = self.output_upscaling2.forward(x);
+        x = self.output_upscaling3.forward(x);
+        x = self.output_upscaling4.forward(x);
         x
     }
 }
