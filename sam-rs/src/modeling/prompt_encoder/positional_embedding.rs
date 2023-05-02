@@ -21,10 +21,11 @@ impl<B: Backend> PositionEmbeddingRandom<B> {
         if scale <= 0.0 {
             scale = 1.0;
         }
-        let random = Tensor::random([2, num_pos_feats], burn::tensor::Distribution::Standard);
+        let random = Tensor::random([2, num_pos_feats], burn::tensor::Distribution::Standard)
+            .mul_scalar(scale);
 
         Self {
-            positional_encoding_gaussian_matrix: random.mul_scalar(scale).into(),
+            positional_encoding_gaussian_matrix: random.into(),
         }
     }
     ///Positionally encode points that are normalized to [0,1].
@@ -71,9 +72,9 @@ mod test {
     #[test]
     fn test_position_embedding_pe_encoding() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
-        pos_embedding = load_module("position_embedding", pos_embedding);
+        pos_embedding = load_module("position_embedding_random_pe_encoding", pos_embedding);
 
-        let input = random_tensor([64, 2, 2], 1);
+        let input = random_tensor([64, 69, 2], 1);
         let output = pos_embedding._pe_encoding(input.clone());
         let file = Test::open("position_embedding_random_pe_encoding");
         file.compare("input", input);
@@ -83,7 +84,7 @@ mod test {
     #[test]
     fn test_position_embedding_forward() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
-        pos_embedding = load_module("position_embedding", pos_embedding);
+        pos_embedding = load_module("position_embedding_random_forward", pos_embedding);
 
         let input = Size(64, 64);
         let output = pos_embedding.forward(input);
@@ -93,9 +94,9 @@ mod test {
     }
 
     #[test]
-    fn test_position_embedding_forward_with_coords() {
+    fn test_position_embedding_with_coords() {
         let mut pos_embedding = super::PositionEmbeddingRandom::<TestBackend>::new(Some(128), None);
-        pos_embedding = load_module("position_embedding", pos_embedding);
+        pos_embedding = load_module("position_embedding_random_forward_with_coords", pos_embedding);
 
         let input = random_tensor([64, 2, 2], 1);
         let image_size = Size(1024, 1024);
