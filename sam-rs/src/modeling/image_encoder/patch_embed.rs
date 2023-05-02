@@ -47,7 +47,7 @@ mod test {
 
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, random_tensor, save_module, Test, TestBackend},
     };
 
     use super::PatchEmbed;

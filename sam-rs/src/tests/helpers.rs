@@ -67,10 +67,19 @@ pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize)
     let slice = random_slice(&shape, seed);
     Tensor::of_slice(slice, shape)
 }
+
 pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let home = home::home_dir().unwrap();
     let path = home.join(format!("Documents/test-inputs/{}.json", name));
     dbg!(&path);
     let record = Record::load::<DebugRecordSettings>(path).unwrap();
     module.load_record(record)
+}
+
+pub fn save_module<B: Backend, M: Module<B>>(module: &M) {
+    module
+        .clone()
+        .into_record()
+        .record::<DebugRecordSettings>("test.json".into())
+        .unwrap();
 }
