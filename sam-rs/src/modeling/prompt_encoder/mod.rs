@@ -24,13 +24,13 @@ pub struct PromptEncoder<B: Backend> {
     point_embeddings: Vec<Embedding<B>>,
     no_mask_embed: Embedding<B>,
     not_a_point_embed: Embedding<B>,
-    seq1: Conv2d<B>,
-    seq2: LayerNorm2d<B>,
-    seq3: Activation,
-    seq4: Conv2d<B>,
-    seq5: LayerNorm2d<B>,
-    seq6: Activation,
-    seq7: Conv2d<B>,
+    mask_downscaling0: Conv2d<B>,
+    mask_downscaling1: LayerNorm2d<B>,
+    mask_downscaling2: Activation,
+    mask_downscaling3: Conv2d<B>,
+    mask_downscaling4: LayerNorm2d<B>,
+    mask_downscaling5: Activation,
+    mask_downscaling6: Conv2d<B>,
 }
 
 impl<B: Backend> PromptEncoder<B>
@@ -62,23 +62,21 @@ where
 
         let mut point_embeddings = vec![];
         for _ in 0..num_point_embeddings {
-            let point_embedding = EmbeddingConfig::new(1, embed_dim).init();
-            point_embeddings.push(point_embedding);
+            point_embeddings.push(EmbeddingConfig::new(1, embed_dim).init());
         }
         let not_a_point_embed = EmbeddingConfig::new(1, embed_dim).init();
-        let mask_input_size = Size(4 * image_embedding_size.0, 4 * image_embedding_size.1);
 
-        let seq1 = Conv2dConfig::new([1, mask_in_chans / 3], [2, 2])
+        let mask_downscaling0 = Conv2dConfig::new([1, mask_in_chans / 4], [2, 2])
             .with_stride([2, 2])
             .init();
-        let seq2 = LayerNorm2d::new(mask_in_chans / 4, None);
-        let seq3 = activation;
-        let seq4 = Conv2dConfig::new([mask_in_chans / 4, mask_in_chans], [2, 2])
+        let mask_downscaling1 = LayerNorm2d::new(mask_in_chans / 4, None);
+        let mask_downscaling2 = activation;
+        let mask_downscaling3 = Conv2dConfig::new([mask_in_chans / 4, mask_in_chans], [2, 2])
             .with_stride([2, 2])
             .init();
-        let seq5 = LayerNorm2d::new(mask_in_chans, None);
-        let seq6 = activation;
-        let seq7 = Conv2dConfig::new([mask_in_chans, embed_dim], [1, 1]).init();
+        let mask_downscaling4 = LayerNorm2d::new(mask_in_chans, None);
+        let mask_downscaling5 = activation;
+        let mask_downscaling6 = Conv2dConfig::new([mask_in_chans, embed_dim], [1, 1]).init();
 
         let no_mask_embed = EmbeddingConfig::new(1, embed_dim).init();
         Self {
@@ -89,13 +87,13 @@ where
             point_embeddings,
             no_mask_embed,
             not_a_point_embed,
-            seq1,
-            seq2,
-            seq3,
-            seq4,
-            seq5,
-            seq6,
-            seq7,
+            mask_downscaling0,
+            mask_downscaling1,
+            mask_downscaling2,
+            mask_downscaling3,
+            mask_downscaling4,
+            mask_downscaling5,
+            mask_downscaling6,
         }
     }
 
@@ -204,13 +202,13 @@ where
     ///Embeds mask inputs.
     fn _embed_masks(&self, masks: Tensor<B, 4>) -> Tensor<B, 4> {
         let mut masks = masks;
-        masks = self.seq1.forward(masks);
-        masks = self.seq2.forward(masks);
-        masks = self.seq3.forward(masks);
-        masks = self.seq4.forward(masks);
-        masks = self.seq5.forward(masks);
-        masks = self.seq6.forward(masks);
-        masks = self.seq7.forward(masks);
+        masks = self.mask_downscaling0.forward(masks);
+        masks = self.mask_downscaling1.forward(masks);
+        masks = self.mask_downscaling2.forward(masks);
+        masks = self.mask_downscaling3.forward(masks);
+        masks = self.mask_downscaling4.forward(masks);
+        masks = self.mask_downscaling5.forward(masks);
+        masks = self.mask_downscaling6.forward(masks);
         masks
     }
 
@@ -298,20 +296,20 @@ mod test {
     const EMBED_DIM: usize = 128;
 
     fn _init() -> PromptEncoder<TestBackend> {
-        let mut prompt_encoder = PromptEncoder::new(
+        let prompt_encoder = PromptEncoder::new(
             EMBED_DIM,
             Size(32, 32),
             Size(512, 512),
             MASK_IN_CHANS,
             Some(Activation::GELU),
         );
-        prompt_encoder = load_module("prompt_encoder", prompt_encoder);
         prompt_encoder
     }
 
     #[test]
     fn test_prompt_encoder_embed_points() {
-        let prompt_encoder = _init();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_embed_points", prompt_encoder);
 
         let points = random_tensor([32, 1, 2], 1);
         let labels = random_tensor([32, 1], 2);
@@ -324,7 +322,8 @@ mod test {
 
     #[test]
     fn test_prompt_encoder_embed_boxes() {
-        let prompt_encoder = _init();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_embed_boxes", prompt_encoder);
 
         let boxes = random_tensor([32, 1, 2], 1);
         let output = prompt_encoder._embed_boxes(boxes.clone());
@@ -335,7 +334,9 @@ mod test {
 
     #[test]
     fn test_prompt_encoder_embed_masks() {
-        let prompt_encoder = _init();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_embed_masks", prompt_encoder);
+
 
         let masks = random_tensor([8, 1, 4, 4], 1);
         let output = prompt_encoder._embed_masks(masks.clone());
@@ -345,7 +346,8 @@ mod test {
     }
     #[test]
     fn test_prompt_encoder_forward() {
-        let prompt_encoder = _init();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_forward", prompt_encoder);
 
         let points = random_tensor([8, 1, 2], 1);
         let labels = random_tensor([8, 1], 2);
