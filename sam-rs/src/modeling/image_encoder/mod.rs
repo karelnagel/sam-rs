@@ -19,10 +19,10 @@ pub struct ImageEncoderViT<B: Backend> {
     patch_embed: PatchEmbed<B>,
     pos_embed: Option<Param<Tensor<B, 4>>>,
     blocks: Vec<Block<B>>,
-    neck1: Conv2d<B>,
-    neck2: LayerNorm2d<B>,
-    neck3: Conv2d<B>,
-    neck4: LayerNorm2d<B>,
+    neck0: Conv2d<B>,
+    neck1: LayerNorm2d<B>,
+    neck2: Conv2d<B>,
+    neck3: LayerNorm2d<B>,
 }
 impl<B: Backend> ImageEncoderViT<B> {
     // Args:
@@ -112,24 +112,24 @@ impl<B: Backend> ImageEncoderViT<B> {
             blocks.push(block);
         }
 
-        let neck1 = Conv2dConfig::new([embed_dim, out_chans], [1, 1])
+        let neck0 = Conv2dConfig::new([embed_dim, out_chans], [1, 1])
             .with_bias(false)
             .init();
-        let neck2 = LayerNorm2d::new(out_chans, None);
-        let neck3 = Conv2dConfig::new([out_chans, out_chans], [3, 3])
+        let neck1 = LayerNorm2d::new(out_chans, None);
+        let neck2 = Conv2dConfig::new([out_chans, out_chans], [3, 3])
             .with_bias(false)
             .with_padding(Conv2dPaddingConfig::Explicit(1, 1))
             .init();
-        let neck4 = LayerNorm2d::new(out_chans, None);
+        let neck3 = LayerNorm2d::new(out_chans, None);
         Self {
             img_size,
             patch_embed,
             pos_embed,
             blocks,
+            neck0,
             neck1,
             neck2,
             neck3,
-            neck4,
         }
     }
     pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
@@ -143,10 +143,10 @@ impl<B: Backend> ImageEncoderViT<B> {
         self.neck(x.permute([0, 3, 1, 2]))
     }
     fn neck(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
-        let mut x = self.neck1.forward(x);
+        let mut x = self.neck0.forward(x);
+        x = self.neck1.forward(x);
         x = self.neck2.forward(x);
         x = self.neck3.forward(x);
-        x = self.neck4.forward(x);
         x
     }
 }
@@ -162,16 +162,16 @@ mod test {
     #[test]
     fn test_image_encoder() {
         let act = Activation::GELU;
-        let img_size = 32;
+        let img_size = 4;
         let mut image_encoder = ImageEncoderViT::<TestBackend>::new(
             Some(img_size),
             Some(4),
             Some(3),
             Some(80),
-            Some(32),
+            Some(4),
             Some(16),
             Some(4.0),
-            Some(256),
+            Some(32),
             Some(true),
             act,
             Some(true),
