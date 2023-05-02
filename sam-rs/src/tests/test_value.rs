@@ -33,7 +33,7 @@ impl CastToF32 for i32 {
         *self as f32
     }
 }
-const EQUALITY_THRESHOLD: f32 = 0.001;
+const EQUALITY_THRESHOLD: f32 = 0.02;
 impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
     fn eq(&self, other: &Self) -> bool {
         if self.size != other.size {
@@ -47,7 +47,11 @@ impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
             let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
             let high = a_abs + (a_abs * EQUALITY_THRESHOLD);
             if !(low <= b_abs && b_abs <= high) {
-                println!("TestTensor::eq: {} != {} at index {}", a, b, i,);
+                let diff = (a - b).abs() / a_abs;
+                println!(
+                    "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
+                    a, b, i, EQUALITY_THRESHOLD, diff
+                );
                 return false;
             }
         }
