@@ -3,4 +3,4 @@ test-inputs/
 test-outputs/
 error.json
 __pycache__/
-*.bin
+*.bin.gz
