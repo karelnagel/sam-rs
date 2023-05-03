@@ -47,11 +47,13 @@ impl<B: Backend, const D: usize> TensorSlice<D, bool> for Tensor<B, D, Bool> {
         (value, shape)
     }
 }
-pub trait TensorHelpers<B: Backend, const D: usize> {
+pub trait TensorHelpers<B: Backend, const D: usize, K: TensorKind<B> + BasicOps<B>> {
     fn calc_dims<const D2: usize>(&self, dims: [usize; D2]) -> [usize; D2];
-    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2>;
+    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2, K>;
 }
-impl<B: Backend, const D: usize> TensorHelpers<B, D> for Tensor<B, D> {
+impl<B: Backend, const D: usize, K: TensorKind<B> + BasicOps<B>> TensorHelpers<B, D, K>
+    for Tensor<B, D, K>
+{
     fn calc_dims<const D2: usize>(&self, dims: [usize; D2]) -> [usize; D2] {
         let max_count = dims.iter().filter(|&&x| x == usize::MAX).count();
         assert!(
@@ -68,7 +70,7 @@ impl<B: Backend, const D: usize> TensorHelpers<B, D> for Tensor<B, D> {
                 .fold(1, |acc, &x| acc * x);
         dims.map(|x| if x == usize::MAX { elems } else { x })
     }
-    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2> {
+    fn reshape_max<const D2: usize>(&self, dims: [usize; D2]) -> Tensor<B, D2, K> {
         self.clone().reshape(self.calc_dims(dims))
     }
 }

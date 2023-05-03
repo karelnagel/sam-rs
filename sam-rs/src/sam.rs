@@ -212,14 +212,14 @@ mod test {
         let mut sam = build_sam_test::<TestBackend>(None);
         let input = vec![
             Input {
-                image: random_tensor_int([3, 8, 8], 1),
+                image: random_tensor_int([3, 8, 8], 1, 255.),
                 boxes: random_tensor([4, 4, 4], 1),
                 original_size: Size(100, 200),
                 mask_inputs: None,
                 points: None,
             },
             Input {
-                image: random_tensor_int([3, 8, 8], 1),
+                image: random_tensor_int([3, 8, 8], 1, 255.),
                 boxes: random_tensor([4, 4, 4], 1),
                 original_size: Size(50, 80),
                 mask_inputs: None,
@@ -256,7 +256,7 @@ mod test {
     fn test_sam_preprocess() {
         let sam = build_sam_test::<TestBackend>(None);
 
-        let input = random_tensor_int([3, 171, 128], 1);
+        let input = random_tensor_int([3, 171, 128], 1, 255.);
         let output = sam.preprocess(input.clone());
         let file = Test::open("sam_preprocess");
         file.compare("input", input);

@@ -70,9 +70,10 @@ pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize)
 pub fn random_tensor_int<B: Backend, const D: usize>(
     shape: [usize; D],
     seed: usize,
+    multiply: f32,
 ) -> Tensor<B, D, Int> {
     let slice = random_slice(&shape, seed);
-    let slice = slice.iter().map(|x| *x as i32).collect();
+    let slice = slice.iter().map(|x| (*x * multiply) as i32).collect();
     Tensor::of_slice(slice, shape)
 }
 

@@ -131,9 +131,9 @@ where
     ///     a subsequent iteration as mask input.
     pub fn predict(
         &self,
-        point_coords: Option<Tensor<B, 2>>,
+        point_coords: Option<Tensor<B, 2, Int>>,
         point_labels: Option<Tensor<B, 1>>,
-        boxes: Option<Tensor<B, 2>>,
+        boxes: Option<Tensor<B, 2, Int>>,
         mask_input: Option<Tensor<B, 3>>,
         multimask_output: bool,
         _return_logits: bool,
@@ -153,7 +153,7 @@ where
             );
             let point_coords = self
                 .transfrom
-                .apply_coords(point_coords, self.original_size.unwrap());
+                .apply_coords(point_coords, self.original_size.unwrap()); // Todo unsqueeze wrong
             coords_torch = Some(point_coords.unsqueeze());
             labels_torch = Some(point_labels.unwrap().unsqueeze());
         }
@@ -278,7 +278,7 @@ mod test {
         let sam = build_sam_test(None);
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = random_tensor_int([120, 180, 3], 1) * 255;
+            let image = random_tensor_int([120, 180, 3], 1, 255.);
             predictor.set_image(image, super::ImageFormat::RGB);
         }
 
@@ -300,7 +300,7 @@ mod test {
     fn test_predictor_set_torch_image() {
         let mut predictor = init(false);
 
-        let image = random_tensor_int([1, 3, 683, 1024], 1);
+        let image = random_tensor_int([1, 3, 683, 1024], 1, 255.);
         let original_size = Size(120, 180);
         predictor.set_torch_image(image, original_size);
         let file = Test::open("predictor_set_torch_image");
@@ -314,7 +314,7 @@ mod test {
     fn test_predictor_predict() {
         let predictor = init(true);
 
-        let point_coords = random_tensor([1, 2], 1);
+        let point_coords = random_tensor_int([1, 2], 1, 255.);
         let point_labels = random_tensor([1], 1) * 255;
         let (masks, iou_predictions, low_res_masks) = predictor.predict(
             Some(point_coords),
