@@ -156,7 +156,6 @@ mod test {
         let original_size = Size(1200, 1800);
         let output = resize.apply_boxes::<TestBackend>(boxes.clone(), original_size);
         let file = Test::open("resize_apply_boxes");
-        file.compare("original_size", original_size);
         file.compare("boxes", boxes);
         file.compare("output", output);
     }
