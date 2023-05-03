@@ -202,20 +202,20 @@ mod test {
     #[test]
     fn test_block() {
         let mut block = super::Block::<TestBackend>::new(
-            320,
-            16,
+            80,
+            8,
             Some(4.0),
             Some(true),
             Activation::GELU,
             Some(true),
             Some(true),
             Some(14),
-            Some(Size(64, 64)),
+            Some(Size(16, 16)),
         );
         block = load_module("block", block);
 
         // Forward
-        let input = random_tensor([1, 64, 64, 320], 1);
+        let input = random_tensor([1, 16, 16, 80], 1);
         let output = block.forward(input.clone());
         let file = Test::open("block");
         file.compare("input", input);

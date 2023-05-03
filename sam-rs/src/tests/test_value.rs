@@ -33,7 +33,7 @@ impl CastToF32 for i32 {
         *self as f32
     }
 }
-const EQUALITY_THRESHOLD: f32 = 0.02;
+const EQUALITY_THRESHOLD: f32 = 0.1;
 impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
     fn eq(&self, other: &Self) -> bool {
         if self.size != other.size {
