@@ -3,6 +3,7 @@ use burn::tensor::backend::Backend;
 use burn::tensor::{Bool, Int, Tensor};
 use serde::{Deserialize, Serialize};
 
+use crate::burn_helpers::ToFloat;
 use crate::sam::Sam;
 use crate::utils::transforms::ResizeLongestSide;
 
@@ -95,8 +96,8 @@ where
         );
         self.original_size = Some(original_size);
         self.input_size = Some(Size(shape[2], shape[3]));
-        let input_image = self.model.preprocess(transformed_image.unsqueeze());
-        let features = self.model.image_encoder.forward(input_image.unsqueeze());
+        let input_image = self.model.preprocess(transformed_image);
+        let features = self.model.image_encoder.forward(input_image);
         self.features = Some(features);
         self.is_image_set = true;
     }
@@ -132,11 +133,10 @@ where
     pub fn predict(
         &self,
         point_coords: Option<Tensor<B, 2, Int>>,
-        point_labels: Option<Tensor<B, 1>>,
+        point_labels: Option<Tensor<B, 1, Int>>,
         boxes: Option<Tensor<B, 2, Int>>,
         mask_input: Option<Tensor<B, 3>>,
         multimask_output: bool,
-        _return_logits: bool,
     ) -> (Tensor<B, 3, Bool>, Tensor<B, 1>, Tensor<B, 3>) {
         // assert_eq!(
         //     &point_labels.unwrap().kind(),
@@ -147,21 +147,22 @@ where
         let (mut coords_torch, mut labels_torch, mut box_torch, mut mask_input_torch) =
             (None, None, None, None);
         if let Some(point_coords) = point_coords {
-            assert!(
-                point_labels.is_some(),
-                "point_labels must be supplied if point_coords is supplied."
-            );
             let point_coords = self
                 .transfrom
-                .apply_coords(point_coords, self.original_size.unwrap()); // Todo unsqueeze wrong
+                .apply_coords(point_coords, self.original_size.unwrap());
             coords_torch = Some(point_coords.unsqueeze());
-            labels_torch = Some(point_labels.unwrap().unsqueeze());
+            labels_torch = Some(
+                point_labels
+                    .expect("point_labels must be supplied if point_coords is supplied.")
+                    .to_float()
+                    .unsqueeze(),
+            );
         }
         if let Some(boxes) = boxes {
             let boxes = self
                 .transfrom
                 .apply_boxes(boxes, self.original_size.unwrap());
-            box_torch = Some(boxes.unsqueeze());
+            box_torch = Some(boxes);
         }
         if let Some(mask_input) = mask_input {
             mask_input_torch = Some(mask_input.unsqueeze());
@@ -172,9 +173,8 @@ where
             box_torch,
             mask_input_torch,
             multimask_output,
-            _return_logits,
         );
-        let masks = masks.unsqueeze(); //.select(0, 0);
+        let masks = masks.select(0, 0);
         let iou_predictions = iou_predictions.select(0, 0);
         let low_res_masks = low_res_masks.select(0, 0);
         (masks, iou_predictions, low_res_masks)
@@ -219,7 +219,6 @@ where
         boxes: Option<Tensor<B, 2>>,
         mask_input: Option<Tensor<B, 4>>,
         multimask_output: bool,
-        _return_logits: bool,
     ) -> (Tensor<B, 4, Bool>, Tensor<B, 2>, Tensor<B, 4>) {
         assert!(self.is_image_set, "Must set image before predicting.");
         let point = match point_coords {
@@ -315,15 +314,9 @@ mod test {
         let predictor = init(true);
 
         let point_coords = random_tensor_int([1, 2], 1, 255.);
-        let point_labels = random_tensor([1], 1) * 255;
-        let (masks, iou_predictions, low_res_masks) = predictor.predict(
-            Some(point_coords),
-            Some(point_labels),
-            None,
-            None,
-            true,
-            false,
-        );
+        let point_labels = random_tensor_int([1], 1, 1.);
+        let (masks, iou_predictions, low_res_masks) =
+            predictor.predict(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict");
         file.compare("masks", masks);
         file.compare("iou_predictions", iou_predictions);
@@ -337,14 +330,8 @@ mod test {
         let point_coords = random_tensor([1, 1, 2], 1);
         let point_labels = random_tensor([1, 1], 1);
 
-        let (masks, iou_predictions, low_res_masks) = predictor.predict_torch(
-            Some(point_coords),
-            Some(point_labels),
-            None,
-            None,
-            true,
-            false,
-        );
+        let (masks, iou_predictions, low_res_masks) =
+            predictor.predict_torch(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict_torch");
         file.compare("masks", masks);
         file.compare("iou_predictions", iou_predictions);

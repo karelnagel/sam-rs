@@ -30,7 +30,7 @@ mod test {
 
         //Example inputs
         let input_point = Tensor::of_slice(vec![170, 375], [1, 2]);
-        let input_label = Tensor::of_slice(vec![1.], [1]);
+        let input_label = Tensor::of_slice(vec![1], [1]);
         file.compare("input_point", input_point.clone());
         file.compare("input_label", input_label.clone());
 
@@ -40,7 +40,6 @@ mod test {
             None,
             None,
             true,
-            false,
         );
         file.compare("masks", masks);
         file.compare("scores", scores);
