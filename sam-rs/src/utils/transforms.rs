@@ -43,7 +43,7 @@ impl ResizeLongestSide {
     ) -> Tensor<B, D, Float> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
-        let coords =  coords.clone().to_float();
+        let coords = coords.clone().to_float();
         let coords_0 = coords.narrow(D - 1, 0, 1) * (new_w as f64 / old_w as f64);
         let coords_1 = coords.narrow(D - 1, 1, 1) * (new_h as f64 / old_h as f64);
         Tensor::cat(vec![coords_0, coords_1], D - 1)
@@ -72,26 +72,22 @@ impl ResizeLongestSide {
 
     // Expects a torch tensor with length 2 in the last dimension. Requires the
     // original image size in (H, W) format.
-    pub fn apply_coords_torch<B: Backend>(
+    pub fn apply_coords_torch<B: Backend, const D: usize>(
         &self,
-        coords: Tensor<B, 3, Float>,
+        coords: Tensor<B, D, Int>, //Maybe int
         original_size: Size,
-    ) -> Tensor<B, 3, Float> {
+    ) -> Tensor<B, D, Float> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
-        let mut coords = coords.clone();
+        let coords = coords.clone().to_float();
 
         // Update the first column of coords
-        let coords_0 = coords
-            .select::<2>(1, 0)
-            .mul_scalar(new_w as f32 / old_w as f32);
-        coords = coords.select(1, 0);
+        let coords_0: Tensor<B, 3> = coords.select(1, 0).mul_scalar(new_w as f32 / old_w as f32);
+        Tensor::copy_(&mut coords.select(1, 0), coords_0);
 
         // Update the second column of coords
-        let coords_1 = coords
-            .select::<2>(1, 1)
-            .mul_scalar(new_h as f32 / old_h as f32);
-        coords = coords.select(1, 1);
+        let coords_1: Tensor<B, 3> = coords.select(1, 1).mul_scalar(new_h as f32 / old_h as f32);
+        coords.select(1, 1).copy_(coords_1);
         coords
     }
 
@@ -99,7 +95,7 @@ impl ResizeLongestSide {
     // size in (H, W) format.
     pub fn apply_boxes_torch<B: Backend>(
         &self,
-        boxes: Tensor<B, 2, Float>,
+        boxes: Tensor<B, 2, Int>,
         original_size: Size,
     ) -> Tensor<B, 2, Float> {
         let boxes = self.apply_coords_torch(boxes.reshape_max([usize::MAX, 2, 2]), original_size);
@@ -119,7 +115,7 @@ impl ResizeLongestSide {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend},
+        tests::helpers::{random_tensor_int, Test, TestBackend},
     };
 
     #[test]
@@ -172,7 +168,7 @@ mod test {
     #[test]
     fn test_resize_coords_torch() {
         let resize = super::ResizeLongestSide::new(64);
-        let coords = random_tensor::<TestBackend, 3>([32, 32, 2], 1);
+        let coords = random_tensor_int::<TestBackend, 2>([32, 32], 1, 255.);
         let original_size = Size(32, 32);
         let output = resize.apply_coords_torch(coords.clone(), original_size);
         let file = Test::open("resize_apply_coords_torch");
@@ -183,7 +179,7 @@ mod test {
     #[test]
     fn test_resize_boxes_torch() {
         let resize = super::ResizeLongestSide::new(64);
-        let boxes = random_tensor::<TestBackend, 2>([32, 32], 1);
+        let boxes = random_tensor_int::<TestBackend, 2>([32, 32], 1, 255.);
         let original_size = Size(32, 32);
         let output = resize.apply_boxes_torch(boxes.clone(), original_size);
         let file = Test::open("resize_apply_boxes_torch");
