@@ -20,7 +20,7 @@ pub struct PromptEncoder<B: Backend> {
     pub embed_dim: usize,
     pub input_image_size: Size,
     image_embedding_size: Size,
-    pe_layer: PositionEmbeddingRandom<B>,
+    pe_layer: PositionEmbeddingRandom,
     point_embeddings: Vec<Embedding<B>>,
     no_mask_embed: Embedding<B>,
     not_a_point_embed: Embedding<B>,

@@ -1,4 +1,4 @@
-use burn::tensor::backend::Backend;
+use burn::{module::Module, record::SentitiveCompactRecordSettings, tensor::backend::Backend};
 
 use crate::{
     modeling::{
@@ -52,7 +52,7 @@ where
     let image_embedding_size = img_size / vit_patch_size;
     let activation = Activation::GELU;
     let activation_relu = Activation::ReLU;
-    Sam::new(
+    let mut sam = Sam::new(
         ImageEncoderViT::new(
             Some(img_size),
             Some(vit_patch_size),
@@ -87,7 +87,13 @@ where
         ),
         Some(vec![123.675, 116.28, 103.53]),
         Some(vec![58.395, 57.12, 57.375]),
-    )
+    );
+    if let Some(checkpoint) = _checkpoint {
+        let record =
+            burn::record::Record::load::<SentitiveCompactRecordSettings>(checkpoint.into()).unwrap();
+       sam =  sam.load_record(record);
+    }
+    sam
 }
 
 #[cfg(test)]
@@ -100,8 +106,6 @@ mod test {
         let file = Test::open(name);
         file.compare("mask_threshold", sam.mask_threshold);
         file.compare("image_format", sam.image_format);
-        file.compare("pixel_mean", sam.pixel_mean.val());
-        file.compare("pixel_std", sam.pixel_std.val());
         file.compare(
             "mask_decoder.num_mask_tokens",
             sam.mask_decoder.num_mask_tokens,

@@ -15,8 +15,8 @@ pub struct Sam<B: Backend> {
     pub image_encoder: ImageEncoderViT<B>,
     pub prompt_encoder: PromptEncoder<B>,
     pub mask_decoder: MaskDecoder<B>,
-    pub pixel_mean: Param<Tensor<B, 3>>,
-    pub pixel_std: Param<Tensor<B, 3>>,
+    pub pixel_mean: Vec<f32>,
+    pub pixel_std: Vec<f32>,
     pub mask_threshold: f64,
     pub image_format: ImageFormat,
 }
@@ -56,23 +56,22 @@ where
     ) -> Self {
         let pixel_mean = pixel_mean.unwrap_or(vec![123.675, 116.28, 103.53]);
         let pixel_std = pixel_std.unwrap_or(vec![58.395, 57.12, 57.375]);
-        let pixel_mean = Tensor::of_slice(pixel_mean.to_vec(), [pixel_mean.len()]).reshape_max([
-            usize::MAX,
-            1,
-            1,
-        ]);
-        let pixel_std =
-            Tensor::of_slice(pixel_std.to_vec(), [pixel_std.len()]).reshape_max([usize::MAX, 1, 1]);
 
         Self {
             image_encoder,
             prompt_encoder,
             mask_decoder,
-            pixel_mean: pixel_mean.into(),
-            pixel_std: pixel_std.into(),
+            pixel_mean,
+            pixel_std,
             mask_threshold: 0.0,
             image_format: ImageFormat::RGB,
         }
+    }
+    fn pixel_mean(&self) -> Tensor<B, 3> {
+        Tensor::of_slice(self.pixel_mean.to_vec(), [self.pixel_mean.len()]).reshape_max([usize::MAX, 1, 1])
+    }
+    fn pixel_std(&self) -> Tensor<B, 3> {
+        Tensor::of_slice(self.pixel_std.to_vec(), [self.pixel_std.len()]).reshape_max([usize::MAX, 1, 1])
     }
 
     /// Predicts masks end-to-end from provided images and prompts.
@@ -185,7 +184,7 @@ where
     /// Normalize pixel values and pad to a square input.
     pub fn preprocess<const D: usize>(&self, x: Tensor<B, D, Int>) -> Tensor<B, D, Float> {
         let x: Tensor<B, D, Float> =
-            (x.to_float() - self.pixel_mean.val().unsqueeze()) / self.pixel_std.val().unsqueeze();
+            (x.to_float() - self.pixel_mean().unsqueeze()) / self.pixel_std().unsqueeze();
         let size = x.dims();
         let (h, w) = (size[D - 2], size[D - 1]);
 

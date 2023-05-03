@@ -1,6 +1,7 @@
 pub mod build_sam;
-pub mod modeling;
+pub mod converter;
 pub mod helpers;
+pub mod modeling;
 pub mod sam;
 pub mod sam_predictor;
 pub mod tests;
@@ -12,4 +13,3 @@ extern crate md5;
 extern crate ndarray;
 extern crate serde;
 extern crate serde_json;
-
