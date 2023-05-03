@@ -133,8 +133,6 @@ fn add_decomposed_rel_pos<B: Backend>(
 
     let rel_h: Tensor<B, 4> = Tensor::einsum("bhwc,hkc->bhwk", r_q.clone(), rh);
     let rel_w: Tensor<B, 4> = Tensor::einsum("bhwc,wkc->bhwk", r_q, rw);
-    dbg!(&rel_h.shape());
-    dbg!(&rel_w.shape());
     let attn = attn.reshape([b, q_h, q_w, k_h, k_w])
         + rel_h.unsqueeze().permute([1, 2, 3, 4, 0])
         + rel_w.unsqueeze().permute([1, 2, 3, 0, 4]);

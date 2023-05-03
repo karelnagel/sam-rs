@@ -54,4 +54,4 @@ def random_ndarray(shape:list,seed:int=0)->np.ndarray:
     return random_tensor(shape,seed).detach().cpu().numpy()
 
 def build_sam_test(checkpoint:str=None):
-    return _build_sam(64,4,4,[2,5,8,11],checkpoint)
+    return _build_sam(8,2,2,[2,5,8,11],checkpoint)

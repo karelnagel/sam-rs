@@ -33,7 +33,7 @@ pub fn build_sam_test<B: Backend>(checkpoint: Option<&str>) -> Sam<B>
 where
     <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
 {
-    _build_sam(64, 4, 4, vec![2, 5, 8, 11], checkpoint)
+    _build_sam(8, 2, 2, vec![2, 5, 8, 11], checkpoint)
 }
 
 fn _build_sam<B: Backend>(

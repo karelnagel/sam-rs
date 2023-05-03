@@ -166,7 +166,7 @@ where
     }
 
     ///Embeds box prompts.
-    fn _embed_boxes(&self, boxes: Tensor<B, 3>) -> Tensor<B, 3> {
+    fn _embed_boxes(&self, boxes: Tensor<B, 2>) -> Tensor<B, 3> {
         let boxes = boxes + 0.5; // Shift to center of pixel
         let coords = boxes.reshape_max([usize::MAX, 2, 2]);
         let mut corner_embedding = self
@@ -216,7 +216,7 @@ where
     fn _get_batch_size(
         &self,
         points: Option<(Tensor<B, 3>, Tensor<B, 2>)>,
-        boxes: Option<Tensor<B, 3>>,
+        boxes: Option<Tensor<B, 2>>,
         masks: Option<Tensor<B, 4>>,
     ) -> usize {
         if let Some((point, _)) = points {
@@ -246,7 +246,7 @@ where
     pub fn forward(
         &self,
         points: Option<(Tensor<B, 3>, Tensor<B, 2>)>,
-        boxes: Option<Tensor<B, 3>>,
+        boxes: Option<Tensor<B, 2>>,
         masks: Option<Tensor<B, 4>>,
     ) -> (Tensor<B, 3>, Tensor<B, 4>) {
         let bs = self._get_batch_size(points.clone(), boxes.clone(), masks.clone());
@@ -325,7 +325,7 @@ mod test {
         let mut prompt_encoder = _init();
         prompt_encoder = load_module("prompt_encoder_embed_boxes", prompt_encoder);
 
-        let boxes = random_tensor([32, 1, 2], 1);
+        let boxes = random_tensor([32, 4], 1);
         let output = prompt_encoder._embed_boxes(boxes.clone());
         let file = Test::open("prompt_encoder_embed_boxes");
         file.compare("boxes", boxes);

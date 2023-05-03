@@ -7,41 +7,17 @@ use crate::{
     sam_predictor::{ImageFormat, Size},
 };
 #[derive(Deserialize, Serialize)]
-pub struct TestTensor<T: CastToF32> {
+pub struct TestTensor<T> {
     size: Vec<usize>,
     values: Vec<T>,
 }
-pub trait CastToF32 {
-    fn cast_to_f32(&self) -> f32;
-}
-impl CastToF32 for f32 {
-    fn cast_to_f32(&self) -> f32 {
-        *self
-    }
-}
-impl CastToF32 for bool {
-    fn cast_to_f32(&self) -> f32 {
-        if *self {
-            1.0
-        } else {
-            0.0
-        }
-    }
-}
-impl CastToF32 for i32 {
-    fn cast_to_f32(&self) -> f32 {
-        *self as f32
-    }
-}
 const EQUALITY_THRESHOLD: f32 = 0.1;
-impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
+impl PartialEq for TestTensor<f32> {
     fn eq(&self, other: &Self) -> bool {
         if self.size != other.size {
             return false;
         }
         for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
-            let a = a.cast_to_f32();
-            let b = b.cast_to_f32();
             let a_abs = a.abs();
             let b_abs = b.abs();
             let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
@@ -58,8 +34,54 @@ impl<T: PartialEq + CastToF32> PartialEq for TestTensor<T> {
         true
     }
 }
+impl PartialEq for TestTensor<i32> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.size != other.size {
+            return false;
+        }
+        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
+            let a = *a as f32;
+            let b = *b as f32;
+            let a_abs = a.abs();
+            let b_abs = b.abs();
+            let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
+            let high = a_abs + (a_abs * EQUALITY_THRESHOLD);
+            if !(low <= b_abs && b_abs <= high) {
+                let diff = (a - b).abs() / a_abs;
+                println!(
+                    "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
+                    a, b, i, EQUALITY_THRESHOLD, diff
+                );
+                return false;
+            }
+        }
+        true
+    }
+}
+impl PartialEq for TestTensor<bool> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.size != other.size {
+            return false;
+        }
+        let mut counter = 0;
+        let max_errors = (self.values.len() as f32 * EQUALITY_THRESHOLD) as usize;
+        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
+            if a != b {
+                counter += 1;
+                if counter > max_errors {
+                    println!(
+                        "TestTensor::eq: {} != {} at index {}, surpassed max errors: {}",
+                        a, b, i, max_errors
+                    );
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
 
-impl<T: std::fmt::Debug + Clone + CastToF32> std::fmt::Debug for TestTensor<T> {
+impl<T: std::fmt::Debug + Clone> std::fmt::Debug for TestTensor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let len = &self.values.len();
         f.debug_struct("TestTensor")

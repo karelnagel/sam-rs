@@ -216,7 +216,7 @@ where
         &self,
         point_coords: Option<Tensor<B, 3>>,
         point_labels: Option<Tensor<B, 2>>,
-        boxes: Option<Tensor<B, 3>>,
+        boxes: Option<Tensor<B, 2>>,
         mask_input: Option<Tensor<B, 4>>,
         multimask_output: bool,
         _return_logits: bool,
