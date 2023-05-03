@@ -7,7 +7,7 @@ use crate::{
     sam_predictor::{ImageFormat, Size},
 };
 #[derive(Deserialize, Serialize)]
-pub struct TestTensor<T> {
+pub struct TestTensor<T: PartialEq> {
     size: Vec<usize>,
     values: Vec<T>,
 }
@@ -81,7 +81,7 @@ impl PartialEq for TestTensor<bool> {
     }
 }
 
-impl<T: std::fmt::Debug + Clone> std::fmt::Debug for TestTensor<T> {
+impl<T: std::fmt::Debug + Clone+PartialEq> std::fmt::Debug for TestTensor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let len = &self.values.len();
         f.debug_struct("TestTensor")

@@ -122,7 +122,7 @@ where
             .collect::<Vec<_>>();
         let input_images = Tensor::stack(processed_images.clone(), 0);
         let image_embeddings = self.image_encoder.forward(input_images);
-        let image_embeddings = image_embeddings.unbind(0);
+        let image_embeddings: Vec<Tensor<B, 3>> = image_embeddings.unbind(0);
         let mut outputs: Vec<Output<B>> = vec![];
         for i in 0..batched_input.len() {
             let image_record = batched_input.get(i).unwrap();
@@ -234,9 +234,9 @@ mod test {
                 format!("iou_predictions{}", i).as_str(),
                 out.iou_predictions.clone(),
             );
-            // if let Some(low_res_logits) = out.low_res_logits.clone() {
-            //     file.compare(format!("low_res_logits{}", i).as_str(), low_res_logits);
-            // }
+            if let Some(low_res_logits) = out.low_res_logits.clone() {
+                file.compare(format!("low_res_logits{}", i).as_str(), low_res_logits);
+            }
         }
     }
     #[test]
