@@ -48,9 +48,9 @@ impl ResizeLongestSide {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
         let coords = coords.clone();
-        let coords_0 = coords.narrow(usize::MAX, 0, 1) * (new_w as f64 / old_w as f64);
-        let coords_1 = coords.narrow(usize::MAX, 1, 1) * (new_h as f64 / old_h as f64);
-        Tensor::cat(vec![coords_0, coords_1], usize::MAX)
+        let coords_0 = coords.narrow(1, 0, 1) * (new_w as f64 / old_w as f64);
+        let coords_1 = coords.narrow(1, 1, 1) * (new_h as f64 / old_h as f64);
+        Tensor::cat(vec![coords_0, coords_1], 1)
     }
 
     // Expects a numpy array shape Bx4. Requires the original image size
