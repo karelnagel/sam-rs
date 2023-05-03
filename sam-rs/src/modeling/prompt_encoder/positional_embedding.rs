@@ -75,12 +75,12 @@ impl PositionEmbeddingRandom {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::helpers::{random_tensor, Test, TestBackend},
     };
 
     #[test]
     fn test_position_embedding_pe_encoding() {
-        let mut pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
+        let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
         // pos_embedding = load_module("position_embedding_random_pe_encoding", pos_embedding);
 
         let input = random_tensor::<TestBackend, 3>([64, 69, 2], 1);
@@ -92,7 +92,7 @@ mod test {
 
     #[test]
     fn test_position_embedding_forward() {
-        let mut pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
+        let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
         // pos_embedding = load_module("position_embedding_random_forward", pos_embedding);
 
         let input = Size(64, 64);
@@ -104,7 +104,7 @@ mod test {
 
     #[test]
     fn test_position_embedding_with_coords() {
-        let mut pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
+        let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
         // pos_embedding = load_module(
         //     "position_embedding_random_forward_with_coords",
         //     pos_embedding,

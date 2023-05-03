@@ -229,6 +229,7 @@ checksum = "9b1ce199063694f33ffb7dd4e0ee620741495c32833cde5aa08f02a0bf96f0c8"
 [[package]]
 name = "burn"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-core",
  "burn-train",
@@ -237,6 +238,7 @@ dependencies = [
 [[package]]
 name = "burn-autodiff"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-common",
  "burn-tensor",
@@ -248,6 +250,7 @@ dependencies = [
 [[package]]
 name = "burn-common"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "const-random",
  "rand 0.8.5",
@@ -258,6 +261,7 @@ dependencies = [
 [[package]]
 name = "burn-core"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "bincode",
  "burn-autodiff",
@@ -281,6 +285,7 @@ dependencies = [
 [[package]]
 name = "burn-dataset"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "derive-new",
  "dirs",
@@ -293,6 +298,7 @@ dependencies = [
 [[package]]
 name = "burn-derive"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -302,6 +308,7 @@ dependencies = [
 [[package]]
 name = "burn-ndarray"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-autodiff",
  "burn-common",
@@ -319,6 +326,7 @@ dependencies = [
 [[package]]
 name = "burn-tch"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-tensor",
  "half",
@@ -330,6 +338,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-tensor-testgen",
  "derive-new",
@@ -345,6 +354,7 @@ dependencies = [
 [[package]]
 name = "burn-tensor-testgen"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -354,6 +364,7 @@ dependencies = [
 [[package]]
 name = "burn-train"
 version = "0.6.0"
+source = "git+https://github.com/karelnagel/burn#ac7560bec8d3d48bb0942f31bc38e31ed2c61354"
 dependencies = [
  "burn-core",
  "derive-new",
@@ -3158,6 +3169,7 @@ checksum = "ef703b7cb59335eae2eb93ceb664c0eb7ea6bf567079d843e09420219668e072"
 name = "sam-example"
 version = "0.0.0"
 dependencies = [
+ "sam-rs",
  "serde",
  "serde_json",
  "tauri",
