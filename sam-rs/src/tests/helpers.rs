@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Debug};
 use burn::{
     module::Module,
     record::{DebugRecordSettings, Record},
-    tensor::{backend::Backend, Tensor},
+    tensor::{backend::Backend, Int, Tensor},
 };
 use burn_tch::TchBackend;
 use serde::{Deserialize, Serialize};
@@ -65,6 +65,14 @@ pub fn random_slice(shape: &[usize], seed: usize) -> Vec<f32> {
 
 pub fn random_tensor<B: Backend, const D: usize>(shape: [usize; D], seed: usize) -> Tensor<B, D> {
     let slice = random_slice(&shape, seed);
+    Tensor::of_slice(slice, shape)
+}
+pub fn random_tensor_int<B: Backend, const D: usize>(
+    shape: [usize; D],
+    seed: usize,
+) -> Tensor<B, D, Int> {
+    let slice = random_slice(&shape, seed);
+    let slice = slice.iter().map(|x| *x as i32).collect();
     Tensor::of_slice(slice, shape)
 }
 

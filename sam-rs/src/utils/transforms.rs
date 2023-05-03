@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Tensor};
+use burn::tensor::{backend::Backend, Float, Int, Tensor};
 use image::{imageops::FilterType, ImageBuffer};
 
 use crate::{
@@ -16,9 +16,9 @@ impl ResizeLongestSide {
     pub fn new(target_length: usize) -> Self {
         Self { target_length }
     }
-    fn resize<B: Backend>(image: Tensor<B, 3>, target_size: Size) -> Tensor<B, 3> {
+    fn resize<B: Backend>(image: Tensor<B, 3, Int>, target_size: Size) -> Tensor<B, 3, Int> {
         let Size(tar_h, tar_w) = target_size;
-        let (image_data, shape): (Vec<f32>, [usize; 3]) = image.to_slice();
+        let (image_data, shape): (Vec<i32>, [usize; 3]) = image.to_slice();
         let image_data = image_data.iter().map(|x| *x as u8).collect::<Vec<u8>>();
         let (width, height) = (shape[1], shape[0]);
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
@@ -28,11 +28,7 @@ impl ResizeLongestSide {
         Tensor::of_slice(resized_img.into_raw(), [tar_h, tar_w, 3])
     }
     // Expects a numpy array with shape HxWxC in uint8 format.
-    pub fn apply_image<B: Backend>(&self, image: Tensor<B, 3>) -> Tensor<B, 3> {
-        // assert!(
-        //     image.kind() == tch::Kind::Uint8,
-        //     "Image must be uint8 format"
-        // );
+    pub fn apply_image<B: Backend>(&self, image: Tensor<B, 3, Int>) -> Tensor<B, 3, Int> {
         let shape = image.dims();
         let target_size = self.get_preprocess_shape(shape[0], shape[1], self.target_length);
         return Self::resize(image, target_size);
@@ -42,9 +38,9 @@ impl ResizeLongestSide {
     // original image size in (H, W) format.
     pub fn apply_coords<B: Backend>(
         &self,
-        coords: Tensor<B, 2>,
+        coords: Tensor<B, 2, Float>,
         original_size: Size,
-    ) -> Tensor<B, 2> {
+    ) -> Tensor<B, 2, Float> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
         let coords = coords.clone();
@@ -57,9 +53,9 @@ impl ResizeLongestSide {
     // in (H, W) format.
     pub fn apply_boxes<B: Backend>(
         &self,
-        boxes: Tensor<B, 2>,
+        boxes: Tensor<B, 2, Float>,
         original_size: Size,
-    ) -> Tensor<B, 2> {
+    ) -> Tensor<B, 2, Float> {
         let boxes = self.apply_coords(boxes, original_size);
         boxes.reshape_max([usize::MAX, 4])
     }
@@ -67,7 +63,7 @@ impl ResizeLongestSide {
     // transformation may not exactly match apply_image. apply_image is
     // the transformation expected by the model.
     //  Expects an image in BCHW format. May not exactly match apply_image.
-    pub fn apply_image_torch<B: Backend>(&self, image: Tensor<B, 4>) -> Tensor<B, 4> {
+    pub fn apply_image_torch<B: Backend>(&self, image: Tensor<B, 4, Int>) -> Tensor<B, 4, Int> {
         let shape = image.dims();
         let (h, w) = (shape[2], shape[3]);
         let target_size = self.get_preprocess_shape(h, w, self.target_length);
@@ -78,9 +74,9 @@ impl ResizeLongestSide {
     // original image size in (H, W) format.
     pub fn apply_coords_torch<B: Backend>(
         &self,
-        coords: Tensor<B, 3>,
+        coords: Tensor<B, 3, Float>,
         original_size: Size,
-    ) -> Tensor<B, 3> {
+    ) -> Tensor<B, 3, Float> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
         let mut coords = coords.clone();
@@ -103,9 +99,9 @@ impl ResizeLongestSide {
     // size in (H, W) format.
     pub fn apply_boxes_torch<B: Backend>(
         &self,
-        boxes: Tensor<B, 2>,
+        boxes: Tensor<B, 2, Float>,
         original_size: Size,
-    ) -> Tensor<B, 2> {
+    ) -> Tensor<B, 2, Float> {
         let boxes = self.apply_coords_torch(boxes.reshape_max([usize::MAX, 2, 2]), original_size);
         boxes.reshape_max([usize::MAX, 4])
     }
@@ -123,7 +119,7 @@ impl ResizeLongestSide {
 mod test {
     use crate::{
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend},
     };
 
     #[test]
@@ -136,7 +132,7 @@ mod test {
     #[test]
     fn test_resize_apply_image() {
         let resize = super::ResizeLongestSide::new(64);
-        let input = random_tensor::<TestBackend, 3>([120, 180, 3], 1) * 255;
+        let input = random_tensor_int::<TestBackend, 3>([120, 180, 3], 1) * 255;
         let output = resize.apply_image(input.clone());
         let file = Test::open("resize_apply_image");
         file.compare("input", input);
@@ -169,7 +165,7 @@ mod test {
     #[test]
     fn test_resize_apply_image_torch() {
         let resize = super::ResizeLongestSide::new(64);
-        let input = random_tensor::<TestBackend, 4>([1, 3, 32, 32], 1);
+        let input = random_tensor_int::<TestBackend, 4>([1, 3, 32, 32], 1);
         let output = resize.apply_image_torch(input.clone());
         let file = Test::open("resize_apply_image_torch");
         file.compare("input", input);

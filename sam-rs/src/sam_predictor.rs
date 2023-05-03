@@ -1,9 +1,8 @@
 use burn::module::Module;
 use burn::tensor::backend::Backend;
-use burn::tensor::{Bool, Tensor};
+use burn::tensor::{Bool, Int, Tensor};
 use serde::{Deserialize, Serialize};
 
-use crate::burn_helpers::TensorHelpers;
 use crate::sam::Sam;
 use crate::utils::transforms::ResizeLongestSide;
 
@@ -58,7 +57,7 @@ where
     ///       image (np.ndarray): The image for calculating masks. Expects an
     ///         image in HWC uint8 format, with pixel values in [0, 255].
     ///       image_format (str): The color format of the image, in ['RGB', 'BGR'].
-    pub fn set_image(&mut self, image: Tensor<B, 3>, image_format: ImageFormat) {
+    pub fn set_image(&mut self, image: Tensor<B, 3, Int>, image_format: ImageFormat) {
         // assert!(
         //     image.kind() == ,
         //     "Image should be uint8, but is {:?}",
@@ -66,7 +65,7 @@ where
         // );
 
         let image = if image_format != self.model.image_format {
-            image.flip(vec![usize::MAX])
+            image.flip(vec![2]) // idk
         } else {
             image.clone()
         };
@@ -85,7 +84,7 @@ where
     ///     1x3xHxW, which has been transformed with ResizeLongestSide.
     ///   original_image_size (tuple(int, int)): The size of the image
     ///     before transformation, in (H, W) format.
-    pub fn set_torch_image(&mut self, transformed_image: Tensor<B, 4>, original_size: Size) {
+    pub fn set_torch_image(&mut self, transformed_image: Tensor<B, 4, Int>, original_size: Size) {
         let shape = transformed_image.dims();
         assert!(
             shape.len() == 4
@@ -271,7 +270,7 @@ mod test {
 
     use crate::{
         build_sam::build_sam_test,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend},
     };
 
     use super::{SamPredictor, Size};
@@ -279,7 +278,7 @@ mod test {
         let sam = build_sam_test(None);
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
-            let image = random_tensor([120, 180, 3], 1) * 255;
+            let image = random_tensor_int([120, 180, 3], 1) * 255;
             predictor.set_image(image, super::ImageFormat::RGB);
         }
 
@@ -301,7 +300,7 @@ mod test {
     fn test_predictor_set_torch_image() {
         let mut predictor = init(false);
 
-        let image = random_tensor([1, 3, 683, 1024], 1);
+        let image = random_tensor_int([1, 3, 683, 1024], 1);
         let original_size = Size(120, 180);
         predictor.set_torch_image(image, original_size);
         let file = Test::open("predictor_set_torch_image");

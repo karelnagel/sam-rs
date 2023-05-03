@@ -93,3 +93,14 @@ impl<B: Backend, const D: usize, K: TensorKind<B> + BasicOps<B>> TensorHelpers2<
         tensor
     }
 }
+
+pub trait ToFloat<B: Backend, const D: usize> {
+    fn to_float(&self) -> Tensor<B, D>;
+}
+impl<B: Backend, const D: usize> ToFloat<B, D> for Tensor<B, D, Int> {
+    fn to_float(&self) -> Tensor<B, D> {
+        let (slice, shape) = self.clone().to_slice();
+        let slice = slice.into_iter().map(|a| a as f32).collect();
+        Tensor::of_slice(slice, shape)
+    }
+}

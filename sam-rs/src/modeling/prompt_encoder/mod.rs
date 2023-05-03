@@ -271,7 +271,7 @@ where
                 .expand(
                     vec![
                         bs,
-                        usize::MAX,
+                        usize::MAX, //Todo seems sketchy
                         self.image_embedding_size.0,
                         self.image_embedding_size.1,
                     ],

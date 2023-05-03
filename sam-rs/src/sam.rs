@@ -1,8 +1,8 @@
 use burn::module::{Module, Param};
-use burn::tensor::Bool;
 use burn::tensor::{backend::Backend, Tensor};
+use burn::tensor::{Bool, Float, Int};
 
-use crate::burn_helpers::{TensorHelpers, TensorSlice};
+use crate::burn_helpers::{TensorHelpers, TensorSlice, ToFloat};
 use crate::{
     modeling::{
         image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,
@@ -22,7 +22,7 @@ pub struct Sam<B: Backend> {
 }
 #[derive(Debug)]
 pub struct Input<B: Backend> {
-    pub image: Tensor<B, 3>,
+    pub image: Tensor<B, 3, Int>,
     pub original_size: Size,
     pub boxes: Tensor<B, 3>,
     pub points: Option<(Tensor<B, 3>, Tensor<B, 2>)>,
@@ -30,8 +30,8 @@ pub struct Input<B: Backend> {
 }
 pub struct Output<B: Backend> {
     pub masks: Tensor<B, 4, Bool>,
-    pub iou_predictions: Tensor<B, 2>,
-    pub low_res_logits: Option<Tensor<B, 4>>,
+    pub iou_predictions: Tensor<B, 2, Float>,
+    pub low_res_logits: Option<Tensor<B, 4, Float>>,
 }
 impl<B: Backend> Sam<B>
 where
@@ -171,10 +171,10 @@ where
     ///     is given by original_size.
     pub fn postprocess_masks(
         &self,
-        masks: Tensor<B, 4>,
+        masks: Tensor<B, 4, Float>,
         input: Size,
         original: Size,
-    ) -> Tensor<B, 4> {
+    ) -> Tensor<B, 4, Float> {
         let output_size = vec![self.image_encoder.img_size, self.image_encoder.img_size];
         let masks = masks.upsample_bilinear2d::<4>(output_size, false, None, None);
         let masks: Tensor<B, 4> = masks.narrow(2, 0, input.0);
@@ -185,8 +185,8 @@ where
     }
 
     /// Normalize pixel values and pad to a square input.
-    pub fn preprocess(&self, x: Tensor<B, 3>) -> Tensor<B, 3> {
-        let x = (x - self.pixel_mean.val()) / self.pixel_std.val();
+    pub fn preprocess(&self, x: Tensor<B, 3, Int>) -> Tensor<B, 3, Float> {
+        let x: Tensor<B, 3, Float> = (x.to_float() - self.pixel_mean.val()) / self.pixel_std.val();
         let size = x.dims();
         let (h, w) = (size[1], size[2]);
 
@@ -202,7 +202,7 @@ mod test {
     use crate::{
         build_sam::build_sam_test,
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend},
     };
 
     use super::Input;
@@ -212,14 +212,14 @@ mod test {
         let mut sam = build_sam_test::<TestBackend>(None);
         let input = vec![
             Input {
-                image: random_tensor([3, 8, 8], 1),
+                image: random_tensor_int([3, 8, 8], 1),
                 boxes: random_tensor([4, 4, 4], 1),
                 original_size: Size(100, 200),
                 mask_inputs: None,
                 points: None,
             },
             Input {
-                image: random_tensor([3, 8, 8], 1),
+                image: random_tensor_int([3, 8, 8], 1),
                 boxes: random_tensor([4, 4, 4], 1),
                 original_size: Size(50, 80),
                 mask_inputs: None,
@@ -256,7 +256,7 @@ mod test {
     fn test_sam_preprocess() {
         let sam = build_sam_test::<TestBackend>(None);
 
-        let input = random_tensor([3, 171, 128], 1);
+        let input = random_tensor_int([3, 171, 128], 1);
         let output = sam.preprocess(input.clone());
         let file = Test::open("sam_preprocess");
         file.compare("input", input);

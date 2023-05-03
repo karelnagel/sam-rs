@@ -6,7 +6,7 @@ use crate::sam_predictor::Size;
 use burn::{
     module::{Module, Param},
     nn::conv::{Conv2d, Conv2dConfig, Conv2dPaddingConfig},
-    tensor::{backend::Backend, Tensor},
+    tensor::{backend::Backend, Float, Tensor},
 };
 mod attention;
 mod block;
@@ -132,7 +132,7 @@ impl<B: Backend> ImageEncoderViT<B> {
             neck3,
         }
     }
-    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+    pub fn forward(&self, x: Tensor<B, 4, Float>) -> Tensor<B, 4, Float> {
         let mut x = self.patch_embed.forward(x);
         if let Some(pos_embed) = &self.pos_embed {
             x = x + pos_embed.val()

@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Tensor};
+use burn::tensor::{backend::Backend, Int, Tensor};
 // use onnxruntime::{environment::Environment, session::Session, GraphOptimizationLevel};
 use opencv::{
     imgcodecs, imgproc,
@@ -7,12 +7,12 @@ use opencv::{
 
 use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
 
-pub fn load_image<B: Backend>(image_path: &str) -> (Tensor<B, 3>, Size) {
+pub fn load_image<B: Backend>(image_path: &str) -> (Tensor<B, 3, Int>, Size) {
     let image = imgcodecs::imread(image_path, imgcodecs::IMREAD_COLOR).unwrap();
     let mut rgb_image = Mat::default();
     imgproc::cvt_color(&image, &mut rgb_image, imgproc::COLOR_BGR2RGB, 0).unwrap();
     let arr: ndarray::ArrayView3<u8> = rgb_image.try_as_array();
-    let slice: Vec<f32> = vec![];
+    let slice: Vec<i32> = vec![]; //todo
     let shape = [arr.shape()[0], arr.shape()[1], arr.shape()[2]];
     let image = Tensor::of_slice(slice, shape);
     let size = Size(image.dims()[0], image.dims()[1]);
