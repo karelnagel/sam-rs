@@ -36,7 +36,7 @@ impl Test {
         }
     }
     pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
-        let file_value = self.file.values.get(key).unwrap().clone();
+        let file_value = self.file.values.get(key).unwrap();
         assert_eq!(
             file_value,
             &value.into(),
