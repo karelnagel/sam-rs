@@ -129,7 +129,7 @@ def input_to_file(file_name: str, model: nn.Module):
         },
         "item": {**ignored,**data}
     }
-    path = "~/Documents/test-inputs/" + file_name + '.json'
+    path = "~/Documents/sam-models/" + file_name + '.json'
     path = os.path.expanduser(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w') as json_file:

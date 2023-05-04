@@ -1,6 +1,4 @@
 target/
-test-inputs/
-test-outputs/
 error.json
 __pycache__/
 *.bin.gz

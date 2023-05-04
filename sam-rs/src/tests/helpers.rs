@@ -79,7 +79,7 @@ pub fn random_tensor_int<B: Backend, const D: usize>(
 
 pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let home = home::home_dir().unwrap();
-    let path = home.join(format!("Documents/test-inputs/{}.json", name));
+    let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
     let record = Record::load::<DebugRecordSettings>(path).unwrap();
     module.load_record(record)

@@ -30,16 +30,15 @@ fn main() {
 
     let sam = match variant {
         "test" => BuildSam::SamTest,
-        "vit-h" => BuildSam::SamVitH,
-        "vit-b" => BuildSam::SamVitB,
-        "vit-l" => BuildSam::SamVitL,
+        "vit_h" => BuildSam::SamVitH,
+        "vit_b" => BuildSam::SamVitB,
+        "vit_l" => BuildSam::SamVitL,
         _ => panic!("Unknown variant: {}", variant),
     };
     match skip_python {
         true => println!("Skipping python..."),
         false => python(variant, file),
     }
-    python(variant, file);
     convert_sam(sam, file)
 }
 
