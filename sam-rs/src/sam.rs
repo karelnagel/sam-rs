@@ -1,4 +1,4 @@
-use burn::module::{Module, Param};
+use burn::module::{Module};
 use burn::tensor::{backend::Backend, Tensor};
 use burn::tensor::{Bool, Float, Int};
 

@@ -1,4 +1,4 @@
-import { SamVersion, SamVersions, useIsActive, useStore } from "./store";
+import { SamVersion, SamVersions, getRandomId, useIsActive, useStore } from "./store";
 
 function App() {
   const isActive = useIsActive();
@@ -9,6 +9,12 @@ function App() {
   const setModel = useStore((state) => state.setModel);
   const setVersion = useStore((state) => state.setVersion);
   const version = useStore((state) => state.version);
+  const points = useStore((state) => state.points);
+  const addPoint = useStore((state) => state.addPoint);
+  const editPoint = useStore((state) => state.editPoint);
+  const removePoint = useStore((state) => state.removePoint);
+  const predictPoint = useStore((state) => state.predictPoint);
+
   return (
     <div className="h-screen w-screen bg-zinc-300 flex flex-col items-center space-y-3 p-3">
       <p>Select the model that you want to use.</p>
@@ -36,6 +42,21 @@ function App() {
         </div>
       )}
       {isActive && <button onClick={loadImage}>Load image</button>}
+      <div className="flex flex-col space-y-2">
+        {points.map((p) => (
+          <div key={p.id} className="flex space-x-3">
+            <input type="number" value={p.x} onChange={(e) => editPoint(p.id, { x: Number(e.target.value) })} />
+            <input type="number" value={p.y} onChange={(e) => editPoint(p.id, { y: Number(e.target.value) })} />
+            <select value={p.label} onChange={(e) => editPoint(p.id, { label: Number(e.target.value) })}>
+              <option value={0}>Back</option>
+              <option value={1}>Fore</option>
+            </select>
+            <button onClick={() => removePoint(p.id)}>X</button>
+          </div>
+        ))}
+        <button onClick={() => addPoint({ id: getRandomId(), label: 1, x: 0, y: 0 })}>Add point</button>
+        <button onClick={predictPoint}>Predict</button>
+      </div>
     </div>
   );
 }

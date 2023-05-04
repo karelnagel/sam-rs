@@ -32,6 +32,8 @@ export type StoreType = {
   points: Point[];
   addPoint: (point: Point) => void;
   removePoint: (id: string) => void;
+  predictPoint: () => Promise<void>;
+  editPoint: (id: string, point: Partial<Point>) => void;
 };
 export const useStore = create(
   persist<StoreType>(
@@ -88,7 +90,18 @@ export const useStore = create(
         set({ image: path });
       },
       points: [],
-      addPoint: (point) => set((state) => ({ points: [...state.points, point] })),
+      predictPoint: async () => {
+        const points = get().points;
+        await invoke("predict_point", { coords: points.map((p) => [p.x, p.y]), labels: points.map((p) => p.label) });
+      },
+      addPoint: async (point) => {
+        let points = [...get().points, point];
+        set({ points });
+      },
+      editPoint: async (id, point) => {
+        let points = get().points.map((p) => (p.id === id ? { ...p, ...point } : p));
+        set({ points });
+      },
       removePoint: (id) => set((state) => ({ points: state.points.filter((p) => p.id !== id) })),
     }),
     { name: "sam" }

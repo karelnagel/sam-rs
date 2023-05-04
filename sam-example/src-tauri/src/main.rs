@@ -62,7 +62,7 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                             None,
                             true,
                         );
-                        print!("masks: {:?}", masks.dims());
+                        println!("masks: {:?}", masks.dims());
                     }
                 },
                 Err(e) => {
@@ -108,17 +108,17 @@ fn load_image(state: tauri::State<State>, path: String) {
 }
 
 #[tauri::command]
-fn predict_point(state: tauri::State<State>, coords: Vec<i32>, labels: Vec<i32>) {
-    assert_eq!(coords.len(), labels.len() * 2);
+fn predict_point(state: tauri::State<State>, coords: Vec<Vec<i32>>, labels: Vec<i32>) {
+    assert_eq!(coords.len(), labels.len());
     let mut app_state = state.0.lock().unwrap();
     if app_state.sender.is_some() {
+        let coords = coords.iter().flatten().map(|x| *x).collect::<Vec<_>>();
         app_state
             .sender
             .as_mut()
             .unwrap()
             .send(Props::PredictPoint(coords, labels))
             .unwrap();
-        app_state.sender = None;
     }
 }
 
