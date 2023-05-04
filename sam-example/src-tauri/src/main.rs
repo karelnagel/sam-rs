@@ -29,16 +29,13 @@ pub struct State(pub Mutex<AppState>);
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn start_model(state: tauri::State<State>, window: Window, model: String, version: BuildSam) {
-    let rx = {
-        let mut app_state = state.0.lock().unwrap();
-        if app_state.sender.is_some() {
-            print!("Model already running!");
-            return;
-        }
-        let (tx, rx) = flume::unbounded::<Props>();
-        app_state.sender = Some(tx);
-        rx
-    };
+    let mut app_state = state.0.lock().unwrap();
+    if app_state.sender.is_some() {
+        print!("Model already running!");
+        return;
+    }
+    let (tx, rx) = flume::unbounded::<Props>();
+    app_state.sender = Some(tx);
 
     std::thread::spawn(move || {
         let checkpoint = Some(model.as_str());
@@ -50,11 +47,8 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                 Ok(props) => match props {
                     Props::Stop => break,
                     Props::LoadImage(path) => {
-                        println!("hesdfasdfgadsfgads");
                         let (image, _) = sam_rs::helpers::load_image(&path);
                         predictor.set_image(image, ImageFormat::RGB);
-                        println!("hesdfasdfgadsfgads");
-
                     }
                     Props::PredictPoint(coords, labels) => {
                         assert_eq!(coords.len(), labels.len() * 2);
@@ -110,7 +104,6 @@ fn load_image(state: tauri::State<State>, path: String) {
             .unwrap()
             .send(Props::LoadImage(path))
             .unwrap();
-        app_state.sender = None;
     }
 }
 
