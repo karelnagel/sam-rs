@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use burn::tensor::Tensor;
 use sam_rs::{
-    build_sam::build_sam_vit_h,
+    build_sam::BuildSam,
     burn_helpers::{TensorHelpers, TensorSlice},
     sam_predictor::SamPredictor,
     tests::helpers::TestBackend,
@@ -28,7 +28,7 @@ impl Default for AppState {
 pub struct State(pub Mutex<AppState>);
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn start_model(state: tauri::State<State>, window: Window, model: String) {
+fn start_model(state: tauri::State<State>, window: Window, model: String, version: BuildSam) {
     let rx = {
         let mut app_state = state.0.lock().unwrap();
         if app_state.sender.is_some() {
@@ -42,7 +42,7 @@ fn start_model(state: tauri::State<State>, window: Window, model: String) {
 
     std::thread::spawn(move || {
         let checkpoint = Some(model.as_str());
-        let sam = build_sam_vit_h::<TestBackend>(checkpoint);
+        let sam = version.build::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
         loop {
@@ -60,7 +60,6 @@ fn start_model(state: tauri::State<State>, window: Window, model: String) {
                     let input_label = Tensor::of_slice(labels.clone(), [labels.len()]);
                     let (masks, _, _) =
                         predictor.predict(Some(input_point), Some(input_label), None, None, true);
-                    //Todo send result
                     print!("masks: {:?}", masks.dims());
                 }
             }

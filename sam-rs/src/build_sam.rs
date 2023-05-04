@@ -1,4 +1,5 @@
 use burn::{module::Module, record::SentitiveCompactRecordSettings, tensor::backend::Backend};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     modeling::{
@@ -8,6 +9,26 @@ use crate::{
     sam::Sam,
     sam_predictor::Size,
 };
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+pub enum BuildSam {
+    SamVitH,
+    SamVitL,
+    SamVitB,
+    SamTest,
+}
+impl BuildSam {
+    pub fn build<B: Backend>(&self, checkpoint: Option<&str>) -> Sam<B>
+    where
+        <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
+    {
+        match self {
+            Self::SamVitH => build_sam_vit_h(checkpoint),
+            Self::SamVitL => build_sam_vit_l(checkpoint),
+            Self::SamVitB => build_sam_vit_b(checkpoint),
+            Self::SamTest => build_sam_test(checkpoint),
+        }
+    }
+}
 pub fn build_sam_vit_h<B: Backend>(checkpoint: Option<&str>) -> Sam<B>
 where
     <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
@@ -28,7 +49,6 @@ where
     _build_sam(768, 12, 12, vec![2, 5, 8, 11], checkpoint)
 }
 
-#[cfg(test)]
 pub fn build_sam_test<B: Backend>(checkpoint: Option<&str>) -> Sam<B>
 where
     <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
@@ -90,8 +110,9 @@ where
     );
     if let Some(checkpoint) = _checkpoint {
         let record =
-            burn::record::Record::load::<SentitiveCompactRecordSettings>(checkpoint.into()).unwrap();
-       sam =  sam.load_record(record);
+            burn::record::Record::load::<SentitiveCompactRecordSettings>(checkpoint.into())
+                .unwrap();
+        sam = sam.load_record(record);
     }
     sam
 }
