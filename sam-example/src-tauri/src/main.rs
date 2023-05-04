@@ -73,8 +73,6 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
     });
-
-    //Todo save predicotr
 }
 
 #[tauri::command]
