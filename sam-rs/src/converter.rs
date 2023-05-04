@@ -26,6 +26,7 @@ mod test {
         let mut sam = build_sam_vit_h::<TestBackend>(None);
         sam = load_module("sam_vit_h", sam);
         sam.into_record()
-            .record::<SentitiveCompactRecordSettings>("sam_vit_h.bin".into());
+            .record::<SentitiveCompactRecordSettings>("sam_vit_h.bin".into())
+            .unwrap();
     }
 }
