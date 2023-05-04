@@ -1,7 +1,7 @@
-import { SamVersion, SamVersions, useStore } from "./store";
+import { SamVersion, SamVersions, useIsActive, useStore } from "./store";
 
 function App() {
-  const isActive = useStore((state) => state.isActive);
+  const isActive = useIsActive();
   const start = useStore((state) => state.start);
   const stop = useStore((state) => state.stop);
   const loadImage = useStore((state) => state.loadImage);
@@ -24,6 +24,7 @@ function App() {
           ))}
         </select>
       </div>
+      Status: {isActive ? "Active" : "Inactive"}
       {model && (
         <div className="flex space-x-2">
           <button className="bg-red-500 p-2 py-1 rounded-lg" onClick={stop}>
@@ -34,7 +35,6 @@ function App() {
           </button>
         </div>
       )}
-
       {isActive && <button onClick={loadImage}>Load image</button>}
     </div>
   );

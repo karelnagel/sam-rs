@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { open } from "@tauri-apps/api/dialog";
+import { useEffect } from "react";
 
 export const SamVersions = {
   SamVitH: "Vit H",
@@ -59,12 +60,10 @@ export const useStore = create(
         let model = get().model;
         let version = get().version;
         await invoke("start_model", { model: model?.replace(".bin.gz", ""), version });
-        set({ isActive: true });
       },
 
       stop: async () => {
         await invoke("stop_model");
-        set({ isActive: false });
       },
       check: async () => {
         const active: boolean = await invoke("is_model_active");
@@ -95,3 +94,12 @@ export const useStore = create(
     { name: "sam" }
   )
 );
+export const useIsActive = () => {
+  const isActive = useStore((state) => state.isActive);
+  const check = useStore((state) => state.check);
+  useEffect(() => {
+    const interval = setInterval(check, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  return isActive;
+};
