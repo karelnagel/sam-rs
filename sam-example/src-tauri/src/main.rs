@@ -28,7 +28,7 @@ impl Default for AppState {
 pub struct State(pub Mutex<AppState>);
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn start_model(state: tauri::State<State>, window: Window) {
+fn start_model(state: tauri::State<State>, window: Window, model: String) {
     let rx = {
         let mut app_state = state.0.lock().unwrap();
         if app_state.sender.is_some() {
@@ -41,7 +41,7 @@ fn start_model(state: tauri::State<State>, window: Window) {
     };
 
     std::thread::spawn(move || {
-        let checkpoint = Some("sam_vit_h");
+        let checkpoint = Some(model.as_str());
         let sam = build_sam_vit_h::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
@@ -72,12 +72,12 @@ fn start_model(state: tauri::State<State>, window: Window) {
 }
 
 #[tauri::command]
-fn is_model_running(state: tauri::State<State>) -> bool {
+fn is_model_active(state: tauri::State<State>) -> bool {
     state.0.lock().unwrap().sender.is_some()
 }
 #[tauri::command]
 fn stop_model(state: tauri::State<State>) {
-    let mut app_state = state.0.lock().unwrap();
+    let mut app_state = state.0.lock().expect("already stopped");
     if app_state.sender.is_some() {
         app_state
             .sender
@@ -126,7 +126,7 @@ fn main() {
             stop_model,
             load_image,
             predict_point,
-            is_model_running
+            is_model_active
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
