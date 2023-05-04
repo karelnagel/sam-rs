@@ -1,6 +1,9 @@
-import { SamVersion, SamVersions, getRandomId, useIsActive, useStore } from "./store";
+import { useEffect, useRef } from "react";
+import { SamVersion, SamVersions, getRandomId, useEvents, useIsActive, useStore } from "./store";
+import { convertFileSrc } from "@tauri-apps/api/tauri";
 
-function App() {
+export default function App() {
+  useEvents();
   const isActive = useIsActive();
   const start = useStore((state) => state.start);
   const stop = useStore((state) => state.stop);
@@ -42,6 +45,7 @@ function App() {
         </div>
       )}
       {isActive && <button onClick={loadImage}>Load image</button>}
+      <Image />
       <div className="flex flex-col space-y-2">
         {points.map((p) => (
           <div key={p.id} className="flex space-x-3">
@@ -61,4 +65,44 @@ function App() {
   );
 }
 
-export default App;
+const Image = () => {
+  const masks = useStore((state) => state.masks);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  let image = useStore((state) => state.image);
+  if (image) image = convertFileSrc(image);
+  if (!image) return null;
+
+  useEffect(() => {
+    const mask = masks?.[0];
+    const img = imageRef.current;
+    const canvas = canvasRef.current;
+    console.log(mask);
+    if (!img) return;
+    if (!mask) return;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d")!;
+
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      for (let row = 0; row < mask.length; row++) {
+        for (let col = 0; col < mask[row].length; col++) {
+          if (!mask[row][col]) {
+            ctx.fillStyle = "rgba(100, 100, 0, 0.5)";
+            ctx.fillRect(col, row, 1, 1);
+          }
+        }
+      }
+    };
+  }, [masks]);
+  return (
+    <div className="">
+      <img ref={imageRef} src={image} className="object-none hidden" style={{}} />
+      <canvas ref={canvasRef} />
+    </div>
+  );
+};

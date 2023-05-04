@@ -3,13 +3,32 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { open } from "@tauri-apps/api/dialog";
 import { useEffect } from "react";
-
+import { listen } from "@tauri-apps/api/event";
 export const SamVersions = {
   SamVitH: "Vit H",
   SamVitB: "Vit B",
   SamVitL: "Vit L",
   SamTest: "Test version",
 };
+export function convertTo3DArray(slice: boolean[], shape: number[]): boolean[][][] {
+  const [depth, height, width] = shape;
+  let index = 0;
+
+  const arr3D = new Array(depth);
+  for (let d = 0; d < depth; d++) {
+    const arr2D = new Array(height);
+    for (let h = 0; h < height; h++) {
+      const arr1D = new Array(width);
+      for (let w = 0; w < width; w++) {
+        arr1D[w] = slice[index++];
+      }
+      arr2D[h] = arr1D;
+    }
+    arr3D[d] = arr2D;
+  }
+
+  return arr3D;
+}
 export type SamVersion = keyof typeof SamVersions;
 export const getRandomId = () => Math.random().toString(36).substr(2, 9);
 export type Point = {
@@ -34,10 +53,13 @@ export type StoreType = {
   removePoint: (id: string) => void;
   predictPoint: () => Promise<void>;
   editPoint: (id: string, point: Partial<Point>) => void;
+  masks?: boolean[][][];
+  setMasks: (masks: boolean[][][]) => void;
 };
 export const useStore = create(
   persist<StoreType>(
     (set, get) => ({
+      setMasks: (masks) => set({ masks }),
       version: "SamVitH",
       setVersion: (version) => set({ version }),
       setModel: async () => {
@@ -115,4 +137,16 @@ export const useIsActive = () => {
     return () => clearInterval(interval);
   }, []);
   return isActive;
+};
+
+export const useEvents = () => {
+  const setMasks = useStore((state) => state.setMasks);
+  useEffect(() => {
+    listen<[boolean[], number[]]>("masks", (event) => {
+      const slice = event.payload[0];
+      const shape = event.payload[1];
+      const arr3D = convertTo3DArray(slice, shape);
+      setMasks(arr3D);
+    });
+  });
 };

@@ -62,7 +62,8 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                             None,
                             true,
                         );
-                        println!("masks: {:?}", masks.dims());
+                        let (slice, shape) = masks.to_slice();
+                        window.emit("masks", (slice, shape)).unwrap();
                     }
                 },
                 Err(e) => {
