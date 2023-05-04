@@ -7,7 +7,7 @@ use burn::tensor::Tensor;
 use sam_rs::{
     build_sam::BuildSam,
     burn_helpers::{TensorHelpers, TensorSlice},
-    sam_predictor::SamPredictor,
+    sam_predictor::{ImageFormat, SamPredictor},
     tests::helpers::TestBackend,
 };
 use tauri::Window;
@@ -46,21 +46,33 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
         let mut predictor = SamPredictor::new(sam);
 
         loop {
-            let props = rx.recv().unwrap();
-            match props {
-                Props::Stop => break,
-                Props::LoadImage(path) => {
-                    let (image, _) = sam_rs::helpers::load_image(&path);
-                    predictor.set_image(image, sam_rs::sam_predictor::ImageFormat::RGB);
-                }
-                Props::PredictPoint(coords, labels) => {
-                    assert_eq!(coords.len(), labels.len() * 2);
-                    let input_point = Tensor::of_slice(coords.clone(), [coords.len()])
-                        .reshape_max([usize::MAX, 2]);
-                    let input_label = Tensor::of_slice(labels.clone(), [labels.len()]);
-                    let (masks, _, _) =
-                        predictor.predict(Some(input_point), Some(input_label), None, None, true);
-                    print!("masks: {:?}", masks.dims());
+            match rx.recv() {
+                Ok(props) => match props {
+                    Props::Stop => break,
+                    Props::LoadImage(path) => {
+                        println!("hesdfasdfgadsfgads");
+                        let (image, _) = sam_rs::helpers::load_image(&path);
+                        predictor.set_image(image, ImageFormat::RGB);
+                        println!("hesdfasdfgadsfgads");
+
+                    }
+                    Props::PredictPoint(coords, labels) => {
+                        assert_eq!(coords.len(), labels.len() * 2);
+                        let input_point = Tensor::of_slice(coords.clone(), [coords.len()])
+                            .reshape_max([usize::MAX, 2]);
+                        let input_label = Tensor::of_slice(labels.clone(), [labels.len()]);
+                        let (masks, _, _) = predictor.predict(
+                            Some(input_point),
+                            Some(input_label),
+                            None,
+                            None,
+                            true,
+                        );
+                        print!("masks: {:?}", masks.dims());
+                    }
+                },
+                Err(e) => {
+                    println!("Error: {}", e);
                 }
             }
             std::thread::sleep(std::time::Duration::from_millis(500));
