@@ -16,8 +16,7 @@ mod test {
     fn test_prediction() {
         let file = Test::open("prediction");
         let image_path = "../images/dog.jpg";
-        // let checkpoint = Some("../sam_vit_h_4b8939.pth");
-        let checkpoint = None;
+        let checkpoint = Some("../sam-convert/sam_test");
         let sam = build_sam_vit_h::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
@@ -34,13 +33,8 @@ mod test {
         file.compare("input_point", input_point.clone());
         file.compare("input_label", input_label.clone());
 
-        let (masks, scores, logits) = predictor.predict(
-            Some(input_point),
-            Some(input_label),
-            None,
-            None,
-            true,
-        );
+        let (masks, scores, logits) =
+            predictor.predict(Some(input_point), Some(input_label), None, None, true);
         file.compare("masks", masks);
         file.compare("scores", scores);
         file.compare("logits", logits);
