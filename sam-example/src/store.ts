@@ -114,7 +114,10 @@ export const useStore = create(
       points: [],
       predictPoint: async () => {
         const points = get().points;
-        await invoke("predict_point", { coords: points.map((p) => [p.x, p.y]), labels: points.map((p) => p.label) });
+        await invoke("predict_point", {
+          coords: points.map((p) => [Math.round(p.x), Math.round(p.y)]),
+          labels: points.map((p) => Math.round(p.label)),
+        });
       },
       addPoint: async (point) => {
         let points = [...get().points, point];
@@ -146,6 +149,7 @@ export const useEvents = () => {
       const slice = event.payload[0];
       const shape = event.payload[1];
       const arr3D = convertTo3DArray(slice, shape);
+      console.log(arr3D);
       setMasks(arr3D);
     });
   });
