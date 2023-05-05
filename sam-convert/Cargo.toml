@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 sam-rs = { path = "../sam-rs" }
 burn = { git = "https://github.com/karelnagel/burn" }
+
+[profile.release]
+strip = true

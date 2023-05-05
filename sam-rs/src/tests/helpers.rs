@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use burn::{
     module::Module,
-    record::{DebugRecordSettings, Record},
+    record::{DebugRecordSettingsSIMD, Record},
     tensor::{backend::Backend, Int, Tensor},
 };
 use burn_tch::TchBackend;
@@ -81,7 +81,7 @@ pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let home = home::home_dir().unwrap();
     let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
-    let record = Record::load::<DebugRecordSettings>(path).unwrap();
+    let record = Record::load::<DebugRecordSettingsSIMD>(path).unwrap();
     module.load_record(record)
 }
 
@@ -89,6 +89,6 @@ pub fn save_module<B: Backend, M: Module<B>>(module: &M) {
     module
         .clone()
         .into_record()
-        .record::<DebugRecordSettings>("test.json".into())
+        .record::<DebugRecordSettingsSIMD>("test.json".into())
         .unwrap();
 }

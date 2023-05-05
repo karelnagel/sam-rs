@@ -1,4 +1,4 @@
-use std::{env, process::Command};
+use std::{env, process::Command, time::Instant};
 
 use burn::{
     module::Module,
@@ -35,11 +35,16 @@ fn main() {
         "vit_l" => BuildSam::SamVitL,
         _ => panic!("Unknown variant: {}", variant),
     };
+    let start = Instant::now();
     match skip_python {
         true => println!("Skipping python..."),
-        false => python(variant, file),
+        false => {
+            python(variant, file);
+            println!("Python time: {:?}", start.elapsed());
+        }
     }
-    convert_sam(sam, file)
+    convert_sam(sam, file);
+    println!("Rust time: {:?}", start.elapsed());
 }
 
 fn convert_sam(sam: BuildSam, file: &str) {
