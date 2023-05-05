@@ -16,8 +16,8 @@ mod test {
     fn test_prediction() {
         let file = Test::open("prediction");
         let image_path = "../images/dog.jpg";
-        let checkpoint = Some("../sam-convert/sam_test");
-        let sam = BuildSam::SamTest.build::<TestBackend>(checkpoint);
+        let checkpoint = Some("../sam-convert/sam_vit_b_01ec64");
+        let sam = BuildSam::SamVitB.build::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
         // Loading image
