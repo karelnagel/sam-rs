@@ -100,9 +100,9 @@ const Image = () => {
     };
   }, [masks]);
   return (
-    <div className="">
-      <img ref={imageRef} src={image} className="object-none hidden" style={{}} />
-      <canvas ref={canvasRef} />
+    <div className="relative">
+      <img ref={imageRef} src={image} className="object-none " style={{}} />
+      <canvas className="absolute top-0" ref={canvasRef} />
     </div>
   );
 };

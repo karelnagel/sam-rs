@@ -38,19 +38,26 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
     app_state.sender = Some(tx);
 
     std::thread::spawn(move || {
+        println!("Starting model...");
         let checkpoint = Some(model.as_str());
         let sam = version.build::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
-
+        println!("Model started!");
         loop {
             match rx.recv() {
                 Ok(props) => match props {
-                    Props::Stop => break,
+                    Props::Stop => {
+                        println!("Stopping model...");
+                        break;
+                    }
                     Props::LoadImage(path) => {
+                        println!("Loading image: {}", path);
                         let (image, _) = sam_rs::helpers::load_image(&path);
                         predictor.set_image(image, ImageFormat::RGB);
+                        println!("Image loaded!")
                     }
                     Props::PredictPoint(coords, labels) => {
+                        println!("Predicting point...");
                         assert_eq!(coords.len(), labels.len() * 2);
                         let input_point = Tensor::of_slice(coords.clone(), [coords.len()])
                             .reshape_max([usize::MAX, 2]);
@@ -64,6 +71,7 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                         );
                         let (slice, shape) = masks.to_slice();
                         window.emit("masks", (slice, shape)).unwrap();
+                        println!("Point predicted!");
                     }
                 },
                 Err(e) => {
@@ -72,6 +80,7 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
             }
             std::thread::sleep(std::time::Duration::from_millis(500));
         }
+        println!("Model stopped!")
     });
 }
 
