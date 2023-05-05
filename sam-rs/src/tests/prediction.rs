@@ -5,7 +5,7 @@ mod test {
 
     use burn::tensor::Tensor;
 
-    use crate::build_sam::build_sam_vit_h;
+    use crate::build_sam::BuildSam;
     use crate::burn_helpers::TensorSlice;
     use crate::helpers::load_image;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
@@ -17,7 +17,7 @@ mod test {
         let file = Test::open("prediction");
         let image_path = "../images/dog.jpg";
         let checkpoint = Some("../sam-convert/sam_test");
-        let sam = build_sam_vit_h::<TestBackend>(checkpoint);
+        let sam = BuildSam::SamTest.build::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
         // Loading image

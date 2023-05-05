@@ -66,10 +66,12 @@ import re
 from torch import nn
 
 ignored_items =["act","num_heads","scale","use_rel_pos","groups","epsilon","window_size","eps","img_size","num_layers","sigmoid_output","num_mask_tokens","skip_first_layer_pe","in_channels","out_channels","output_upscaling2","output_upscaling4","padding","embed_dim","mask_downscaling2","mask_downscaling5","input_image_size","image_embedding_size","mask_threshold","image_format","num_pos_feats","scale","pe_layer"]
-ignored_arrays = ["stride", "kernel_size", "dilation","padding2","padding_out","pixel_mean","pixel_std"]
+ignored_arrays = ["stride", "kernel_size", "dilation","padding2","padding_out"]
+ignored_one_dim_arrays = ["pixel_mean","pixel_std"]
 ignored = {
     **{key: None for key in ignored_items},
-    **{key: [None, None] for key in ignored_arrays}
+    **{key: [None, None] for key in ignored_arrays},
+    **{key: [None] for key in ignored_one_dim_arrays}
 }
 transposed = ["lin1.weight", "lin2.weight","qkv.weight","proj.weight","gamma.weight","stride.weight","padding.weight"]
 
@@ -104,7 +106,8 @@ def input_to_file(file_name: str, model: nn.Module):
                     dpath.new(data, "/".join(keys[:i+1]+[item]), None)
                 for item in ignored_arrays:
                     dpath.new(data, "/".join(keys[:i+1]+[item]), [None, None])
-        
+                for item in ignored_one_dim_arrays:
+                    dpath.new(data, "/".join(keys[:i+1]+[item]), [None])
         param_id = str(uuid.uuid4())
         param_shape = list(param.size())
         param_value = param.flatten().detach().cpu().numpy().tolist()
