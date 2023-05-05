@@ -48,7 +48,6 @@ export const Image = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const mask = masks?.[0];
     if (!mask) return;
-    console.log(mask);
     for (let row = 0; row < mask.length; row++) {
       for (let col = 0; col < mask[row].length; col++) {
         if (!mask[row][col]) {

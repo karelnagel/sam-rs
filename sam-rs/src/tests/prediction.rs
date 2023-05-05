@@ -35,6 +35,12 @@ mod test {
 
         let (masks, scores, logits) =
             predictor.predict(Some(input_point), Some(input_label), None, None, true);
+        let (slice, _) = masks.to_slice();
+        println!(
+            "true: {:?}, total: {:?}",
+            slice.iter().filter(|x| **x).count(),
+            slice.len()
+        );
         file.compare("masks", masks);
         file.compare("scores", scores);
         file.compare("logits", logits);
