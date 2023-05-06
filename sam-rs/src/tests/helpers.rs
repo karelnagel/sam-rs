@@ -29,7 +29,7 @@ impl Test {
         let file = std::fs::File::open(&path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
         let file =
-            serde_json::from_reader(reader).expect(format!("file {:?} not valid", path).as_str());
+            simd_json::from_reader(reader).expect(format!("file {:?} not valid", path).as_str());
         Self {
             file,
             name: name.into(),

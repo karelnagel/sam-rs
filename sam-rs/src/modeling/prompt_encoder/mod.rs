@@ -307,14 +307,27 @@ mod test {
     }
 
     #[test]
-    fn test_prompt_encoder_embed_points() {
+    fn test_prompt_encoder_embed_points_pad() {
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_embed_points", prompt_encoder);
+        prompt_encoder = load_module("prompt_encoder_embed_points_pad", prompt_encoder);
 
         let points = random_tensor([32, 1, 2], 1);
         let labels = random_tensor([32, 1], 2);
         let output = prompt_encoder._embed_points(points.clone(), labels.clone(), true);
-        let file = Test::open("prompt_encoder_embed_points");
+        let file = Test::open("prompt_encoder_embed_points_pad");
+        file.compare("points", points);
+        file.compare("labels", labels);
+        file.compare("output", output);
+    }
+    #[test]
+    fn test_prompt_encoder_embed_points_no_pad() {
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_embed_points_no_pad", prompt_encoder);
+
+        let points = random_tensor([32, 1, 2], 1);
+        let labels = random_tensor([32, 1], 2);
+        let output = prompt_encoder._embed_points(points.clone(), labels.clone(), false);
+        let file = Test::open("prompt_encoder_embed_points_no_pad");
         file.compare("points", points);
         file.compare("labels", labels);
         file.compare("output", output);

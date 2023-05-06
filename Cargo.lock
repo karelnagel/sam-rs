@@ -3334,6 +3334,7 @@ dependencies = [
  "opencv",
  "serde",
  "serde_json",
+ "simd-json",
  "tch",
  "tracing",
  "tracing-subscriber",

@@ -15,6 +15,7 @@ ndarray = "0.15.6"
 opencv = "0.78.2"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
+simd-json = "0.9.2"
 tch = "0.11.0"
 tracing = "0.1.37"
 tracing-subscriber = "0.3.16"

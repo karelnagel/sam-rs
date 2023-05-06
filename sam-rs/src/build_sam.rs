@@ -105,8 +105,8 @@ where
             Some(3),
             Some(256),
         ),
-        Some(vec![123.675, 116.28, 103.53]),
-        Some(vec![58.395, 57.12, 57.375]),
+        Some([123.675, 116.28, 103.53]),
+        Some([58.395, 57.12, 57.375]),
     );
     if let Some(checkpoint) = _checkpoint {
         let record =

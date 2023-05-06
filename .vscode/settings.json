@@ -1,4 +1,8 @@
 {
   "rust-analyzer.showUnlinkedFileNotification": false,
-  "python.analysis.extraPaths": ["./segment-anything"]
+  "python.analysis.extraPaths": ["./segment-anything"],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.formatting.provider": "none"
 }

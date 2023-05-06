@@ -15,8 +15,8 @@ pub struct Sam<B: Backend> {
     pub image_encoder: ImageEncoderViT<B>,
     pub prompt_encoder: PromptEncoder<B>,
     pub mask_decoder: MaskDecoder<B>,
-    pub pixel_mean: Vec<f32>,
-    pub pixel_std: Vec<f32>,
+    pub pixel_mean: [f32; 3],
+    pub pixel_std: [f32; 3],
     pub mask_threshold: f64,
     pub image_format: ImageFormat,
 }
@@ -51,11 +51,11 @@ where
         image_encoder: ImageEncoderViT<B>,
         prompt_encoder: PromptEncoder<B>,
         mask_decoder: MaskDecoder<B>,
-        pixel_mean: Option<Vec<f32>>,
-        pixel_std: Option<Vec<f32>>,
+        pixel_mean: Option<[f32; 3]>,
+        pixel_std: Option<[f32; 3]>,
     ) -> Self {
-        let pixel_mean = pixel_mean.unwrap_or(vec![123.675, 116.28, 103.53]);
-        let pixel_std = pixel_std.unwrap_or(vec![58.395, 57.12, 57.375]);
+        let pixel_mean = pixel_mean.unwrap_or([123.675, 116.28, 103.53]);
+        let pixel_std = pixel_std.unwrap_or([58.395, 57.12, 57.375]);
 
         Self {
             image_encoder,
@@ -128,21 +128,21 @@ where
             .map(|x| self.preprocess(x.image.clone()))
             .collect::<Vec<_>>();
         let input_images = Tensor::stack(processed_images.clone(), 0);
-        let image_embeddings = self.image_encoder.forward(input_images);
-        let image_embeddings: Vec<Tensor<B, 3>> = image_embeddings.unbind(0);
+        let image_embeddings = self.image_encoder.forward(input_images.clone());
+        let image_embeddings_vec: Vec<Tensor<B, 3>> = image_embeddings.clone().unbind(0);
+        assert_eq!(image_embeddings_vec.len(), batched_input.len());
         let mut outputs: Vec<Output<B>> = vec![];
         for i in 0..batched_input.len() {
             let image_record = batched_input.get(i).unwrap();
-            let curr_embedding: Tensor<B, 3> = image_embeddings[i].clone();
+            let curr_embedding: Tensor<B, 3> = image_embeddings_vec.clone()[i].clone();
             let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
                 image_record.points.clone(),
                 image_record.boxes.clone(),
                 image_record.mask_inputs.clone(),
             );
-            let image_embeddings = curr_embedding.unsqueeze();
             let image_pe = self.prompt_encoder.get_dense_pe();
             let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
-                image_embeddings,
+                curr_embedding.clone().unsqueeze(),
                 image_pe,
                 sparse_embeddings,
                 dense_embeddings,
@@ -154,7 +154,7 @@ where
                 Size(size[size.len() - 2], size[size.len() - 1]),
                 image_record.original_size,
             );
-            let masks = masks.greater_elem(self.mask_threshold);
+            let masks = masks.clone().greater_elem(self.mask_threshold);
             outputs.push(Output {
                 masks,
                 iou_predictions,
@@ -208,7 +208,9 @@ mod test {
     use crate::{
         build_sam::build_sam_test,
         sam_predictor::Size,
-        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT},
+        tests::helpers::{
+            load_module, random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT,
+        },
     };
 
     use super::Input;
@@ -216,7 +218,7 @@ mod test {
     #[test]
     fn test_sam_forward_boxes() {
         let mut sam = build_sam_test::<TestBackend>(None);
-
+        sam = load_module("sam_forward_boxes", sam); // Todo switch back to checkpoint
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -249,7 +251,7 @@ mod test {
     #[test]
     fn test_sam_forward_points() {
         let mut sam = build_sam_test::<TestBackend>(None);
-
+        sam = load_module("sam_forward_points", sam); // Todo switch back to checkpoint
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
