@@ -337,7 +337,6 @@ mod test {
         let mut prompt_encoder = _init();
         prompt_encoder = load_module("prompt_encoder_embed_masks", prompt_encoder);
 
-
         let masks = random_tensor([8, 1, 4, 4], 1);
         let output = prompt_encoder._embed_masks(masks.clone());
         let file = Test::open("prompt_encoder_embed_masks");
@@ -345,17 +344,28 @@ mod test {
         file.compare("output", output);
     }
     #[test]
-    fn test_prompt_encoder_forward() {
+    fn test_prompt_encoder_forward_points() {
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_forward", prompt_encoder);
+        prompt_encoder = load_module("prompt_encoder_forward_points", prompt_encoder);
 
         let points = random_tensor([8, 1, 2], 1);
         let labels = random_tensor([8, 1], 2);
         let (sparse, dense) =
             prompt_encoder.forward(Some((points.clone(), labels.clone())), None, None);
-        let file = Test::open("prompt_encoder_forward");
+        let file = Test::open("prompt_encoder_forward_points");
         file.compare("points", points);
         file.compare("labels", labels);
+        file.compare("sparse", sparse);
+        file.compare("dense", dense);
+    }
+    #[test]
+    fn test_prompt_encoder_forward_boxes() {
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module("prompt_encoder_forward_boxes", prompt_encoder);
+        let boxes = random_tensor([8, 4], 1);
+        let (sparse, dense) = prompt_encoder.forward(None, Some(boxes.clone()), None);
+        let file = Test::open("prompt_encoder_forward_boxes");
+        file.compare("boxes", boxes);
         file.compare("sparse", sparse);
         file.compare("dense", dense);
     }
