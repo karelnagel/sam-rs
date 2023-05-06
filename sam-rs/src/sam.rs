@@ -24,7 +24,7 @@ pub struct Sam<B: Backend> {
 pub struct Input<B: Backend> {
     pub image: Tensor<B, 3, Int>,
     pub original_size: Size,
-    pub boxes: Tensor<B, 2>,
+    pub boxes: Option<Tensor<B, 2>>,
     pub points: Option<(Tensor<B, 3>, Tensor<B, 2>)>,
     pub mask_inputs: Option<Tensor<B, 4>>,
 }
@@ -136,7 +136,7 @@ where
             let curr_embedding: Tensor<B, 3> = image_embeddings[i].clone();
             let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
                 image_record.points.clone(),
-                Some(image_record.boxes.clone()),
+                image_record.boxes.clone(),
                 image_record.mask_inputs.clone(),
             );
             let image_embeddings = curr_embedding.unsqueeze();
@@ -214,27 +214,60 @@ mod test {
     use super::Input;
 
     #[test]
-    fn test_sam_forward() {
-        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+    fn test_sam_forward_boxes() {
+        let mut sam = build_sam_test::<TestBackend>(None);
 
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
-                boxes: random_tensor([4, 4], 1),
+                boxes: Some(random_tensor([4, 4], 1)),
                 original_size: Size(100, 200),
                 mask_inputs: None,
                 points: None,
             },
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
-                boxes: random_tensor([4, 4], 1),
+                boxes: Some(random_tensor([4, 4], 1)),
                 original_size: Size(50, 80),
                 mask_inputs: None,
                 points: None,
             },
         ];
         let output = sam.forward(input, false);
-        let file = Test::open("sam_forward");
+        let file = Test::open("sam_forward_boxes");
+        for (i, out) in output.iter().enumerate() {
+            file.compare(format!("masks{}", i).as_str(), out.masks.clone());
+            // file.compare(
+            //     format!("iou_predictions{}", i).as_str(),
+            //     out.iou_predictions.clone(),
+            // );
+            // if let Some(low_res_logits) = out.low_res_logits.clone() {
+            //     file.compare(format!("low_res_logits{}", i).as_str(), low_res_logits);
+            // } //Todo
+        }
+    }
+    #[test]
+    fn test_sam_forward_points() {
+        let mut sam = build_sam_test::<TestBackend>(None);
+
+        let input = vec![
+            Input {
+                image: random_tensor_int([3, 8, 8], 1, 255.),
+                boxes: None,
+                original_size: Size(100, 200),
+                mask_inputs: None,
+                points: Some((random_tensor([4, 2, 2], 1), random_tensor([4, 2], 1))),
+            },
+            Input {
+                image: random_tensor_int([3, 8, 8], 2, 255.),
+                boxes: None,
+                original_size: Size(50, 80),
+                mask_inputs: None,
+                points: Some((random_tensor([4, 2, 2], 2), random_tensor([4, 2], 2))),
+            },
+        ];
+        let output = sam.forward(input, false);
+        let file = Test::open("sam_forward_points");
         for (i, out) in output.iter().enumerate() {
             file.compare(format!("masks{}", i).as_str(), out.masks.clone());
             // file.compare(

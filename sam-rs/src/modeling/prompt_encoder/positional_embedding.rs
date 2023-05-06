@@ -5,7 +5,7 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::sam_predictor::Size;
+use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
 
 /// Positional encoding using random spatial frequencies.
 #[derive(Debug, Module, Clone)]
@@ -63,7 +63,8 @@ impl PositionEmbeddingRandom {
         coords: Tensor<B, 3>,
         image_size: Size,
     ) -> Tensor<B, 3> {
-        let coords = coords;
+        let (slice, shape) = coords.to_slice();
+        let coords = Tensor::of_slice(slice, shape); // Deep copy 
         coords
             .narrow(2, 0, 1)
             .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f64));
@@ -84,7 +85,6 @@ mod test {
     #[test]
     fn test_position_embedding_pe_encoding() {
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
-        // pos_embedding = load_module("position_embedding_random_pe_encoding", pos_embedding);
 
         let input = random_tensor::<TestBackend, 3>([64, 69, 2], 1);
         let output = pos_embedding._pe_encoding(input.clone());
@@ -96,7 +96,6 @@ mod test {
     #[test]
     fn test_position_embedding_forward() {
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
-        // pos_embedding = load_module("position_embedding_random_forward", pos_embedding);
 
         let input = Size(64, 64);
         let output = pos_embedding.forward::<TestBackend>(input);
@@ -108,16 +107,12 @@ mod test {
     #[test]
     fn test_position_embedding_with_coords() {
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
-        // pos_embedding = load_module(
-        //     "position_embedding_random_forward_with_coords",
-        //     pos_embedding,
-        // );
 
         let input = random_tensor::<TestBackend, 3>([64, 2, 2], 1);
         let image_size = Size(1024, 1024);
         let output = pos_embedding.forward_with_coords(input.clone(), image_size);
         let file = Test::open("position_embedding_random_forward_with_coords");
-        // file.compare("input", input);
+        file.compare("input", input);
         file.compare("image_size", image_size);
         file.compare("output", output);
     }
