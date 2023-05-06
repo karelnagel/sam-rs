@@ -6,8 +6,8 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 export const SamVersions = {
   SamVitH: "Vit H",
-  SamVitB: "Vit B",
   SamVitL: "Vit L",
+  SamVitB: "Vit B",
   SamTest: "Test version",
 };
 export function convertTo3DArray(slice: boolean[], shape: number[]): boolean[][][] {

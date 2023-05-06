@@ -38,7 +38,10 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
     app_state.sender = Some(tx);
 
     std::thread::spawn(move || {
-        println!("Starting model...");
+        println!(
+            "Starting model, with version: {:?} and path: {}",
+            version, model
+        );
         let checkpoint = Some(model.as_str());
         let sam = version.build::<TestBackend>(checkpoint);
         let mut predictor = SamPredictor::new(sam);
