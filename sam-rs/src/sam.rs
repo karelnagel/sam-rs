@@ -132,9 +132,7 @@ where
         let image_embeddings_vec: Vec<Tensor<B, 3>> = image_embeddings.clone().unbind(0);
         assert_eq!(image_embeddings_vec.len(), batched_input.len());
         let mut outputs: Vec<Output<B>> = vec![];
-        for i in 0..batched_input.len() {
-            let image_record = batched_input.get(i).unwrap();
-            let curr_embedding: Tensor<B, 3> = image_embeddings_vec.clone()[i].clone();
+        for (image_record, curr_embedding) in batched_input.iter().zip(image_embeddings_vec) {
             let (sparse_embeddings, dense_embeddings) = self.prompt_encoder.forward(
                 image_record.points.clone(),
                 image_record.boxes.clone(),
@@ -208,17 +206,15 @@ mod test {
     use crate::{
         build_sam::build_sam_test,
         sam_predictor::Size,
-        tests::helpers::{
-            load_module, random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT,
-        },
+        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT},
     };
 
     use super::Input;
 
     #[test]
     fn test_sam_forward_boxes() {
-        let mut sam = build_sam_test::<TestBackend>(None);
-        sam = load_module("sam_forward_boxes", sam); // Todo switch back to checkpoint
+        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+        // sam = load_module("sam_forward_boxes", sam); // Todo switch back to checkpoint
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -250,8 +246,8 @@ mod test {
     }
     #[test]
     fn test_sam_forward_points() {
-        let mut sam = build_sam_test::<TestBackend>(None);
-        sam = load_module("sam_forward_points", sam); // Todo switch back to checkpoint
+        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+        // sam = load_module("sam_forward_points", sam); // Todo switch back to checkpoint
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -283,7 +279,7 @@ mod test {
     }
     #[test]
     fn test_sam_postprocess_masks() {
-        let sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+        let sam = build_sam_test::<TestBackend>(None);
 
         let masks = random_tensor([4, 1, 256, 256], 1);
         let input = Size(684, 1024);

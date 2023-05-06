@@ -33,7 +33,7 @@ impl PositionEmbeddingRandom {
         #[cfg(not(test))]
         return Tensor::random(
             [2, self.num_pos_feats],
-            burn::tensor::Distribution::Standard,
+            burn::tensor::Distribution::Standard, // Todo might be wrong
         )
         .mul_scalar(self.scale);
     }
@@ -64,7 +64,7 @@ impl PositionEmbeddingRandom {
         image_size: Size,
     ) -> Tensor<B, 3> {
         let (slice, shape) = coords.to_slice();
-        let coords = Tensor::of_slice(slice, shape); // Deep copy 
+        let coords = Tensor::of_slice(slice, shape); // Deep copy
         coords
             .narrow(2, 0, 1)
             .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f64));

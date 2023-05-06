@@ -1,5 +1,4 @@
 pub mod build_sam;
-pub mod converter;
 pub mod helpers;
 pub mod modeling;
 pub mod sam;

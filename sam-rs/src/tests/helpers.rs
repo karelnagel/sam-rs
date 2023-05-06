@@ -26,6 +26,7 @@ impl Test {
     pub fn open(name: &str) -> Self {
         let home = home::home_dir().unwrap();
         let path = home.join(format!("Documents/test-outputs/{}.json", name));
+        dbg!(&path);
         let file = std::fs::File::open(&path).expect(format!("file {} not found", name).as_str());
         let reader = std::io::BufReader::new(file);
         let file =
