@@ -1,4 +1,4 @@
-use burn::module::{Module};
+use burn::module::Module;
 use burn::tensor::{backend::Backend, Tensor};
 use burn::tensor::{Bool, Float, Int};
 
@@ -68,10 +68,18 @@ where
         }
     }
     fn pixel_mean(&self) -> Tensor<B, 3> {
-        Tensor::of_slice(self.pixel_mean.to_vec(), [self.pixel_mean.len()]).reshape_max([usize::MAX, 1, 1])
+        Tensor::of_slice(self.pixel_mean.to_vec(), [self.pixel_mean.len()]).reshape_max([
+            usize::MAX,
+            1,
+            1,
+        ])
     }
     fn pixel_std(&self) -> Tensor<B, 3> {
-        Tensor::of_slice(self.pixel_std.to_vec(), [self.pixel_std.len()]).reshape_max([usize::MAX, 1, 1])
+        Tensor::of_slice(self.pixel_std.to_vec(), [self.pixel_std.len()]).reshape_max([
+            usize::MAX,
+            1,
+            1,
+        ])
     }
 
     /// Predicts masks end-to-end from provided images and prompts.
@@ -200,15 +208,14 @@ mod test {
     use crate::{
         build_sam::build_sam_test,
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, random_tensor_int, Test, TestBackend},
+        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT},
     };
 
     use super::Input;
 
     #[test]
     fn test_sam_forward() {
-        let mut sam = build_sam_test::<TestBackend>(None);
-        sam = load_module("sam_forward", sam);
+        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
 
         let input = vec![
             Input {
@@ -241,8 +248,7 @@ mod test {
     }
     #[test]
     fn test_sam_postprocess_masks() {
-        let mut sam = build_sam_test::<TestBackend>(None);
-        // sam = load_module("sam_postprocess_masks", sam);
+        let sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
 
         let masks = random_tensor([4, 1, 256, 256], 1);
         let input = Size(684, 1024);

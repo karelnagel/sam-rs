@@ -16,7 +16,7 @@ use super::test_value::TestValue;
 pub struct TestFile {
     pub values: HashMap<String, TestValue>,
 }
-
+pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_test";
 pub type TestBackend = TchBackend<f32>;
 pub struct Test {
     name: String,

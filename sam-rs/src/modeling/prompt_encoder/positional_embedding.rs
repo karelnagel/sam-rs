@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use burn::{
-    module::{Module, Param},
+    module::Module,
     tensor::{backend::Backend, Tensor},
 };
 
@@ -28,11 +28,14 @@ impl PositionEmbeddingRandom {
         }
     }
     fn positional_encoding_gaussian_matrix<B: Backend>(&self) -> Tensor<B, 2> {
-        Tensor::random(
+        #[cfg(test)]
+        return Tensor::ones([2, self.num_pos_feats]).mul_scalar(self.scale);
+        #[cfg(not(test))]
+        return Tensor::random(
             [2, self.num_pos_feats],
             burn::tensor::Distribution::Standard,
         )
-        .mul_scalar(self.scale)
+        .mul_scalar(self.scale);
     }
     ///Positionally encode points that are normalized to [0,1].
     fn _pe_encoding<B: Backend>(&self, coords: Tensor<B, 3>) -> Tensor<B, 3> {
@@ -60,7 +63,7 @@ impl PositionEmbeddingRandom {
         coords: Tensor<B, 3>,
         image_size: Size,
     ) -> Tensor<B, 3> {
-        let mut coords = coords;
+        let coords = coords;
         coords
             .narrow(2, 0, 1)
             .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f64));
