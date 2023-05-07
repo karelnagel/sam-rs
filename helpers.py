@@ -1,11 +1,7 @@
 import numpy as np
 import json
 import os
-import json
-import os
 import torch
-import torch
-import numpy as np
 from segment_anything.build_sam import _build_sam
 
 class Item:
