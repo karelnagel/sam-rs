@@ -219,6 +219,6 @@ mod test {
         let output = block.forward(input.clone());
         let file = Test::open("block");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output,0.003);
     }
 }

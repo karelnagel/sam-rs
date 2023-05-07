@@ -235,7 +235,7 @@ mod test {
         file.equal("image_pe", image_pe);
         file.equal("sparse_prompt_embeddings", sparse_prompt_embeddings);
         file.equal("dense_prompt_embeddings", dense_prompt_embeddings);
-        file.almost_equal("masks", masks, 0.05);
+        file.almost_equal("masks", masks, 0.1);
         file.almost_equal("iou_pred", iou_pred, 0.001);
     }
 

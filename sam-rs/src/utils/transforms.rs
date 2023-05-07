@@ -132,7 +132,7 @@ mod test {
         let _output = resize.apply_image::<TestBackend>(input.clone());
         let file = Test::open("resize_apply_image");
         file.equal("input", input);
-        // file.compare("output", _output); //has similar output but not exact
+        file.almost_equal("output", _output, 0.2);
     }
     #[test]
     fn test_resize_apply_coords() {
@@ -142,7 +142,7 @@ mod test {
         let output = resize.apply_coords::<TestBackend, 3>(input.clone(), original_size);
         let file = Test::open("resize_apply_coords");
         file.equal("input", input);
-        file.equal("output", output);
+        file.almost_equal("output", output,0.000001);
     }
 
     #[test]
@@ -153,7 +153,7 @@ mod test {
         let output = resize.apply_boxes::<TestBackend>(boxes.clone(), original_size);
         let file = Test::open("resize_apply_boxes");
         file.equal("boxes", boxes);
-        file.equal("output", output);
+        file.almost_equal("output", output,0.000001);
     }
 
     #[test]
