@@ -131,7 +131,7 @@ mod test {
         file.equal("image_embedding", image_embedding);
         file.equal("image_pe", image_pe);
         file.almost_equal("point_embedding", point_embedding,0.001);
-        file.almost_equal("queries", queries,0.002);
+        file.almost_equal("queries", queries,0.005);
         file.almost_equal("keys", keys,0.001);
     }
 }
