@@ -1,55 +1,23 @@
-use tch::{
-    nn::{self, LinearConfig, Module},
-    Device, Kind, Tensor,
+use burn::{
+    module::{Module, Param},
+    nn::{Linear, LinearConfig},
+    tensor::{activation::softmax, backend::Backend, Tensor},
 };
 
-use crate::sam_predictor::Size;
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 
 ///Multi-head Attention block with relative position embeddings.
-#[derive(Debug)]
-pub struct Attention {
-    num_heads: i64,
+#[derive(Debug, Module)]
+pub struct Attention<B: Backend> {
+    num_heads: usize,
     scale: f64,
-    pub qkv: nn::Linear,
-    pub proj: nn::Linear,
+    pub qkv: Linear<B>,
+    pub proj: Linear<B>,
     use_rel_pos: bool,
-    rel_pos_h: Option<Tensor>,
-    rel_pos_w: Option<Tensor>,
+    rel_pos_h: Option<Param<Tensor<B, 2>>>,
+    rel_pos_w: Option<Param<Tensor<B, 2>>>,
 }
-impl Module for Attention {
-    fn forward(&self, x: &Tensor) -> Tensor {
-        let (b, h, w, _) = x.size4().unwrap();
-        let qkv = self
-            .qkv
-            .forward(x)
-            .reshape(&[b, h * w, 3, self.num_heads, -1])
-            .permute(&[2, 0, 3, 1, 4]);
-        let qkv = qkv.reshape(&[3, b * self.num_heads, h * w, -1]).unbind(0);
-        let (q, k, v) = (&qkv[0], &qkv[1], &qkv[2]);
-
-        let mut attn = (q * self.scale).matmul(&k.transpose(-2, -1));
-        if self.use_rel_pos {
-            attn = add_decomposed_rel_pos(
-                &attn,
-                &q,
-                &self.rel_pos_h.as_ref().unwrap(),
-                &self.rel_pos_w.as_ref().unwrap(),
-                Size(h, w),
-                Size(h, w),
-            )
-        };
-        attn = attn.softmax(-1, Kind::Float);
-
-        let x = attn
-            .matmul(&v)
-            .view([b, self.num_heads, h, w, -1])
-            .permute(&[0, 2, 3, 1, 4])
-            .reshape(&[b, h, w, -1]);
-        let x = self.proj.forward(&x);
-        x
-    }
-}
-impl Attention {
+impl<B: Backend> Attention<B> {
     // Args:
     // dim (int): Number of input channels.
     // num_heads (int): Number of attention heads.
@@ -59,9 +27,8 @@ impl Attention {
     // input_size (tuple(int, int) or None): Input resolution for calculating the relative
     //     positional parameter size.
     pub fn new(
-        vs: &nn::Path,
-        dim: i64,
-        num_heads: Option<i64>,
+        dim: usize,
+        num_heads: Option<usize>,
         qkv_bias: Option<bool>,
         use_rel_pos: Option<bool>,
         _rel_pos_zero_init: Option<bool>,
@@ -74,17 +41,8 @@ impl Attention {
 
         let head_dim = dim / num_heads;
         let scale = (head_dim as f64).powf(-0.5);
-        let qkv = nn::linear(
-            vs,
-            dim,
-            dim * 3,
-            LinearConfig {
-                bias: qkv_bias,
-                ..Default::default()
-            },
-        );
-        let proj = nn::linear(vs, dim, dim, Default::default());
-
+        let qkv = LinearConfig::new(dim, 3 * dim).with_bias(qkv_bias).init();
+        let proj = LinearConfig::new(dim, dim).init();
         let mut rel_pos_h = None;
         let mut rel_pos_w = None;
         if use_rel_pos {
@@ -93,14 +51,8 @@ impl Attention {
                 "Input size must be provided if using relative positional encoding."
             );
             let Size(h, w) = input_size.unwrap();
-            rel_pos_h = Some(Tensor::zeros(
-                &[2 * h - 1, head_dim],
-                (tch::Kind::Float, Device::Cpu),
-            ));
-            rel_pos_w = Some(Tensor::zeros(
-                &[2 * w - 1, head_dim],
-                (tch::Kind::Float, Device::Cpu),
-            ));
+            rel_pos_h = Some(Param::from(Tensor::zeros([2 * h - 1, head_dim])));
+            rel_pos_w = Some(Param::from(Tensor::zeros([2 * w - 1, head_dim])));
         }
 
         Self {
@@ -112,6 +64,41 @@ impl Attention {
             rel_pos_h,
             rel_pos_w,
         }
+    }
+    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+        let shape = x.dims();
+        let (b, h, w) = (shape[0], shape[1], shape[2]);
+
+        let qkv = self
+            .qkv
+            .forward(x)
+            .reshape_max([b, h * w, 3, self.num_heads, usize::MAX])
+            .permute([2, 0, 3, 1, 4]);
+        let qkv = qkv
+            .reshape_max([3, b * self.num_heads, h * w, usize::MAX])
+            .unbind(0);
+        let (q, k, v) = (qkv[0].clone(), qkv[1].clone(), qkv[2].clone());
+
+        let mut attn = (q.clone() * self.scale).matmul(k.transpose());
+        if self.use_rel_pos {
+            attn = add_decomposed_rel_pos(
+                attn,
+                q,
+                self.rel_pos_h.clone().unwrap().val(),
+                self.rel_pos_w.clone().unwrap().val(),
+                Size(h, w),
+                Size(h, w),
+            )
+        };
+        attn = softmax(attn, 2);
+
+        let x = attn
+            .matmul(v)
+            .reshape_max([b, self.num_heads, h, w, usize::MAX])
+            .permute([0, 2, 3, 1, 4])
+            .reshape_max([b, h, w, usize::MAX]);
+        let x = self.proj.forward(x);
+        x
     }
 }
 
@@ -127,26 +114,29 @@ impl Attention {
 
 // Returns:
 //     attn (Tensor): attention map with added relative positional embeddings.
-fn add_decomposed_rel_pos(
-    attn: &Tensor,
-    q: &Tensor,
-    rel_pos_h: &Tensor,
-    rel_pos_w: &Tensor,
+fn add_decomposed_rel_pos<B: Backend>(
+    attn: Tensor<B, 3>,
+    q: Tensor<B, 3>,
+    rel_pos_h: Tensor<B, 2>,
+    rel_pos_w: Tensor<B, 2>,
     q_size: Size,
     k_size: Size,
-) -> Tensor {
+) -> Tensor<B, 3> {
     let Size(q_h, q_w) = q_size;
     let Size(k_h, k_w) = k_size;
-    let rh = get_rel_pos(q_h, k_h, rel_pos_h.copy());
-    let rw = get_rel_pos(q_w, k_w, rel_pos_w.copy());
+    let rh = get_rel_pos(q_h, k_h, rel_pos_h);
+    let rw = get_rel_pos(q_w, k_w, rel_pos_w);
 
-    let (b, _, dim) = q.size3().unwrap();
-    let r_q = q.reshape(&[b, q_h, q_w, dim]);
+    let shape = q.dims();
+    let (b, dim) = (shape[0], shape[2]);
+    let r_q = q.reshape([b, q_h, q_w, dim]);
 
-    let rel_h = Tensor::einsum("bhwc,hkc->bhwk", &[&r_q, &rh], None);
-    let rel_w = Tensor::einsum("bhwc,wkc->bhwk", &[&r_q, &rw], None);
-    let attn = attn.view([b, q_h, q_w, k_h, k_w]) + &rel_h.unsqueeze(-1) + &rel_w.unsqueeze(-2);
-    attn.view([b, q_h * q_w, k_h * k_w])
+    let rel_h: Tensor<B, 4> = Tensor::einsum("bhwc,hkc->bhwk", r_q.clone(), rh);
+    let rel_w: Tensor<B, 4> = Tensor::einsum("bhwc,wkc->bhwk", r_q, rw);
+    let attn = attn.reshape([b, q_h, q_w, k_h, k_w])
+        + rel_h.unsqueeze().permute([1, 2, 3, 4, 0])
+        + rel_w.unsqueeze().permute([1, 2, 3, 0, 4]);
+    attn.reshape([b, q_h * q_w, k_h * k_w])
 }
 
 // Get relative positional embeddings according to the relative positions of
@@ -158,87 +148,78 @@ fn add_decomposed_rel_pos(
 
 // Returns:
 // Extracted positional embeddings according to relative positions.
-fn get_rel_pos(q_size: i64, k_size: i64, rel_pos: Tensor) -> Tensor {
+fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) -> Tensor<B, 3> {
     let max_rel_dist = 2 * q_size.max(k_size) - 1;
     let mut rel_pos_resized = rel_pos;
 
-    if rel_pos_resized.size()[0] != max_rel_dist {
+    let dim = rel_pos_resized.dims()[0];
+    if dim != max_rel_dist {
         rel_pos_resized = rel_pos_resized
-            .reshape(&[1, rel_pos_resized.size()[0], -1])
-            .permute(&[0, 2, 1]);
-
-        // Should be interpolate
-        rel_pos_resized = rel_pos_resized.upsample_linear1d(&[max_rel_dist as i64], false, None);
-
-        rel_pos_resized = rel_pos_resized.squeeze_dim(0);
-        rel_pos_resized = rel_pos_resized
-            .reshape(&[-1, max_rel_dist])
-            .permute(&[1, 0])
+            .reshape_max([1, dim, usize::MAX])
+            .permute([0, 2, 1])
+            .upsample_linear1d::<3>(&[max_rel_dist], false, None)
+            .reshape_max([usize::MAX, max_rel_dist])
+            .permute([1, 0]);
     }
-    let q_coords = Tensor::arange(q_size, (tch::Kind::Int64, tch::Device::Cpu)).unsqueeze(-1)
-        * (k_size as f64 / q_size as f64).max(1.0);
-    let k_coords = Tensor::arange(k_size, (tch::Kind::Int64, tch::Device::Cpu)).unsqueeze(0)
-        * (q_size as f64 / k_size as f64).max(1.0);
+    let q_coords = Tensor::arange(0..q_size)
+        .unsqueeze()
+        .mul_scalar((k_size as f64 / q_size as f64).max(1.0))
+        .permute([1, 0]);
+    let k_coords = Tensor::arange(0..k_size)
+        .unsqueeze()
+        .mul_scalar((q_size as f64 / k_size as f64).max(1.0));
     let relative_coords =
-        &q_coords - &k_coords + (k_size - 1) as f64 * (q_size as f64 / k_size as f64).max(1.0);
-    rel_pos_resized.index(&[Some(relative_coords.to_kind(tch::Kind::Int64))])
+        (q_coords - k_coords) + (k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0);
+    let idk = rel_pos_resized.index_tch(vec![relative_coords]); // Todo 40 out of range
+    idk
 }
 
 #[cfg(test)]
 pub mod test {
-    use tch::nn::Module;
 
     use crate::{
         sam_predictor::Size,
-        tests::{
-            helpers::{random_tensor, TestFile},
-            mocks::Mock,
-        },
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
-
-    use super::Attention;
-
-    impl Mock for Attention {
-        fn mock(&mut self) {
-            self.proj.mock();
-            self.qkv.mock();
-        }
-    }
 
     #[test]
     fn test_get_rel_pos() {
-        let rel_pos = random_tensor(&[127, 40], 1);
+        let rel_pos = random_tensor([127, 40], 1);
         let q_size = 32;
         let k_size = 32;
-        let output = super::get_rel_pos(q_size, k_size, rel_pos.copy());
-        let file = TestFile::open("get_rel_pos");
-        file.compare("input", rel_pos);
-        file.compare("output", output);
+        let output = super::get_rel_pos::<TestBackend>(q_size, k_size, rel_pos.clone());
+        let file = Test::open("get_rel_pos");
+        file.equal("input", rel_pos);
+        file.equal("output", output);
     }
 
     #[test]
     fn test_add_decomposed_rel_pos() {
-        let attn = random_tensor(&[200, 49, 49], 2);
-        let q = random_tensor(&[200, 49, 20], 3);
-        let rel_pos_h = random_tensor(&[20, 20], 4);
-        let rel_pos_w = random_tensor(&[20, 20], 5);
+        let attn = random_tensor([200, 49, 49], 2);
+        let q = random_tensor([200, 49, 20], 3);
+        let rel_pos_h = random_tensor([20, 20], 4);
+        let rel_pos_w = random_tensor([20, 20], 5);
         let q_size = Size(7, 7);
         let k_size = Size(7, 7);
-        let output =
-            super::add_decomposed_rel_pos(&attn, &q, &rel_pos_h, &rel_pos_w, q_size, k_size);
-        let file = TestFile::open("add_decomposed_rel_pos");
-        file.compare("attn", attn);
-        file.compare("q", q);
-        file.compare("q_size", q_size);
-        file.compare("k_size", k_size);
-        file.compare("output", output);
+        let output = super::add_decomposed_rel_pos::<TestBackend>(
+            attn.clone(),
+            q.clone(),
+            rel_pos_h,
+            rel_pos_w,
+            q_size,
+            k_size,
+        );
+        let file = Test::open("add_decomposed_rel_pos");
+        file.equal("attn", attn);
+        file.equal("q", q);
+        file.equal("q_size", q_size);
+        file.equal("k_size", k_size);
+        file.almost_equal("output", output,0.001);
     }
 
     #[test]
     fn test_attention() {
-        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let mut attention = super::Attention::new(
-            &vs.root(),
+        let mut attention = super::Attention::<TestBackend>::new(
             320,
             Some(16),
             Some(true),
@@ -246,19 +227,13 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        let file = TestFile::open("attention");
-        file.compare("num_heads", attention.num_heads);
-        file.compare("scale", attention.scale);
-        file.compare("use_rel_pos", attention.use_rel_pos);
-
-        // Mocking
-        attention.mock();
+        attention = load_module("attention", attention);
 
         // Forward
-        let input = random_tensor(&[25, 14, 14, 320], 1);
-        let output = attention.forward(&input);
-        let file = TestFile::open("attention_forward");
-        file.compare("input", input);
-        file.compare("output", output);
+        let input = random_tensor([25, 14, 14, 320], 1);
+        let output = attention.forward(input.clone());
+        let file = Test::open("attention");
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

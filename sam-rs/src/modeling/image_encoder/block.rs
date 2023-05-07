@@ -1,9 +1,11 @@
-use tch::{
-    nn::{self, Module},
-    Tensor,
+use burn::{
+    module::Module,
+    nn::{LayerNorm, LayerNormConfig},
+    tensor::{backend::Backend, Tensor},
 };
 
 use crate::{
+    burn_helpers::TensorHelpers,
     modeling::common::{activation::Activation, mlp_block::MLPBlock},
     sam_predictor::Size,
 };
@@ -11,38 +13,15 @@ use crate::{
 use super::attention::Attention;
 
 ///Transformer blocks with support of window attention and residual propagation blocks
-#[derive(Debug)]
-pub struct Block {
-    norm1: nn::LayerNorm,
-    norm2: nn::LayerNorm,
-    attn: Attention,
-    window_size: i64,
-    mlp: MLPBlock,
+#[derive(Debug, Module)]
+pub struct Block<B: Backend> {
+    norm1: LayerNorm<B>,
+    norm2: LayerNorm<B>,
+    attn: Attention<B>,
+    window_size: usize,
+    mlp: MLPBlock<B>,
 }
-impl Module for Block {
-    fn forward(&self, x: &Tensor) -> Tensor {
-        let shortcut = x.copy();
-        let mut x = self.norm1.forward(x);
-        let mut pad_hw = None;
-        // Window partition
-        let size = Size(x.size()[1], x.size()[2]);
-        if self.window_size > 0 {
-            let res = window_partition(x, self.window_size);
-            x = res.0;
-            pad_hw = Some(res.1);
-        };
-        x = self.attn.forward(&x);
-        // Reverse window partition
-        if self.window_size > 0 {
-            x = window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
-        };
-
-        x = shortcut + x;
-        x = &x + self.mlp.forward(&self.norm2.forward(&x));
-        x
-    }
-}
-impl Block {
+impl<B: Backend> Block<B> {
     // Args:
     // dim (int): Number of input channels.
     // num_heads (int): Number of attention heads in each ViT block.
@@ -57,15 +36,14 @@ impl Block {
     // input_size (tuple(int, int) or None): Input resolution for calculating the relative
     //     positional parameter size.
     pub fn new(
-        vs: &nn::Path,
-        dim: i64,
-        num_heads: i64,
+        dim: usize,
+        num_heads: usize,
         mlp_ratio: Option<f64>,
         qkv_bias: Option<bool>,
         act_layer: Activation,
         use_rel_pos: Option<bool>,
         rel_pos_zero_init: Option<bool>,
-        window_size: Option<i64>,
+        window_size: Option<usize>,
         input_size: Option<Size>,
     ) -> Self {
         let mlp_ratio = mlp_ratio.unwrap_or(4.0);
@@ -74,15 +52,14 @@ impl Block {
         let rel_pos_zero_init = rel_pos_zero_init.unwrap_or(true);
         let window_size = window_size.unwrap_or(0);
 
-        let norm1 = nn::layer_norm(vs, vec![dim], Default::default());
-        let norm2 = nn::layer_norm(vs, vec![dim], Default::default());
+        let norm1 = LayerNormConfig::new(dim).init();
+        let norm2 = LayerNormConfig::new(dim).init();
         let input_size = if window_size != 0 {
             Some(Size(window_size, window_size))
         } else {
             input_size
         };
         let attn = Attention::new(
-            vs,
             dim,
             Some(num_heads),
             Some(qkv_bias),
@@ -90,14 +67,36 @@ impl Block {
             Some(rel_pos_zero_init),
             input_size,
         );
-        let mlp = MLPBlock::new(vs, dim, dim * mlp_ratio as i64, act_layer);
+        let mlp = MLPBlock::new(dim, (dim as f64 * mlp_ratio) as usize, act_layer);
         Self {
-            norm1,
-            attn,
-            norm2,
-            mlp,
+            norm1: norm1.into(),
+            attn: attn.into(),
+            norm2: norm2.into(),
+            mlp: mlp.into(),
             window_size,
         }
+    }
+    pub fn forward(&self, x: Tensor<B, 4>) -> Tensor<B, 4> {
+        let shortcut = x.clone();
+        let mut x = self.norm1.forward(x);
+        let mut pad_hw = None;
+        // Window partition
+        let shape = x.dims();
+        let size = Size(shape[1], shape[2]);
+        if self.window_size > 0 {
+            let (res, size) = window_partition(x, self.window_size);
+            x = res;
+            pad_hw = Some(size);
+        };
+        x = self.attn.forward(x);
+        // Reverse window partition
+        if self.window_size > 0 {
+            x = window_unpartition(x, self.window_size, pad_hw.unwrap(), size)
+        };
+
+        x = shortcut + x;
+        x = x.clone() + self.mlp.forward(self.norm2.forward(x));
+        x
     }
 }
 
@@ -109,8 +108,9 @@ impl Block {
 // Returns:
 //     windows: windows after partition with [B * num_windows, window_size, window_size, C].
 //     (Hp, Wp): padded height and width before partition
-fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
-    let (b, h, w, c) = x.size4().unwrap();
+fn window_partition<B: Backend>(x: Tensor<B, 4>, window_size: usize) -> (Tensor<B, 4>, Size) {
+    let shape = x.dims();
+    let (b, h, w, c) = (shape[0], shape[1], shape[2], shape[3]);
 
     let pad_h = (window_size - h % window_size) % window_size;
     let pad_w = (window_size - w % window_size) % window_size;
@@ -120,7 +120,7 @@ fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
         x
     };
     let (hp, wp) = (h + pad_h, w + pad_w);
-    let x = x.view([
+    let x = x.reshape([
         b,
         hp / window_size,
         window_size,
@@ -129,9 +129,8 @@ fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
         c,
     ]);
     let windows =
-        x.permute(&[0, 1, 3, 2, 4, 5])
-            .contiguous()
-            .view([-1, window_size, window_size, c]);
+        x.permute([0, 1, 3, 2, 4, 5])
+            .reshape_max([usize::MAX, window_size, window_size, c]);
     (windows, Size(hp, wp))
 }
 
@@ -144,24 +143,28 @@ fn window_partition(x: Tensor, window_size: i64) -> (Tensor, Size) {
 
 //     Returns:
 //         x: unpartitioned sequences with [B, H, W, C].
-fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size) -> Tensor {
+fn window_unpartition<B: Backend>(
+    windows: Tensor<B, 4>,
+    window_size: usize,
+    pad_hw: Size,
+    hw: Size,
+) -> Tensor<B, 4> {
     let Size(hp, wp) = pad_hw;
     let Size(h, w) = hw;
-    let b = windows.size()[0] / (hp * wp / window_size / window_size);
-    let x = windows.view([
+    let b = windows.dims()[0] / (hp * wp / window_size / window_size);
+    let x = windows.reshape_max([
         b,
         hp / window_size,
         wp / window_size,
         window_size,
         window_size,
-        -1,
+        usize::MAX,
     ]);
     let x = x
-        .permute(&[0, 1, 3, 2, 4, 5])
-        .contiguous()
-        .view([b, hp, wp, -1]);
+        .permute([0, 1, 3, 2, 4, 5])
+        .reshape_max([b, hp, wp, usize::MAX]);
     if hp > h || wp > w {
-        x.slice(1, 0, h, 1).slice(2, 0, w, 1).contiguous()
+        x.narrow(1, 0, h).narrow(2, 0, w)
     } else {
         x
     }
@@ -169,70 +172,53 @@ fn window_unpartition(windows: Tensor, window_size: i64, pad_hw: Size, hw: Size)
 
 #[cfg(test)]
 mod test {
-    use tch::nn::Module;
 
     use crate::{
-        modeling::common::activation::{Activation, ActivationType},
+        modeling::common::activation::Activation,
         sam_predictor::Size,
-        tests::{
-            helpers::{random_tensor, TestFile},
-            mocks::Mock,
-        },
+        tests::helpers::{load_module, random_tensor, Test, TestBackend},
     };
 
-    impl Mock for super::Block {
-        fn mock(&mut self) {
-            self.norm1.mock();
-            self.attn.mock();
-            self.norm2.mock();
-            self.mlp.mock();
-        }
-    }
     #[test]
     fn test_window_partition() {
-        let input = random_tensor(&[2, 256, 16, 16], 1);
-        let (output, pad_hw) = super::window_partition(input.copy(), 16);
-        let file = TestFile::open("window_partition");
-        file.compare("input", input);
-        file.compare("output", output);
-        file.compare("size", pad_hw);
+        let input = random_tensor([2, 256, 16, 16], 1);
+        let (output, pad_hw) = super::window_partition::<TestBackend>(input.clone(), 16);
+        let file = Test::open("window_partition");
+        file.equal("input", input);
+        file.equal("output", output);
+        file.equal("size", pad_hw);
     }
 
     #[test]
     fn test_window_unpartition() {
-        let input = random_tensor(&[2, 256, 16, 16], 2);
-        let output = super::window_unpartition(input.copy(), 16, Size(16, 16), Size(14, 14));
-        let file = TestFile::open("window_unpartition");
-        file.compare("input", input);
-        file.compare("output", output);
+        let input = random_tensor([2, 256, 16, 16], 2);
+        let output =
+            super::window_unpartition::<TestBackend>(input.clone(), 16, Size(16, 16), Size(14, 14));
+        let file = Test::open("window_unpartition");
+        file.equal("input", input);
+        file.equal("output", output);
     }
 
     #[test]
     fn test_block() {
-        let vs = tch::nn::VarStore::new(tch::Device::Cpu);
-        let mut block = super::Block::new(
-            &vs.root(),
-            320,
-            16,
+        let mut block = super::Block::<TestBackend>::new(
+            80,
+            8,
             Some(4.0),
             Some(true),
-            Activation::new(ActivationType::GELU),
+            Activation::GELU,
             Some(true),
             Some(true),
             Some(14),
-            Some(Size(64, 64)),
+            Some(Size(16, 16)),
         );
-        let file = TestFile::open("block");
-        file.compare("window_size", block.window_size);
-
-        // Mocking
-        block.mock();
+        block = load_module("block", block);
 
         // Forward
-        let input = random_tensor(&[1, 64, 64, 320], 1);
-        let output = block.forward(&input);
-        let file = TestFile::open("block_forward");
-        file.compare("input", input);
-        file.compare("output", output);
+        let input = random_tensor([1, 16, 16, 80], 1);
+        let output = block.forward(input.clone());
+        let file = Test::open("block");
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

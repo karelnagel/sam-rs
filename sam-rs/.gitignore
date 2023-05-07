@@ -1,4 +1,4 @@
 target/
-test-files/
 error.json
 __pycache__/
+*.bin.gz

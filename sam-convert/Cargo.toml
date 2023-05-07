@@ -1,5 +1,5 @@
 [package]
-name = "sam-example"
+name = "sam-convert"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,8 +7,7 @@ edition = "2021"
 
 [dependencies]
 sam-rs = { path = "../sam-rs" }
-onnxruntime = { git = "https://github.com/karelnagel/onnxruntime-rs" }
-opencv = "0.78.2"
-tracing = "0.1.37"
-tracing-subscriber = "0.3.16"
-ndarray = "0.15.6"
+burn = { git = "https://github.com/karelnagel/burn" }
+
+[profile.release]
+strip = true
