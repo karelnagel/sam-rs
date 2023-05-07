@@ -186,7 +186,7 @@ mod test {
         let input = random_tensor([1, 3, img_size, img_size], 1);
         let output = image_encoder.forward(input.clone());
         let file = Test::open("image_encoder");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

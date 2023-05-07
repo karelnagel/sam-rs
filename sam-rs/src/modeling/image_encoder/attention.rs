@@ -189,8 +189,8 @@ pub mod test {
         let k_size = 32;
         let output = super::get_rel_pos::<TestBackend>(q_size, k_size, rel_pos.clone());
         let file = Test::open("get_rel_pos");
-        file.compare("input", rel_pos);
-        file.compare("output", output);
+        file.equal("input", rel_pos);
+        file.equal("output", output);
     }
 
     #[test]
@@ -210,11 +210,11 @@ pub mod test {
             k_size,
         );
         let file = Test::open("add_decomposed_rel_pos");
-        file.compare("attn", attn);
-        file.compare("q", q);
-        file.compare("q_size", q_size);
-        file.compare("k_size", k_size);
-        file.compare("output", output);
+        file.equal("attn", attn);
+        file.equal("q", q);
+        file.equal("q_size", q_size);
+        file.equal("k_size", k_size);
+        file.almost_equal("output", output,0.001);
     }
 
     #[test]
@@ -233,7 +233,7 @@ pub mod test {
         let input = random_tensor([25, 14, 14, 320], 1);
         let output = attention.forward(input.clone());
         let file = Test::open("attention");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

@@ -50,14 +50,16 @@ impl<B: Backend> MaskDecoder<B> {
 
         let mask_tokens = EmbeddingConfig::new(num_mask_tokens, transformer_dim).init();
 
-        let output_upscaling0 = ConvTranspose2dConfig::new(transformer_dim, transformer_dim / 4, [2, 2])
-            .set_stride([2, 2])
-            .init();
+        let output_upscaling0 =
+            ConvTranspose2dConfig::new(transformer_dim, transformer_dim / 4, [2, 2])
+                .set_stride([2, 2])
+                .init();
         let output_upscaling1 = LayerNorm2d::new(transformer_dim / 4, None);
         let output_upscaling2 = activation;
-        let output_upscaling3 = ConvTranspose2dConfig::new(transformer_dim / 4, transformer_dim / 8, [2, 2])
-            .set_stride([2, 2])
-            .init();
+        let output_upscaling3 =
+            ConvTranspose2dConfig::new(transformer_dim / 4, transformer_dim / 8, [2, 2])
+                .set_stride([2, 2])
+                .init();
         let output_upscaling4 = activation;
 
         let mut output_hypernetworks_mlps = Vec::new();
@@ -229,12 +231,12 @@ mod test {
             true,
         );
         let file = Test::open("mask_decoder");
-        file.compare("image_embedding", image_embedding);
-        file.compare("image_pe", image_pe);
-        file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
-        file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
-        file.compare("masks", masks);
-        file.compare("iou_pred", iou_pred);
+        file.equal("image_embedding", image_embedding);
+        file.equal("image_pe", image_pe);
+        file.equal("sparse_prompt_embeddings", sparse_prompt_embeddings);
+        file.equal("dense_prompt_embeddings", dense_prompt_embeddings);
+        file.almost_equal("masks", masks, 0.05);
+        file.almost_equal("iou_pred", iou_pred, 0.001);
     }
 
     #[test]
@@ -263,11 +265,11 @@ mod test {
             dense_prompt_embeddings.clone(),
         );
         let file = Test::open("mask_decoder_predict");
-        file.compare("image_embedding", image_embedding);
-        file.compare("image_pe", image_pe);
-        file.compare("sparse_prompt_embeddings", sparse_prompt_embeddings);
-        file.compare("dense_prompt_embeddings", dense_prompt_embeddings);
-        file.compare("masks", masks);
-        file.compare("iou_pred", iou_pred);
+        file.equal("image_embedding", image_embedding);
+        file.equal("image_pe", image_pe);
+        file.equal("sparse_prompt_embeddings", sparse_prompt_embeddings);
+        file.equal("dense_prompt_embeddings", dense_prompt_embeddings);
+        file.almost_equal("masks", masks, 0.01);
+        file.almost_equal("iou_pred", iou_pred, 0.001);
     }
 }

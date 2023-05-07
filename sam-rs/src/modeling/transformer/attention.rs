@@ -86,9 +86,9 @@ mod test {
         let v = random_tensor([1, 32, 32], 3);
         let output = attention.forward(q.clone(), k.clone(), v.clone());
         let file = Test::open("transformer_attention");
-        file.compare("q", q);
-        file.compare("k", k);
-        file.compare("v", v);
-        file.compare("output", output);
+        file.equal("q", q);
+        file.equal("k", k);
+        file.equal("v", v);
+        file.almost_equal("output", output,0.001);
     }
 }

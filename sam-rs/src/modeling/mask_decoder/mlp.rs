@@ -67,7 +67,7 @@ mod test {
         let input = random_tensor([1, 256], 1);
         let output = mlp.forward(input.clone());
         let file = Test::open("mlp");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output, 0.001);
     }
 }

@@ -128,10 +128,10 @@ mod test {
             point_embedding.clone(),
         );
         let file = Test::open("transformer_two_way_transformer");
-        file.compare("image_embedding", image_embedding);
-        file.compare("image_pe", image_pe);
-        file.compare("point_embedding", point_embedding);
-        file.compare("queries", queries);
-        file.compare("keys", keys);
+        file.equal("image_embedding", image_embedding);
+        file.equal("image_pe", image_pe);
+        file.almost_equal("point_embedding", point_embedding,0.001);
+        file.almost_equal("queries", queries,0.002);
+        file.almost_equal("keys", keys,0.001);
     }
 }

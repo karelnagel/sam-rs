@@ -89,8 +89,8 @@ mod test {
         let input = random_tensor::<TestBackend, 3>([64, 69, 2], 1);
         let output = pos_embedding._pe_encoding(input.clone());
         let file = Test::open("position_embedding_random_pe_encoding");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 
     #[test]
@@ -100,8 +100,8 @@ mod test {
         let input = Size(64, 64);
         let output = pos_embedding.forward::<TestBackend>(input);
         let file = Test::open("position_embedding_random_forward");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 
     #[test]
@@ -112,8 +112,8 @@ mod test {
         let image_size = Size(1024, 1024);
         let output = pos_embedding.forward_with_coords(input.clone(), image_size);
         let file = Test::open("position_embedding_random_forward_with_coords");
-        file.compare("input", input);
-        file.compare("image_size", image_size);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("image_size", image_size);
+        file.equal("output", output);
     }
 }

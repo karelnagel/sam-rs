@@ -49,7 +49,7 @@ mod test {
         let input = random_tensor::<TestBackend, 4>([2, 256, 16, 16], 1);
         let output = layer_norm.forward(input.clone());
         let file = Test::open("layer_norm_2d");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("output", output);
     }
 }

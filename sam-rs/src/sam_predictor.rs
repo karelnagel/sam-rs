@@ -289,10 +289,10 @@ mod test {
         let predictor = init(true);
 
         let file = Test::open("predictor_set_image");
-        file.compare("original_size", predictor.original_size.unwrap());
-        file.compare("input_size", predictor.input_size.unwrap());
-        file.compare("features", predictor.features.unwrap());
-        file.compare("is_image_set", predictor.is_image_set);
+        file.equal("original_size", predictor.original_size.unwrap());
+        file.equal("input_size", predictor.input_size.unwrap());
+        file.almost_equal("features", predictor.features.unwrap(),0.001);
+        file.equal("is_image_set", predictor.is_image_set);
     }
 
     #[test]
@@ -303,10 +303,10 @@ mod test {
         let original_size = Size(120, 180);
         predictor.set_torch_image(image, original_size);
         let file = Test::open("predictor_set_torch_image");
-        file.compare("original_size", predictor.original_size.unwrap());
-        file.compare("input_size", predictor.input_size.unwrap());
-        file.compare("features", predictor.features.unwrap());
-        file.compare("is_image_set", predictor.is_image_set);
+        file.equal("original_size", predictor.original_size.unwrap());
+        file.equal("input_size", predictor.input_size.unwrap());
+        file.almost_equal("features", predictor.features.unwrap(),0.001);
+        file.equal("is_image_set", predictor.is_image_set);
     }
 
     #[test]
@@ -318,7 +318,7 @@ mod test {
         let (masks, iou_predictions, low_res_masks) =
             predictor.predict(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict");
-        file.compare("masks", masks);
+        file.almost_equal("masks", masks,0.001);
         // file.compare("iou_predictions", iou_predictions);
         // file.compare("low_res_masks", low_res_masks);
     }
@@ -333,7 +333,7 @@ mod test {
         let (masks, iou_predictions, low_res_masks) =
             predictor.predict_torch(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict_torch");
-        file.compare("masks", masks);
+        file.almost_equal("masks", masks,0.001);
         // file.compare("iou_predictions", iou_predictions); // Todo for some reason throwing
         // file.compare("low_res_masks", low_res_masks);
     }

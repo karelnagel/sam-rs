@@ -132,6 +132,6 @@ mod test {
     fn test_image_loading() {
         let (image, _) = load_image::<TestBackend>("../images/truck.jpg");
         let file = Test::open("image");
-        file.compare("image", image)
+        file.equal("image", image)
     }
 }

@@ -43,7 +43,7 @@ pub mod test {
         let output = mlp_block.forward(input.clone());
 
         let file = Test::open("mlp_block");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.01);
     }
 }

@@ -67,7 +67,7 @@ mod test {
         let input = random_tensor([1, 3, 512, 512], 3);
         let output = patch_embed.forward(input.clone());
         let file = Test::open("patch_embed");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

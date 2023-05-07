@@ -123,7 +123,7 @@ mod test {
         let resize = super::ResizeLongestSide::new(64);
         let output = resize.get_preprocess_shape(32, 32, 64);
         let file = Test::open("resize_get_preprocess_shape");
-        file.compare("output", output)
+        file.equal("output", output)
     }
     #[test]
     fn test_resize_apply_image() {
@@ -131,7 +131,7 @@ mod test {
         let input = random_tensor_int([120, 180, 3], 1, 255.);
         let _output = resize.apply_image::<TestBackend>(input.clone());
         let file = Test::open("resize_apply_image");
-        file.compare("input", input);
+        file.equal("input", input);
         // file.compare("output", _output); //has similar output but not exact
     }
     #[test]
@@ -141,8 +141,8 @@ mod test {
         let original_size = Size(1200, 1800);
         let output = resize.apply_coords::<TestBackend, 3>(input.clone(), original_size);
         let file = Test::open("resize_apply_coords");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("output", output);
     }
 
     #[test]
@@ -152,8 +152,8 @@ mod test {
         let original_size = Size(1200, 1800);
         let output = resize.apply_boxes::<TestBackend>(boxes.clone(), original_size);
         let file = Test::open("resize_apply_boxes");
-        file.compare("boxes", boxes);
-        file.compare("output", output);
+        file.equal("boxes", boxes);
+        file.equal("output", output);
     }
 
     #[test]
@@ -162,8 +162,8 @@ mod test {
         let input = random_tensor::<TestBackend, 4>([1, 3, 32, 32], 1);
         let output = resize.apply_image_torch(input.clone());
         let file = Test::open("resize_apply_image_torch");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("output", output);
     }
     #[test]
     fn test_resize_coords_torch() {
@@ -172,9 +172,9 @@ mod test {
         let original_size = Size(32, 32);
         let output = resize.apply_coords_torch(coords.clone(), original_size);
         let file = Test::open("resize_apply_coords_torch");
-        file.compare("coords", coords);
-        file.compare("original_size", original_size);
-        file.compare("output", output);
+        file.equal("coords", coords);
+        file.equal("original_size", original_size);
+        file.equal("output", output);
     }
     #[test]
     fn test_resize_boxes_torch() {
@@ -183,8 +183,8 @@ mod test {
         let original_size = Size(32, 32);
         let output = resize.apply_boxes_torch(boxes.clone(), original_size);
         let file = Test::open("resize_apply_boxes_torch");
-        file.compare("boxes", boxes);
-        file.compare("original_size", original_size);
-        file.compare("output", output);
+        file.equal("boxes", boxes);
+        file.equal("original_size", original_size);
+        file.equal("output", output);
     }
 }

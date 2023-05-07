@@ -125,14 +125,14 @@ mod test {
 
     fn test<B: Backend>(name: &str, sam: crate::sam::Sam<B>) {
         let file = Test::open(name);
-        file.compare("mask_threshold", sam.mask_threshold);
-        file.compare("image_format", sam.image_format);
-        file.compare(
+        file.equal("mask_threshold", sam.mask_threshold);
+        file.equal("image_format", sam.image_format);
+        file.equal(
             "mask_decoder.num_mask_tokens",
             sam.mask_decoder.num_mask_tokens,
         );
-        file.compare("prompt_encoder.embed_dim", sam.prompt_encoder.embed_dim);
-        file.compare(
+        file.equal("prompt_encoder.embed_dim", sam.prompt_encoder.embed_dim);
+        file.equal(
             "prompt_encoder.input_image_size",
             sam.prompt_encoder.input_image_size,
         );

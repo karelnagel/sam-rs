@@ -184,9 +184,9 @@ mod test {
         let input = random_tensor([2, 256, 16, 16], 1);
         let (output, pad_hw) = super::window_partition::<TestBackend>(input.clone(), 16);
         let file = Test::open("window_partition");
-        file.compare("input", input);
-        file.compare("output", output);
-        file.compare("size", pad_hw);
+        file.equal("input", input);
+        file.equal("output", output);
+        file.equal("size", pad_hw);
     }
 
     #[test]
@@ -195,8 +195,8 @@ mod test {
         let output =
             super::window_unpartition::<TestBackend>(input.clone(), 16, Size(16, 16), Size(14, 14));
         let file = Test::open("window_unpartition");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("output", output);
     }
 
     #[test]
@@ -218,7 +218,7 @@ mod test {
         let input = random_tensor([1, 16, 16, 80], 1);
         let output = block.forward(input.clone());
         let file = Test::open("block");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.almost_equal("output", output,0.001);
     }
 }

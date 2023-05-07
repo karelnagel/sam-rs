@@ -22,7 +22,7 @@ mod test {
 
         // Loading image
         let (image, _) = load_image(image_path);
-        file.compare("image", image.clone());
+        file.equal("image", image.clone());
 
         // Setting image
         predictor.set_image(image, ImageFormat::RGB);
@@ -30,8 +30,8 @@ mod test {
         //Example inputs
         let input_point = Tensor::of_slice(vec![170, 375], [1, 2]);
         let input_label = Tensor::of_slice(vec![1], [1]);
-        file.compare("input_point", input_point.clone());
-        file.compare("input_label", input_label.clone());
+        file.equal("input_point", input_point.clone());
+        file.equal("input_label", input_label.clone());
 
         let (masks, scores, logits) =
             predictor.predict(Some(input_point), Some(input_label), None, None, true);
@@ -41,8 +41,8 @@ mod test {
             slice.iter().filter(|x| **x).count(),
             slice.len()
         );
-        file.compare("masks", masks);
-        file.compare("scores", scores);
-        file.compare("logits", logits);
+        file.equal("masks", masks);
+        file.equal("scores", scores);
+        file.equal("logits", logits);
     }
 }

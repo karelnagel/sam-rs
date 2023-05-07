@@ -234,7 +234,7 @@ mod test {
         let output = sam.forward(input, false);
         let file = Test::open("sam_forward_boxes");
         for (i, out) in output.iter().enumerate() {
-            file.compare(format!("masks{}", i).as_str(), out.masks.clone());
+            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(),0.001);
             // file.compare(
             //     format!("iou_predictions{}", i).as_str(),
             //     out.iou_predictions.clone(),
@@ -267,7 +267,7 @@ mod test {
         let output = sam.forward(input, false);
         let file = Test::open("sam_forward_points");
         for (i, out) in output.iter().enumerate() {
-            file.compare(format!("masks{}", i).as_str(), out.masks.clone());
+            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(),0.001);
             // file.compare(
             //     format!("iou_predictions{}", i).as_str(),
             //     out.iou_predictions.clone(),
@@ -286,9 +286,9 @@ mod test {
         let original = Size(534, 800);
         let output = sam.postprocess_masks(masks.clone(), input, original);
         let file = Test::open("sam_postprocess_masks");
-        file.compare("input_size", input);
-        file.compare("masks", masks);
-        file.compare("output", output);
+        file.equal("input_size", input);
+        file.equal("masks", masks);
+        file.equal("output", output);
     }
     #[test]
     fn test_sam_preprocess() {
@@ -298,7 +298,7 @@ mod test {
         let input = random_tensor_int([3, 171, 128], 1, 255.);
         let output = sam.preprocess(input.clone());
         let file = Test::open("sam_preprocess");
-        file.compare("input", input);
-        file.compare("output", output);
+        file.equal("input", input);
+        file.equal("output", output);
     }
 }

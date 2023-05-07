@@ -77,7 +77,7 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
     ) -> (Tensor<B, 3>, Tensor<B, 3>) {
         let mut queries = queries;
         let mut keys = keys;
-        
+
         // Self attention block
         if self.skip_first_layer_pe {
             queries = self
@@ -150,11 +150,11 @@ mod test {
             key_pe.clone(),
         );
         let file = Test::open("transformer_two_way_attention_block");
-        file.compare("queries", queries);
-        file.compare("keys", keys);
-        file.compare("query_pe", query_pe);
-        file.compare("key_pe", key_pe);
-        file.compare("out_queries", out_queries);
-        file.compare("out_keys", out_keys);
+        file.equal("queries", queries);
+        file.equal("keys", keys);
+        file.equal("query_pe", query_pe);
+        file.equal("key_pe", key_pe);
+        file.almost_equal("out_queries", out_queries,0.001);
+        file.almost_equal("out_keys", out_keys,0.0012);
     }
 }

@@ -6,27 +6,29 @@ use crate::{
     modeling::common::activation::Activation,
     sam_predictor::{ImageFormat, Size},
 };
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct TestTensor<T: PartialEq> {
     size: Vec<usize>,
     values: Vec<T>,
 }
-const EQUALITY_THRESHOLD: f32 = 0.1;
-impl PartialEq for TestTensor<f32> {
-    fn eq(&self, other: &Self) -> bool {
+pub trait AlmostEqual {
+    fn almost_equal(&self, other: &Self, threshold: f32) -> bool;
+}
+impl AlmostEqual for TestTensor<f32> {
+    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
         if self.size != other.size {
             return false;
         }
         for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
             let a_abs = a.abs();
             let b_abs = b.abs();
-            let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
-            let high = a_abs + (a_abs * EQUALITY_THRESHOLD);
+            let low = a_abs - (a_abs * threshold);
+            let high = a_abs + (a_abs * threshold);
             if !(low <= b_abs && b_abs <= high) {
                 let diff = (a - b).abs() / a_abs;
                 println!(
                     "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
-                    a, b, i, EQUALITY_THRESHOLD, diff
+                    a, b, i, threshold, diff
                 );
                 return false;
             }
@@ -34,8 +36,8 @@ impl PartialEq for TestTensor<f32> {
         true
     }
 }
-impl PartialEq for TestTensor<i32> {
-    fn eq(&self, other: &Self) -> bool {
+impl AlmostEqual for TestTensor<i32> {
+    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
         if self.size != other.size {
             return false;
         }
@@ -44,13 +46,13 @@ impl PartialEq for TestTensor<i32> {
             let b = *b as f32;
             let a_abs = a.abs();
             let b_abs = b.abs();
-            let low = a_abs - (a_abs * EQUALITY_THRESHOLD);
-            let high = a_abs + (a_abs * EQUALITY_THRESHOLD);
+            let low = a_abs - (a_abs * threshold);
+            let high = a_abs + (a_abs * threshold);
             if !(low <= b_abs && b_abs <= high) {
                 let diff = (a - b).abs() / a_abs;
                 println!(
                     "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
-                    a, b, i, EQUALITY_THRESHOLD, diff
+                    a, b, i, threshold, diff
                 );
                 return false;
             }
@@ -58,13 +60,13 @@ impl PartialEq for TestTensor<i32> {
         true
     }
 }
-impl PartialEq for TestTensor<bool> {
-    fn eq(&self, other: &Self) -> bool {
+impl AlmostEqual for TestTensor<bool> {
+    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
         if self.size != other.size {
             return false;
         }
         let mut counter = 0;
-        let max_errors = (self.values.len() as f32 * EQUALITY_THRESHOLD) as usize;
+        let max_errors = (self.values.len() as f32 * threshold) as usize;
         println!(
             "left trues:{}, right trues:{}, total vals: {}",
             self.values.iter().filter(|x| **x).count(),
@@ -111,7 +113,16 @@ pub enum TestValue {
     ActivationType(Activation),
     Size(Size),
 }
-
+impl TestValue {
+    pub fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
+        match (&self, &other) {
+            (TestValue::TensorFloat(a), TestValue::TensorFloat(b)) => a.almost_equal(b, threshold),
+            (TestValue::TensorBool(a), TestValue::TensorBool(b)) => a.almost_equal(b, threshold),
+            (TestValue::TensorInt(a), TestValue::TensorInt(b)) => a.almost_equal(b, threshold),
+            _ => self == other,
+        }
+    }
+}
 impl<B: Backend, const D: usize> From<Tensor<B, D>> for TestValue {
     fn from(tensor: Tensor<B, D>) -> Self {
         let (values, shape) = tensor.to_slice();

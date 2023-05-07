@@ -36,11 +36,22 @@ impl Test {
             name: name.into(),
         }
     }
-    pub fn compare<T: Into<TestValue>>(&self, key: &str, value: T) {
+    pub fn equal<T: Into<TestValue>>(&self, key: &str, value: T) {
         let file_value = self.file.values.get(key).unwrap();
         assert_eq!(
             file_value,
             &value.into(),
+            "key '{}' failed in '{}' test",
+            key,
+            self.name
+        );
+        println!("{}: OK", key);
+    }
+    pub fn almost_equal<T: Into<TestValue>>(&self, key: &str, value: T, threshold: f32) {
+        let file_value = self.file.values.get(key).unwrap();
+        let value: TestValue = value.into();
+        assert!(
+            file_value.almost_equal(&value, threshold),
             "key '{}' failed in '{}' test",
             key,
             self.name
