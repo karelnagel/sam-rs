@@ -53,20 +53,20 @@ impl<B: Backend> Block<B> {
         let window_size = window_size.unwrap_or(0);
 
         let norm1 = LayerNormConfig::new(dim).init();
-        let norm2 = LayerNormConfig::new(dim).init();
-        let input_size = if window_size != 0 {
-            Some(Size(window_size, window_size))
-        } else {
-            input_size
-        };
+
         let attn = Attention::new(
             dim,
             Some(num_heads),
             Some(qkv_bias),
             Some(use_rel_pos),
             Some(rel_pos_zero_init),
-            input_size,
+            match window_size {
+                0 => input_size,
+                _ => Some(Size(window_size, window_size)),
+            },
         );
+        let norm2 = LayerNormConfig::new(dim).init();
+
         let mlp = MLPBlock::new(dim, (dim as f64 * mlp_ratio) as usize, act_layer);
         Self {
             norm1: norm1.into(),
@@ -219,6 +219,6 @@ mod test {
         let output = block.forward(input.clone());
         let file = Test::open("block");
         file.equal("input", input);
-        file.almost_equal("output", output,0.003);
+        file.almost_equal("output", output, 0.003);
     }
 }

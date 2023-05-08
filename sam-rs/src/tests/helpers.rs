@@ -19,7 +19,7 @@ pub struct TestFile {
 pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_vit_b_01ec64";
 pub const TEST_SAM: BuildSam = BuildSam::SamVitB;
 pub const TEST_ALMOST_THRESHOLD: f32 = 0.0001;
-pub type TestBackend = TchBackend<f32>;
+pub type TestBackend = TchBackend<f64>;
 pub struct Test {
     name: String,
     file: TestFile,

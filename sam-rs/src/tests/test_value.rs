@@ -1,4 +1,4 @@
-use burn::tensor::{backend::Backend, Bool, Int, Tensor};
+use burn::tensor::{backend::Backend, Bool, Int, Tensor, TensorKind};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -70,6 +70,22 @@ impl Difference for bool {
             false => 1.0,
         }
     }
+}
+pub fn debug_tensor<B: Backend, const D: usize, K: TensorKind<B>>(tensor: &Tensor<B, D, K>)
+where
+    TestValue: From<burn::tensor::Tensor<B, D, K>>,
+{
+    let test: TestValue = tensor.clone().into();
+    match &test {
+        TestValue::TensorFloat(tensor) => {
+            let nan_count = tensor.values.iter().filter(|x| x.is_nan()).count();
+            if nan_count > 0 {
+                println!("nans: {:?}", nan_count);
+            }
+        }
+        _ => {}
+    }
+    println!("tensor: {:?}", test);
 }
 
 impl<T: std::fmt::Debug + Clone + PartialEq + Difference> std::fmt::Debug for TestTensor<T> {
