@@ -68,6 +68,6 @@ mod test {
         let output = patch_embed.forward(input.clone());
         let file = Test::open("patch_embed");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
 }

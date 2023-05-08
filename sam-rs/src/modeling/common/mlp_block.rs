@@ -44,6 +44,6 @@ pub mod test {
 
         let file = Test::open("mlp_block");
         file.equal("input", input);
-        file.almost_equal("output", output,0.01);
+        file.almost_equal("output", output, 0.001);
     }
 }

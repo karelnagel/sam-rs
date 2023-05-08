@@ -54,13 +54,13 @@ pub trait Difference {
 }
 impl Difference for f32 {
     fn difference(&self, other: &Self) -> f32 {
-        (self - other).abs() / self.abs()
+        (self - other).abs() / self.abs().max(other.abs())
     }
 }
 
 impl Difference for i32 {
     fn difference(&self, other: &Self) -> f32 {
-        (self - other).abs() as f32 / self.abs() as f32
+        (self - other).abs() as f32 / self.abs().max(other.abs()) as f32
     }
 }
 impl Difference for bool {

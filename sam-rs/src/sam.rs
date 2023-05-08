@@ -212,16 +212,16 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        build_sam::build_sam_test,
         sam_predictor::Size,
-        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT},
+        tests::helpers::{
+            random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT, TEST_SAM,
+        },
     };
 
     use super::Input;
-
     #[test]
     fn test_sam_forward_boxes() {
-        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+        let mut sam = TEST_SAM.build::<TestBackend>(Some(TEST_CHECKPOINT));
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -260,7 +260,7 @@ mod test {
     }
     #[test]
     fn test_sam_forward_points() {
-        let mut sam = build_sam_test::<TestBackend>(Some(TEST_CHECKPOINT));
+        let mut sam = TEST_SAM.build::<TestBackend>(Some(TEST_CHECKPOINT));
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -292,13 +292,17 @@ mod test {
                 0.1,
             );
             if let Some(low_res_logits) = out.low_res_logits.clone() {
-                file.almost_equal(format!("low_res_logits{}", i).as_str(), low_res_logits, 5.);
+                file.almost_equal(
+                    format!("low_res_logits{}", i).as_str(),
+                    low_res_logits,
+                    None,
+                );
             } //Todo
         }
     }
     #[test]
     fn test_sam_postprocess_masks() {
-        let sam = build_sam_test::<TestBackend>(None);
+        let sam = TEST_SAM.build::<TestBackend>(None);
 
         let masks = random_tensor([4, 1, 256, 256], 1);
         let input = Size(684, 1024);
@@ -311,7 +315,7 @@ mod test {
     }
     #[test]
     fn test_sam_preprocess() {
-        let sam = build_sam_test::<TestBackend>(None);
+        let sam = TEST_SAM.build::<TestBackend>(None);
         // sam = load_module("sam_preprocess", sam);
 
         let input = random_tensor_int([3, 171, 128], 1, 255.);

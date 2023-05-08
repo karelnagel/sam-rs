@@ -89,6 +89,6 @@ mod test {
         file.equal("q", q);
         file.equal("k", k);
         file.equal("v", v);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
 }

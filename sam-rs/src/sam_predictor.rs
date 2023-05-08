@@ -267,14 +267,13 @@ where
 #[cfg(test)]
 mod test {
 
-    use crate::{
-        build_sam::build_sam_test,
-        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT},
+    use crate::tests::helpers::{
+        random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT, TEST_SAM,
     };
 
     use super::{SamPredictor, Size};
     fn init(with_set_image: bool) -> SamPredictor<TestBackend> {
-        let sam = build_sam_test(Some(TEST_CHECKPOINT));
+        let sam = TEST_SAM.build(Some(TEST_CHECKPOINT));
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
             let image = random_tensor_int([120, 180, 3], 1, 255.);
@@ -291,7 +290,7 @@ mod test {
         let file = Test::open("predictor_set_image");
         file.equal("original_size", predictor.original_size.unwrap());
         file.equal("input_size", predictor.input_size.unwrap());
-        file.almost_equal("features", predictor.features.unwrap(),0.001);
+        file.almost_equal("features", predictor.features.unwrap(), None);
         file.equal("is_image_set", predictor.is_image_set);
     }
 
@@ -305,7 +304,7 @@ mod test {
         let file = Test::open("predictor_set_torch_image");
         file.equal("original_size", predictor.original_size.unwrap());
         file.equal("input_size", predictor.input_size.unwrap());
-        file.almost_equal("features", predictor.features.unwrap(),0.001);
+        file.almost_equal("features", predictor.features.unwrap(), None);
         file.equal("is_image_set", predictor.is_image_set);
     }
 
@@ -318,7 +317,7 @@ mod test {
         let (masks, iou_predictions, low_res_masks) =
             predictor.predict(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict");
-        file.almost_equal("masks", masks,0.001);
+        file.almost_equal("masks", masks, None);
         // file.compare("iou_predictions", iou_predictions);
         // file.compare("low_res_masks", low_res_masks);
     }
@@ -333,7 +332,7 @@ mod test {
         let (masks, iou_predictions, low_res_masks) =
             predictor.predict_torch(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict_torch");
-        file.almost_equal("masks", masks,0.001);
+        file.almost_equal("masks", masks, None);
         // file.compare("iou_predictions", iou_predictions); // Todo for some reason throwing
         // file.compare("low_res_masks", low_res_masks);
     }

@@ -214,7 +214,7 @@ pub mod test {
         file.equal("q", q);
         file.equal("q_size", q_size);
         file.equal("k_size", k_size);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
 
     #[test]
@@ -234,6 +234,6 @@ pub mod test {
         let output = attention.forward(input.clone());
         let file = Test::open("attention");
         file.equal("input", input);
-        file.almost_equal("output", output,0.01);
+        file.almost_equal("output", output, 0.01);
     }
 }

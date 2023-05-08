@@ -90,7 +90,7 @@ mod test {
         let output = pos_embedding._pe_encoding(input.clone());
         let file = Test::open("position_embedding_random_pe_encoding");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod test {
         let output = pos_embedding.forward::<TestBackend>(input);
         let file = Test::open("position_embedding_random_forward");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
 
     #[test]

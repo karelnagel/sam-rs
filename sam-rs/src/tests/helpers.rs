@@ -8,7 +8,7 @@ use burn::{
 use burn_tch::TchBackend;
 use serde::{Deserialize, Serialize};
 
-use crate::burn_helpers::TensorSlice;
+use crate::{build_sam::BuildSam, burn_helpers::TensorSlice};
 
 use super::test_value::TestValue;
 
@@ -16,7 +16,9 @@ use super::test_value::TestValue;
 pub struct TestFile {
     pub values: HashMap<String, TestValue>,
 }
-pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_test";
+pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_vit_b_01ec64";
+pub const TEST_SAM: BuildSam = BuildSam::SamVitB;
+pub const TEST_ALMOST_THRESHOLD: f32 = 0.0001;
 pub type TestBackend = TchBackend<f32>;
 pub struct Test {
     name: String,
@@ -47,7 +49,13 @@ impl Test {
         );
         println!("{}: OK", key);
     }
-    pub fn almost_equal<T: Into<TestValue>>(&self, key: &str, value: T, threshold: f32) {
+    pub fn almost_equal<T: Into<TestValue>, K: Into<Option<f32>>>(
+        &self,
+        key: &str,
+        value: T,
+        threshold: K,
+    ) {
+        let threshold = threshold.into().unwrap_or(TEST_ALMOST_THRESHOLD);
         let file_value = self.file.values.get(key).unwrap();
         let value: TestValue = value.into();
         if !file_value.almost_equal(&value, threshold) {

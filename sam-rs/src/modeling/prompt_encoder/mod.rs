@@ -354,7 +354,7 @@ mod test {
         let output = prompt_encoder._embed_masks(masks.clone());
         let file = Test::open("prompt_encoder_embed_masks");
         file.equal("masks", masks);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output, None);
     }
     #[test]
     fn test_prompt_encoder_forward_points() {
