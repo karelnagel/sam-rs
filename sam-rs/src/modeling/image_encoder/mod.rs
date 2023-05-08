@@ -93,10 +93,9 @@ impl<B: Backend> ImageEncoderViT<B> {
         let mut blocks = vec![];
 
         for i in 0..depth {
-            let window_size = if !global_attn_indexes.contains(&i) {
-                window_size
-            } else {
-                0
+            let window_size = match global_attn_indexes.contains(&i) {
+                true => 0,
+                false => window_size,
             };
             let block = Block::new(
                 embed_dim,
@@ -187,6 +186,6 @@ mod test {
         let output = image_encoder.forward(input.clone());
         let file = Test::open("image_encoder");
         file.equal("input", input);
-        file.almost_equal("output", output,0.005);
+        file.almost_equal("output", output, 0.005);
     }
 }

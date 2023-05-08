@@ -70,8 +70,6 @@ where
     let img_size = 1024;
     let vit_patch_size = 16;
     let image_embedding_size = img_size / vit_patch_size;
-    let activation = Activation::GELU;
-    let activation_relu = Activation::ReLU;
     let mut sam = Sam::new(
         ImageEncoderViT::new(
             Some(img_size),
@@ -83,7 +81,7 @@ where
             Some(4.0),
             Some(prompt_embed_dim),
             Some(true),
-            activation_relu,
+            Activation::GELU,
             None,
             Some(true),
             None,
@@ -95,13 +93,13 @@ where
             Size(image_embedding_size, image_embedding_size),
             Size(img_size, img_size),
             16,
-            Some(activation),
+            None,
         ),
         MaskDecoder::new(
             prompt_embed_dim,
-            TwoWayTransformer::new(2, prompt_embed_dim, 8, 2048, Some(activation), None),
+            TwoWayTransformer::new(2, prompt_embed_dim, 8, 2048, None, None),
             Some(3),
-            Some(activation),
+            None,
             Some(3),
             Some(256),
         ),
