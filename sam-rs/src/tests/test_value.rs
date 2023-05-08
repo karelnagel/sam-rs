@@ -75,6 +75,13 @@ impl Difference for bool {
 impl<T: std::fmt::Debug + Clone + PartialEq + Difference> std::fmt::Debug for TestTensor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let len = &self.values.len();
+        if self.values.len() <= 10 {
+            return f
+                .debug_struct("TestTensor")
+                .field("size", &self.size)
+                .field("values", &self.values)
+                .finish();
+        }
         f.debug_struct("TestTensor")
             .field("size", &self.size)
             .field("start", &self.values[0..5].to_vec())
