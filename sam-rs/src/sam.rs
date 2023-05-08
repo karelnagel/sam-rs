@@ -30,6 +30,7 @@ pub struct Input<B: Backend> {
 }
 pub struct Output<B: Backend> {
     pub masks: Tensor<B, 4, Bool>,
+    pub mask_values: Tensor<B, 4, Float>,
     pub iou_predictions: Tensor<B, 2, Float>,
     pub low_res_logits: Option<Tensor<B, 4, Float>>,
 }
@@ -147,14 +148,15 @@ where
                 multimask_output,
             );
             let size = image_record.image.dims();
-            let masks = self.postprocess_masks(
+            let mask_values = self.postprocess_masks(
                 low_res_masks.clone(),
                 Size(size[size.len() - 2], size[size.len() - 1]),
                 image_record.original_size,
             );
-            let masks = masks.clone().greater_elem(self.mask_threshold);
+            let masks = mask_values.clone().greater_elem(self.mask_threshold);
             outputs.push(Output {
                 masks,
+                mask_values,
                 iou_predictions,
                 low_res_logits: Some(low_res_masks),
             })
@@ -234,7 +236,13 @@ mod test {
         let output = sam.forward(input, false);
         let file = Test::open("sam_forward_boxes");
         for (i, out) in output.iter().enumerate() {
-            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(),0.001);
+            file.almost_equal(
+                format!("mask_values{}", i).as_str(),
+                out.mask_values.clone(),
+                0.001,
+            );
+            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
+
             // file.compare(
             //     format!("iou_predictions{}", i).as_str(),
             //     out.iou_predictions.clone(),
@@ -267,7 +275,12 @@ mod test {
         let output = sam.forward(input, false);
         let file = Test::open("sam_forward_points");
         for (i, out) in output.iter().enumerate() {
-            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(),0.001);
+            file.almost_equal(
+                format!("mask_values{}", i).as_str(),
+                out.mask_values.clone(),
+                0.001,
+            );
+            file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
             // file.compare(
             //     format!("iou_predictions{}", i).as_str(),
             //     out.iou_predictions.clone(),

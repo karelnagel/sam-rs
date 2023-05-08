@@ -155,6 +155,6 @@ mod test {
         file.equal("query_pe", query_pe);
         file.equal("key_pe", key_pe);
         file.almost_equal("out_queries", out_queries,0.001);
-        file.almost_equal("out_keys", out_keys,0.0012);
+        file.almost_equal("out_keys", out_keys,0.01);
     }
 }

@@ -50,12 +50,12 @@ impl Test {
     pub fn almost_equal<T: Into<TestValue>>(&self, key: &str, value: T, threshold: f32) {
         let file_value = self.file.values.get(key).unwrap();
         let value: TestValue = value.into();
-        assert!(
-            file_value.almost_equal(&value, threshold),
-            "key '{}' failed in '{}' test",
-            key,
-            self.name
-        );
+        if !file_value.almost_equal(&value, threshold) {
+            println!("left: {:?}", file_value);
+            println!("right: {:?}", value);
+            panic!("key '{}' failed in '{}' test", key, self.name);
+        }
+
         println!("{}: OK", key);
     }
 }

@@ -7,89 +7,72 @@ use crate::{
     sam_predictor::{ImageFormat, Size},
 };
 #[derive(Deserialize, Serialize, PartialEq)]
-pub struct TestTensor<T: PartialEq> {
+pub struct TestTensor<T: PartialEq + Difference + std::fmt::Debug> {
     size: Vec<usize>,
     values: Vec<T>,
 }
-pub trait AlmostEqual {
-    fn almost_equal(&self, other: &Self, threshold: f32) -> bool;
-}
-impl AlmostEqual for TestTensor<f32> {
+impl<T: PartialEq + Difference + std::fmt::Debug> TestTensor<T> {
     fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
         if self.size != other.size {
+            println!("TestTensor sizes don't match");
             return false;
         }
-        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
-            let a_abs = a.abs();
-            let b_abs = b.abs();
-            let low = a_abs - (a_abs * threshold);
-            let high = a_abs + (a_abs * threshold);
-            if !(low <= b_abs && b_abs <= high) {
-                let diff = (a - b).abs() / a_abs;
+        let mut exact = 0;
+        let mut almost = 0;
+        let mut failed = 0;
+        let mut max_diff: f32 = 0.0;
+        for (a, b) in self.values.iter().zip(other.values.iter()) {
+            if a == b {
+                exact += 1;
+                continue;
+            }
+            let diff = a.difference(b);
+            if diff <= threshold {
+                almost += 1;
+                continue;
+            };
+            max_diff = max_diff.max(diff);
+            failed += 1;
+        }
+        let total = self.values.len();
+
+        match failed {
+            0 => true,
+            _ => {
                 println!(
-                    "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
-                    a, b, i, threshold, diff
+                    "TestTensor::eq: exact: {}, almost: {}, failed: {}, total: {}! Max threshold: {}, current: {}",
+                    exact, almost, failed, total,max_diff, threshold
                 );
-                return false;
+                false
             }
         }
-        true
-    }
-}
-impl AlmostEqual for TestTensor<i32> {
-    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
-        if self.size != other.size {
-            return false;
-        }
-        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
-            let a = *a as f32;
-            let b = *b as f32;
-            let a_abs = a.abs();
-            let b_abs = b.abs();
-            let low = a_abs - (a_abs * threshold);
-            let high = a_abs + (a_abs * threshold);
-            if !(low <= b_abs && b_abs <= high) {
-                let diff = (a - b).abs() / a_abs;
-                println!(
-                    "TestTensor::eq: {} != {} at index {}, current threshold {}, but needed {}",
-                    a, b, i, threshold, diff
-                );
-                return false;
-            }
-        }
-        true
-    }
-}
-impl AlmostEqual for TestTensor<bool> {
-    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
-        if self.size != other.size {
-            return false;
-        }
-        let mut counter = 0;
-        let max_errors = (self.values.len() as f32 * threshold) as usize;
-        println!(
-            "left trues:{}, right trues:{}, total vals: {}",
-            self.values.iter().filter(|x| **x).count(),
-            other.values.iter().filter(|x| **x).count(),
-            self.values.len()
-        );
-        for (i, (a, b)) in self.values.iter().zip(other.values.iter()).enumerate() {
-            if a != b {
-                counter += 1;
-                if counter > max_errors {
-                    println!(
-                        "TestTensor::eq: {} != {} at index {}, surpassed max errors: {}",
-                        a, b, i, max_errors
-                    );
-                    return false;
-                }
-            }
-        }
-        true
     }
 }
 
-impl<T: std::fmt::Debug + Clone + PartialEq> std::fmt::Debug for TestTensor<T> {
+pub trait Difference {
+    fn difference(&self, other: &Self) -> f32;
+}
+impl Difference for f32 {
+    fn difference(&self, other: &Self) -> f32 {
+        (self - other).abs() / self.abs()
+    }
+}
+
+impl Difference for i32 {
+    fn difference(&self, other: &Self) -> f32 {
+        (self - other).abs() as f32 / self.abs() as f32
+    }
+}
+impl Difference for bool {
+    fn difference(&self, other: &Self) -> f32 {
+        match self == other {
+            true => 0.0,
+            false => 1.0,
+        }
+    }
+}
+
+impl<T: std::fmt::Debug + Clone + PartialEq + Difference> std::fmt::Debug for TestTensor<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let len = &self.values.len();
         f.debug_struct("TestTensor")

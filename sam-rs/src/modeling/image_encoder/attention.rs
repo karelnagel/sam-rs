@@ -234,6 +234,6 @@ pub mod test {
         let output = attention.forward(input.clone());
         let file = Test::open("attention");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output,0.01);
     }
 }

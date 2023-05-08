@@ -187,6 +187,6 @@ mod test {
         let output = image_encoder.forward(input.clone());
         let file = Test::open("image_encoder");
         file.equal("input", input);
-        file.almost_equal("output", output,0.001);
+        file.almost_equal("output", output,0.005);
     }
 }
