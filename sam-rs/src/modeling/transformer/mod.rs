@@ -89,6 +89,7 @@ impl<B: Backend> TwoWayTransformer<B> {
             (queries, keys) =
                 layer.forward(queries, keys, point_embedding.clone(), image_pe.clone());
         }
+        // Todo after this queries is NaN
 
         // Apply the final attention layer from the points to the image
         let q = queries.clone() + point_embedding;

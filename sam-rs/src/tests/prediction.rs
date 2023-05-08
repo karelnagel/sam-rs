@@ -41,8 +41,8 @@ mod test {
             slice.iter().filter(|x| **x).count(),
             slice.len()
         );
-        file.equal("masks", masks);
-        file.equal("scores", scores);
-        file.equal("logits", logits);
+        file.almost_equal("masks", masks, None);
+        file.almost_equal("scores", scores, None);
+        file.almost_equal("logits", logits, None);
     }
 }

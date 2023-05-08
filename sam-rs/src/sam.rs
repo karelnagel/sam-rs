@@ -145,7 +145,7 @@ where
             let image_pe = self.prompt_encoder.get_dense_pe();
             let (low_res_masks, iou_predictions) = self.mask_decoder.forward(
                 curr_embedding.clone().unsqueeze(),
-                image_pe,
+                image_pe.clone(),
                 sparse_embeddings,
                 dense_embeddings,
                 multimask_output,

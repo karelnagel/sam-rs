@@ -161,7 +161,7 @@ def input_to_file(file_name: str, model: nn.Module):
         param_id = str(uuid.uuid4())
         param_shape = list(param.size())
         param_value = (
-            param.flatten().type(torch.float32).detach().cpu().numpy().tolist()
+            param.flatten().type(torch.float64).detach().cpu().numpy().tolist()
         )
         param_data = {
             "id": param_id,
@@ -172,11 +172,11 @@ def input_to_file(file_name: str, model: nn.Module):
 
     json_data = {
         "metadata": {
-            "float": "f32",
-            "int": "i32",
-            "format": "burn_core::record::file::FilePrettyJsonRecorder",
-            "version": "0.6.0",
-            "settings": "DebugRecordSettings",
+            "float": "f64",
+            "int": "i64",
+            "format": "burn_core::record::file::PrettyJsonFileRecorderSIMD<burn_core::record::settings::DoublePrecisionSettings>",
+            "version": "0.7.0",
+            "settings": "DoublePrecisionSettings",
         },
         "item": {**ignored, **data},
     }

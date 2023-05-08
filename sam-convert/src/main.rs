@@ -2,7 +2,7 @@ use std::{env, process::Command, time::Instant};
 
 use burn::{
     module::Module,
-    record::{Record, SentitiveCompactRecordSettings},
+    record::{BinGzFileRecorder, Recorder, DoublePrecisionSettings},
 };
 use sam_rs::{
     build_sam::BuildSam,
@@ -52,8 +52,8 @@ fn convert_sam(sam: BuildSam, file: &str) {
     println!("Loading module in rust...");
     sam = load_module(file, sam);
     println!("Saving module in rust...");
-    sam.into_record()
-        .record::<SentitiveCompactRecordSettings>(file.into())
-        .unwrap();
+
+    let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
+    recorder.record(sam.into_record(), file.into()).unwrap();
     println!("Done!")
 }

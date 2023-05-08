@@ -1,4 +1,8 @@
-use burn::{module::Module, record::SentitiveCompactRecordSettings, tensor::backend::Backend};
+use burn::{
+    module::Module,
+    record::{BinGzFileRecorder, DoublePrecisionSettings, Recorder},
+    tensor::backend::Backend,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -107,9 +111,8 @@ where
         Some([58.395, 57.12, 57.375]),
     );
     if let Some(checkpoint) = _checkpoint {
-        let record =
-            burn::record::Record::load::<SentitiveCompactRecordSettings>(checkpoint.into())
-                .unwrap();
+        let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
+        let record = recorder.load(checkpoint.into()).unwrap();
         sam = sam.load_record(record);
     }
     sam

@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Debug};
 
 use burn::{
     module::Module,
-    record::{DebugRecordSettingsSIMD, Record},
+    record::{DoublePrecisionSettings, PrettyJsonFileRecorderSIMD, Recorder},
     tensor::{backend::Backend, Int, Tensor},
 };
 use burn_tch::TchBackend;
@@ -101,14 +101,14 @@ pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let home = home::home_dir().unwrap();
     let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
-    let record = Record::load::<DebugRecordSettingsSIMD>(path).unwrap();
+    let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
+    let record = recorder.load(path).unwrap();
     module.load_record(record)
 }
 
 pub fn save_module<B: Backend, M: Module<B>>(module: &M) {
-    module
-        .clone()
-        .into_record()
-        .record::<DebugRecordSettingsSIMD>("test.json".into())
+    let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
+    recorder
+        .record(module.clone().into_record(), "test.json".into())
         .unwrap();
 }
