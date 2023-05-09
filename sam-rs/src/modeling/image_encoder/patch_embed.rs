@@ -45,15 +45,35 @@ impl<B: Backend> PatchEmbed<B> {
 #[cfg(test)]
 mod test {
 
+    use pyo3::{PyResult, Python};
+
     use crate::{
+        python::module_to_file::module_to_file,
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::{
+            helpers::{load_module, TestBackend},
+            new::{random_python_tensor, PythonData},
+        },
     };
 
     use super::PatchEmbed;
 
     #[test]
     fn test_patch_embed() {
+        const FILE: &str = "patch_embed";
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("PatchEmbed")?;
+                let module = module.call1(((16, 16), (16, 16), (0, 0), 3, 320))?;
+                module_to_file(FILE, py, &module)?;
+
+                let input = random_python_tensor(py, [1, 3, 512, 512]);
+                let output = module.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let mut patch_embed = PatchEmbed::<TestBackend>::new(
             Some(Size(16, 16)),
             Some(Size(16, 16)),
@@ -61,13 +81,10 @@ mod test {
             Some(3),
             Some(320),
         );
-        patch_embed = load_module("patch_embed", patch_embed);
+        patch_embed = load_module(FILE, patch_embed);
 
         // Forward
-        let input = random_tensor([1, 3, 512, 512], 3);
-        let output = patch_embed.forward(input.clone());
-        let file = Test::open("patch_embed");
-        file.equal("input", input);
-        file.almost_equal("output", output, None);
+        let output = patch_embed.forward(input.into());
+        python.almost_equal(output, 0.5);
     }
 }
