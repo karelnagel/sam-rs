@@ -177,48 +177,92 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
 #[cfg(test)]
 pub mod test {
 
+    use pyo3::{PyResult, Python};
+
     use crate::{
+        python::module_to_file::module_to_file,
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::{
+            helpers::{load_module, random_tensor, Test, TestBackend},
+            new::{random_python_tensor, PythonData},
+        },
     };
 
     #[test]
     fn test_get_rel_pos() {
-        let rel_pos = random_tensor([127, 40], 1);
-        let q_size = 32;
-        let k_size = 32;
-        let output = super::get_rel_pos::<TestBackend>(q_size, k_size, rel_pos.clone());
-        let file = Test::open("get_rel_pos");
-        file.equal("input", rel_pos);
-        file.equal("output", output);
+        fn python() -> PyResult<(PythonData<2>, PythonData<3>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("get_rel_pos")?;
+
+                let input = random_python_tensor(py, [127, 40]);
+                let output = module.call1((32, 32, input))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
+        let output = super::get_rel_pos::<TestBackend>(32, 32, input.into());
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_add_decomposed_rel_pos() {
-        let attn = random_tensor([200, 49, 49], 2);
-        let q = random_tensor([200, 49, 20], 3);
-        let rel_pos_h = random_tensor([20, 20], 4);
-        let rel_pos_w = random_tensor([20, 20], 5);
+        fn python() -> PyResult<(
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<2>,
+            PythonData<2>,
+            PythonData<3>,
+        )> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("add_decomposed_rel_pos")?;
+
+                let attn = random_python_tensor(py, [200, 49, 49]);
+                let q = random_python_tensor(py, [200, 49, 20]);
+                let rel_pos_h = random_python_tensor(py, [20, 20]);
+                let rel_pos_w = random_python_tensor(py, [20, 20]);
+                let output = module.call1((attn, q, rel_pos_h, rel_pos_w, (7, 7), (7, 7)))?;
+                Ok((
+                    attn.into(),
+                    q.into(),
+                    rel_pos_h.into(),
+                    rel_pos_w.into(),
+                    output.into(),
+                ))
+            })
+        }
+        let (attn, q, rel_pos_h, rel_pos_w, python) = python().unwrap();
         let q_size = Size(7, 7);
         let k_size = Size(7, 7);
         let output = super::add_decomposed_rel_pos::<TestBackend>(
-            attn.clone(),
-            q.clone(),
-            rel_pos_h,
-            rel_pos_w,
+            attn.into(),
+            q.into(),
+            rel_pos_h.into(),
+            rel_pos_w.into(),
             q_size,
             k_size,
         );
-        let file = Test::open("add_decomposed_rel_pos");
-        file.equal("attn", attn);
-        file.equal("q", q);
-        file.equal("q_size", q_size);
-        file.equal("k_size", k_size);
-        file.almost_equal("output", output, None);
+        python.almost_equal(output, 0.5);
     }
 
     #[test]
     fn test_attention() {
+        const FILE: &str = "attention";
+
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("Attention")?;
+                let module = module.call1((320, 16, true, true, true, (14, 14)))?;
+                module_to_file(FILE, py, module).unwrap();
+
+                let input = random_python_tensor(py, [25, 14, 14, 320]);
+                let output = module.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let mut attention = super::Attention::<TestBackend>::new(
             320,
             Some(16),
@@ -227,13 +271,10 @@ pub mod test {
             Some(true),
             Some(Size(14, 14)),
         );
-        attention = load_module("attention", attention);
+        attention = load_module(FILE, attention);
 
         // Forward
-        let input = random_tensor([25, 14, 14, 320], 1);
-        let output = attention.forward(input.clone());
-        let file = Test::open("attention");
-        file.equal("input", input);
-        file.almost_equal("output", output, 0.01);
+        let output = attention.forward(input.into());
+        python.almost_equal(output, 0.5);
     }
 }

@@ -44,8 +44,8 @@ impl<const D: usize, T: PythonDataKind> PythonData<D, T> {
         assert_eq!(self, &other, "PythonData::eq failed");
     }
 
-    pub fn almost_equal<I: Into<Self>, X: Into<Option<f32>>>(&self, other: I, threshold: X) {
-        let other: Self = other.into();
+    pub fn almost_equal<I: Into<Self>, X: Into<Option<f32>>>(&self, output: I, threshold: X) {
+        let other: Self = output.into();
         let threshold = threshold.into().unwrap_or(TEST_ALMOST_THRESHOLD);
         if self.shape != other.shape {
             panic!("TestTensor sizes don't match");

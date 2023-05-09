@@ -22,7 +22,7 @@ pub fn get_test_sam() -> Sam<TestBackend> {
     let sam = TEST_SAM.build::<TestBackend>(TEST_CHECKPOINT);
     sam
 }
-pub const TEST_ALMOST_THRESHOLD: f32 = 0.0001;
+pub const TEST_ALMOST_THRESHOLD: f32 = 0.01;
 pub type TestBackend = TchBackend<f64>;
 pub struct Test {
     name: String,

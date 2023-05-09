@@ -1,6 +1,6 @@
 use pyo3::{types::PyModule, Py, PyAny, PyResult, Python};
 
-pub fn module_to_file(file: &str, py: Python, sam: &PyAny) -> PyResult<()> {
+pub fn module_to_file(file: &str, py: Python, module: &PyAny) -> PyResult<()> {
     let fun: Py<PyAny> = PyModule::from_code(
         py,
         r#"
@@ -140,6 +140,6 @@ def module_to_file(file_name: str, model: nn.Module):
     )?
     .getattr("module_to_file")?
     .into();
-    fun.call1(py, (file, sam))?;
+    fun.call1(py, (file, module))?;
     Ok(())
 }
