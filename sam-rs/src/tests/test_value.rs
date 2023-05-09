@@ -8,11 +8,11 @@ use crate::{
 };
 #[derive(Deserialize, Serialize, PartialEq)]
 pub struct TestTensor<T: PartialEq + Difference + std::fmt::Debug> {
-    size: Vec<usize>,
-    values: Vec<T>,
+    pub size: Vec<usize>,
+    pub values: Vec<T>,
 }
 impl<T: PartialEq + Difference + std::fmt::Debug> TestTensor<T> {
-    fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
+    pub fn almost_equal(&self, other: &Self, threshold: f32) -> bool {
         if self.size != other.size {
             println!("TestTensor sizes don't match");
             return false;
