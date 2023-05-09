@@ -2,7 +2,7 @@ use burn::module::Module;
 use burn::tensor::{backend::Backend, Tensor};
 use burn::tensor::{Bool, Float, Int};
 
-use crate::burn_helpers::{TensorHelpers, TensorSlice, ToFloat};
+use crate::burn_helpers::{TensorHelpers, ToFloat};
 use crate::{
     modeling::{
         image_encoder::ImageEncoderViT, mask_decoder::MaskDecoder, prompt_encoder::PromptEncoder,

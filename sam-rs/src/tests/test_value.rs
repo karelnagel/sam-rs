@@ -1,11 +1,11 @@
-use burn::tensor::{backend::Backend, Bool, Int, Tensor, TensorKind};
+use burn::tensor::{backend::Backend, Int, Tensor, TensorKind};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    burn_helpers::TensorSlice,
     modeling::common::activation::Activation,
-    sam_predictor::{ImageFormat, Size},
+    sam_predictor::{ImageFormat, Size}, burn_helpers::TensorHelpers,
 };
+
 #[derive(Deserialize, Serialize, PartialEq)]
 pub struct TestTensor<T: PartialEq + Difference + std::fmt::Debug> {
     pub size: Vec<usize>,
@@ -138,15 +138,15 @@ impl<B: Backend, const D: usize> From<Tensor<B, D>> for TestValue {
         })
     }
 }
-impl<B: Backend, const D: usize> From<Tensor<B, D, Bool>> for TestValue {
-    fn from(tensor: Tensor<B, D, Bool>) -> Self {
-        let (values, shape) = tensor.to_slice();
-        TestValue::TensorBool(TestTensor {
-            size: shape.to_vec(),
-            values,
-        })
-    }
-}
+// impl<B: Backend, const D: usize> From<Tensor<B, D, Bool>> for TestValue {
+//     fn from(tensor: Tensor<B, D, Bool>) -> Self {
+//         let (values, shape) = tensor.to_slice();
+//         TestValue::TensorBool(TestTensor {
+//             size: shape.to_vec(),
+//             values,
+//         })
+//     }
+// }
 impl<B: Backend, const D: usize> From<Tensor<B, D, Int>> for TestValue {
     fn from(tensor: Tensor<B, D, Int>) -> Self {
         let (values, shape) = tensor.to_slice();

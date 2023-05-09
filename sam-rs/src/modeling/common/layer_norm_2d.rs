@@ -36,20 +36,30 @@ impl<B: Backend> LayerNorm2d<B> {
 
 #[cfg(test)]
 mod test {
-    use crate::tests::helpers::{random_tensor, Test, TestBackend};
+    use pyo3::{PyResult, Python};
+
+    use crate::tests::{
+        helpers::TestBackend,
+        new::{random_python_tensor, PythonData},
+    };
 
     use super::*;
 
     #[test]
     fn test_layer_norm_2d() {
-        // New
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.common")?;
+                let layer_norm_2d = common_module.getattr("LayerNorm2d")?;
+                let layer_norm = layer_norm_2d.call1((256, 0.1))?;
+                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let output = layer_norm.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let layer_norm = LayerNorm2d::<TestBackend>::new(256, Some(0.1));
-
-        // Forward
-        let input = random_tensor::<TestBackend, 4>([2, 256, 16, 16], 1);
-        let output = layer_norm.forward(input.clone());
-        let file = Test::open("layer_norm_2d");
-        file.equal("input", input);
-        file.equal("output", output);
+        let output = layer_norm.forward(input.into());
+        python.almost_equal(output, 0.01);
     }
 }

@@ -6,9 +6,9 @@ use std::sync::Mutex;
 use burn::tensor::Tensor;
 use sam_rs::{
     build_sam::BuildSam,
-    burn_helpers::{TensorHelpers, TensorSlice},
+    burn_helpers::TensorHelpers,
     sam_predictor::{ImageFormat, SamPredictor},
-    tests::helpers::TestBackend,
+    tests::{helpers::TestBackend},
 };
 use tauri::Window;
 pub enum Props {
@@ -72,8 +72,8 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                             None,
                             true,
                         );
-                        let (slice, shape) = masks.to_slice();
-                        window.emit("masks", (slice, shape)).unwrap();
+                        // let (slice, shape) = masks.to_slice();
+                        // window.emit("masks", (slice, shape)).unwrap();
                         println!("Point predicted!");
                     }
                 },

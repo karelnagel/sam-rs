@@ -1,41 +1,52 @@
-use burn::tensor::{backend::Backend, Int, Tensor};
-use pyo3::PyAny;
+use burn::tensor::{backend::Backend, BasicOps, Element, ElementConversion, Tensor, TensorKind};
+use pyo3::{FromPyObject, PyAny, Python};
 
-use crate::burn_helpers::TensorSlice;
+use crate::burn_helpers::TensorHelpers;
 
 use super::helpers::TEST_ALMOST_THRESHOLD;
 
-#[derive(PartialEq)]
-pub struct TestTensor2 {
-    pub values: Vec<f32>,
-    pub shape: Vec<usize>,
+pub trait PythonDataKind: std::fmt::Debug + PartialEq + Clone + Element + Sized + Copy {}
+impl PythonDataKind for f32 {}
+pub fn random_python_tensor<const D: usize>(py: Python, shape: [usize; D]) -> &PyAny {
+    let torch = py.import("torch").unwrap();
+    let input = torch.call_method1("randn", (shape,)).unwrap();
+    input
+}
+#[derive(PartialEq, Clone)]
+pub struct PythonData<const D: usize, T: PythonDataKind = f32> {
+    pub slice: Vec<T>,
+    pub shape: [usize; D],
 }
 
-impl std::fmt::Debug for TestTensor2 {
+impl<T: PythonDataKind, const D: usize> std::fmt::Debug for PythonData<D, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let len = &self.values.len();
-        if self.values.len() <= 10 {
+        let len = self.slice.len();
+        if len <= 10 {
             return f
                 .debug_struct("TestTensor")
-                .field("size", &self.shape)
-                .field("values", &self.values)
+                .field("shape", &self.shape)
+                .field("values", &self.slice)
                 .finish();
         }
         f.debug_struct("TestTensor")
-            .field("size", &self.shape)
-            .field("start", &self.values[0..5].to_vec())
-            .field("end", &self.values[len - 6..len - 1].to_vec())
+            .field("shape", &self.shape)
+            .field("start", &self.slice[0..5].to_vec())
+            .field("end", &self.slice[len - 6..len - 1].to_vec())
             .finish()
     }
 }
-
-fn difference(a: f32, b: f32) -> f32 {
-    (a - b).abs() / a.abs().max(b.abs())
-}
-impl TestTensor2 {
-    pub fn almost_equal<T: Into<Self>, K: Into<Option<f32>>>(&self, other: T, threshold: K) {
-        let threshold = threshold.into().unwrap_or(TEST_ALMOST_THRESHOLD);
+impl<const D: usize, T: PythonDataKind> PythonData<D, T> {
+    pub fn new(slice: Vec<T>, shape: [usize; D]) -> Self {
+        Self { slice, shape }
+    }
+    pub fn equal<I: Into<Self>>(&self, other: I) {
         let other = other.into();
+        assert_eq!(self, &other, "PythonData::eq failed");
+    }
+
+    pub fn almost_equal<I: Into<Self>, X: Into<Option<f32>>>(&self, other: I, threshold: X) {
+        let other: Self = other.into();
+        let threshold = threshold.into().unwrap_or(TEST_ALMOST_THRESHOLD);
         if self.shape != other.shape {
             panic!("TestTensor sizes don't match");
         }
@@ -43,12 +54,14 @@ impl TestTensor2 {
         let mut almost = 0;
         let mut failed = 0;
         let mut max_diff: f32 = 0.0;
-        for (a, b) in self.values.iter().zip(other.values.iter()) {
+        for (a, b) in self.slice.iter().zip(other.slice.iter()) {
+            let a = a.to_f32().unwrap();
+            let b = b.to_f32().unwrap();
             if a == b {
                 exact += 1;
                 continue;
             }
-            let diff = difference(*a, *b);
+            let diff = (a - b).abs() / a.abs().max(b.abs());
             if diff <= threshold {
                 almost += 1;
                 continue;
@@ -56,7 +69,7 @@ impl TestTensor2 {
             max_diff = max_diff.max(diff);
             failed += 1;
         }
-        let total = self.values.len();
+        let total = self.slice.len();
 
         match failed {
             0 => {}
@@ -73,40 +86,52 @@ impl TestTensor2 {
     }
 }
 
-impl<B: Backend, const D: usize> From<Tensor<B, D>> for TestTensor2 {
-    fn from(tensor: Tensor<B, D>) -> Self {
-        let (values, shape) = tensor.to_slice();
-        TestTensor2 {
-            shape: shape.to_vec(),
-            values,
-        }
-    }
-}
-impl<B: Backend, const D: usize> From<Tensor<B, D, Int>> for TestTensor2 {
-    fn from(tensor: Tensor<B, D, Int>) -> Self {
-        let (values, shape) = tensor.to_slice();
-        let values = values.iter().map(|x| *x as f32).collect();
-        TestTensor2 {
-            shape: shape.to_vec(),
-            values,
-        }
-    }
-}
-
-impl From<&PyAny> for TestTensor2 {
-    fn from(tensor: &PyAny) -> Self {
-        let shape = tensor
-            .getattr("shape")
-            .unwrap()
-            .extract::<Vec<usize>>()
-            .unwrap();
-        let values = tensor
+impl<'a, const D: usize, T: PythonDataKind> From<&'a PyAny> for PythonData<D, T>
+where
+    Vec<T>: FromPyObject<'a>,
+{
+    fn from(data: &'a PyAny) -> Self {
+        let slice = data
             .getattr("flatten")
             .unwrap()
             .call0()
             .unwrap()
-            .extract::<Vec<f32>>()
+            .getattr("tolist")
+            .unwrap()
+            .call0()
+            .unwrap()
+            .extract::<Vec<T>>()
             .unwrap();
-        Self { values, shape }
+        let shape = data
+            .getattr("shape")
+            .unwrap()
+            .extract::<Vec<usize>>()
+            .unwrap();
+        assert_eq!(D, shape.len(), "Shape length doesn't match");
+        let shape = shape.try_into().unwrap();
+        PythonData::new(slice.to_vec(), shape)
+    }
+}
+
+impl<B: Backend, const D: usize, T: PythonDataKind, K: TensorKind<B> + BasicOps<B>>
+    From<PythonData<D, T>> for Tensor<B, D, K>
+where
+    <K as BasicOps<B>>::Elem: ElementConversion,
+{
+    fn from(data: PythonData<D, T>) -> Self {
+        let slice = data.slice;
+        let shape = data.shape;
+        Tensor::of_slice(slice, shape)
+    }
+}
+
+impl<B: Backend, const D: usize, T: PythonDataKind, K: TensorKind<B> + BasicOps<B>>
+    From<Tensor<B, D, K>> for PythonData<D, T>
+where
+    <K as BasicOps<B>>::Elem: ElementConversion,
+{
+    fn from(data: Tensor<B, D, K>) -> Self {
+        let (slice, shape) = data.to_slice();
+        PythonData::new(slice, shape)
     }
 }

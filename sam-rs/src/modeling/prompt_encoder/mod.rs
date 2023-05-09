@@ -2,10 +2,7 @@ mod positional_embedding;
 
 use self::positional_embedding::PositionEmbeddingRandom;
 use super::common::{activation::Activation, layer_norm_2d::LayerNorm2d};
-use crate::{
-    burn_helpers::{TensorHelpers, TensorHelpers2},
-    sam_predictor::Size,
-};
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 use burn::{
     module::Module,
     nn::{

@@ -6,7 +6,7 @@ use opencv::{
     prelude::{Mat, MatTraitConst, MatTraitConstManual},
 };
 
-use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 
 pub fn load_image<B: Backend>(image_path: &str) -> (Tensor<B, 3, Int>, Size) {
     let image = imgcodecs::imread(image_path, imgcodecs::IMREAD_COLOR).unwrap();
@@ -36,11 +36,11 @@ mod test {
 
     use pyo3::{PyResult, Python};
 
-    use crate::tests::{helpers::TestBackend, new::TestTensor2};
+    use crate::tests::{helpers::TestBackend, new::PythonData};
 
     use super::load_image;
 
-    fn load_python_image(file: &str) -> PyResult<TestTensor2> {
+    fn load_python_image(file: &str) -> PyResult<PythonData<3>> {
         Python::with_gil(|py| {
             let cv2 = py.import("cv2")?;
             let image = cv2.call_method1("imread", (file,))?;

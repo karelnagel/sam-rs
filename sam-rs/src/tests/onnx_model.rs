@@ -6,7 +6,6 @@ mod test {
     use burn::tensor::Tensor;
 
     use crate::build_sam::build_sam_vit_h;
-    use crate::burn_helpers::TensorSlice;
     use crate::onnx_helpers::{get_ort_env, get_ort_session, load_image, Inference, OnnxInput};
     use crate::sam_predictor::{ImageFormat, SamPredictor};
     use crate::tests::helpers::{Test, TestBackend};

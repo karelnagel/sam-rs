@@ -2,7 +2,7 @@ use burn::tensor::{backend::Backend, Float, Int, Tensor};
 use image::{imageops::FilterType, ImageBuffer};
 
 use crate::{
-    burn_helpers::{TensorHelpers, TensorSlice, ToFloat},
+    burn_helpers::{TensorHelpers, ToFloat},
     sam_predictor::Size,
 };
 
@@ -18,7 +18,7 @@ impl ResizeLongestSide {
     }
     fn resize<B: Backend>(image: Tensor<B, 3, Int>, target_size: Size) -> Tensor<B, 3, Int> {
         let Size(tar_h, tar_w) = target_size;
-        let (image_data, shape) = image.to_slice();
+        let (image_data, shape) = image.to_slice::<f32>();
         let image_data = image_data.iter().map(|x| *x as u8).collect::<Vec<u8>>();
         let (width, height) = (shape[1], shape[0]);
         let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =

@@ -8,7 +8,7 @@ use burn::{
 use burn_tch::TchBackend;
 use serde::{Deserialize, Serialize};
 
-use crate::{build_sam::BuildSam, burn_helpers::TensorSlice, sam::Sam};
+use crate::{build_sam::BuildSam, burn_helpers::TensorHelpers, sam::Sam};
 
 use super::test_value::TestValue;
 

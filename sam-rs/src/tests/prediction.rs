@@ -6,7 +6,7 @@ mod test {
     use burn::tensor::Tensor;
 
     use crate::build_sam::BuildSam;
-    use crate::burn_helpers::TensorSlice;
+    use crate::burn_helpers::TensorHelpers;
     use crate::helpers::load_image;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
     use crate::tests::helpers::{Test, TestBackend};
@@ -35,12 +35,6 @@ mod test {
 
         let (masks, scores, logits, mask_values) =
             predictor.predict(Some(input_point), Some(input_label), None, None, true);
-        let (slice, _) = masks.to_slice();
-        println!(
-            "true: {:?}, total: {:?}",
-            slice.iter().filter(|x| **x).count(),
-            slice.len()
-        );
         file.almost_equal("mask_values", mask_values, None);
         // file.almost_equal("masks", masks, None);
         file.almost_equal("scores", scores, None);

@@ -5,7 +5,7 @@ use burn::{
     tensor::{backend::Backend, Tensor},
 };
 
-use crate::{burn_helpers::TensorSlice, sam_predictor::Size};
+use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 
 /// Positional encoding using random spatial frequencies.
 #[derive(Debug, Module, Clone)]
@@ -63,7 +63,7 @@ impl PositionEmbeddingRandom {
         coords: Tensor<B, 3>,
         image_size: Size,
     ) -> Tensor<B, 3> {
-        let (slice, shape) = coords.to_slice();
+        let (slice, shape) = coords.to_slice::<f32>();
         let coords = Tensor::of_slice(slice, shape); // Deep copy
         coords
             .narrow(2, 0, 1)
