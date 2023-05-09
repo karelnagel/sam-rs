@@ -1,23 +1,27 @@
-use std::{env, process::Command, time::Instant};
+use std::{env, time::Instant};
 
 use burn::{
     module::Module,
-    record::{BinGzFileRecorder, Recorder, DoublePrecisionSettings},
+    record::{BinGzFileRecorder, DoublePrecisionSettings, Recorder},
 };
+use pyo3::prelude::*;
 use sam_rs::{
     build_sam::BuildSam,
+    python::module_to_file::module_to_file,
     tests::helpers::{load_module, TestBackend},
 };
-fn python(variant: &str, file: &str) {
-    let mut child = Command::new("python")
-        .arg("../convert.py")
-        .arg(variant)
-        .arg(file)
-        .spawn()
-        .expect("python command failed to start");
 
-    let status = child.wait().expect("Failed to wait for the python command");
-    assert!(status.success());
+fn python(variant: &str, file: &str) -> PyResult<()> {
+    Python::with_gil(|py| {
+        let sam_model_registry = py
+            .import("segment_anything.build_sam")?
+            .getattr("sam_model_registry")?;
+        let sam = sam_model_registry
+            .get_item(variant)?
+            .call1((file.to_string() + ".pth",))?;
+        module_to_file(file, py, sam)?;
+        Ok(())
+    })
 }
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -39,7 +43,7 @@ fn main() {
     match skip_python {
         true => println!("Skipping python..."),
         false => {
-            python(variant, file);
+            python(variant, file).unwrap();
             println!("Python time: {:?}", start.elapsed());
         }
     }

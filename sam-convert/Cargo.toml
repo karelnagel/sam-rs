@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 sam-rs = { path = "../sam-rs" }
 burn = { git = "https://github.com/karelnagel/burn" }
+pyo3 = { version = "0.18.3", features = ["auto-initialize"] }
 
 [profile.release]
 strip = true
