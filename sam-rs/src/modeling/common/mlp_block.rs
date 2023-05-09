@@ -25,25 +25,39 @@ impl<B: Backend> MLPBlock<B> {
 #[cfg(test)]
 pub mod test {
 
+    use pyo3::{PyResult, Python};
+
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        python::module_to_file::module_to_file,
+        tests::{
+            helpers::{load_module, TestBackend},
+            new::{random_python_tensor, PythonData},
+        },
     };
 
     use super::*;
 
     #[test]
     fn test_mlp_block() {
-        // New
+        fn python() -> PyResult<(PythonData<2>, PythonData<2>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.common")?;
+                let mlp_block = common_module.getattr("MLPBlock")?;
+
+                let mlp_block = mlp_block.call1((256, 256))?;
+                module_to_file("mlp_block", py, &mlp_block)?;
+                let input = random_python_tensor(py, [256, 256]);
+                let output = mlp_block.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let mut mlp_block = MLPBlock::<TestBackend>::new(256, 256, Activation::GELU);
         mlp_block = load_module("mlp_block", mlp_block);
 
         // Forward
-        let input = random_tensor([256, 256], 5);
-        let output = mlp_block.forward(input.clone());
-
-        let file = Test::open("mlp_block");
-        file.equal("input", input);
-        file.almost_equal("output", output, 0.001);
+        let output = mlp_block.forward(input.into());
+        python.almost_equal(output, 0.5);
     }
 }
