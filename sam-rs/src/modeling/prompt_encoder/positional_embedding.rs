@@ -114,6 +114,6 @@ mod test {
         let file = Test::open("position_embedding_random_forward_with_coords");
         file.equal("input", input);
         file.equal("image_size", image_size);
-        file.equal("output", output);
+        file.almost_equal("output", output, None);
     }
 }

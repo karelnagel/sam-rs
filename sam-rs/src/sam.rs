@@ -214,14 +214,14 @@ mod test {
     use crate::{
         sam_predictor::Size,
         tests::helpers::{
-            random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT, TEST_SAM,
+            get_test_sam, random_tensor, random_tensor_int, Test, TestBackend, TEST_SAM,
         },
     };
 
     use super::Input;
     #[test]
     fn test_sam_forward_boxes() {
-        let mut sam = TEST_SAM.build::<TestBackend>(Some(TEST_CHECKPOINT));
+        let mut sam = get_test_sam();
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -244,7 +244,7 @@ mod test {
             file.almost_equal(
                 format!("mask_values{}", i).as_str(),
                 out.mask_values.clone(),
-                2.,
+                0.1,
             );
             // file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
 
@@ -260,7 +260,7 @@ mod test {
     }
     #[test]
     fn test_sam_forward_points() {
-        let mut sam = TEST_SAM.build::<TestBackend>(Some(TEST_CHECKPOINT));
+        let mut sam = get_test_sam();
         let input = vec![
             Input {
                 image: random_tensor_int([3, 8, 8], 1, 255.),
@@ -283,7 +283,7 @@ mod test {
             file.almost_equal(
                 format!("mask_values{}", i).as_str(),
                 out.mask_values.clone(),
-                2.,
+                0.1,
             );
             // file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
             file.almost_equal(

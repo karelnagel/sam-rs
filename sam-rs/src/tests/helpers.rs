@@ -8,7 +8,7 @@ use burn::{
 use burn_tch::TchBackend;
 use serde::{Deserialize, Serialize};
 
-use crate::{build_sam::BuildSam, burn_helpers::TensorSlice};
+use crate::{build_sam::BuildSam, burn_helpers::TensorSlice, sam::Sam};
 
 use super::test_value::TestValue;
 
@@ -16,8 +16,12 @@ use super::test_value::TestValue;
 pub struct TestFile {
     pub values: HashMap<String, TestValue>,
 }
-pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_vit_b_01ec64";
-pub const TEST_SAM: BuildSam = BuildSam::SamVitB;
+pub const TEST_CHECKPOINT: Option<&str> = Some("../sam-convert/sam_test");
+pub const TEST_SAM: BuildSam = BuildSam::SamTest;
+pub fn get_test_sam() -> Sam<TestBackend> {
+    let sam = TEST_SAM.build::<TestBackend>(TEST_CHECKPOINT);
+    sam
+}
 pub const TEST_ALMOST_THRESHOLD: f32 = 0.0001;
 pub type TestBackend = TchBackend<f64>;
 pub struct Test {

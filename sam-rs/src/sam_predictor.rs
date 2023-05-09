@@ -268,12 +268,12 @@ where
 mod test {
 
     use crate::tests::helpers::{
-        random_tensor, random_tensor_int, Test, TestBackend, TEST_CHECKPOINT, TEST_SAM,
+        get_test_sam, random_tensor, random_tensor_int, Test, TestBackend,
     };
 
     use super::{SamPredictor, Size};
     fn init(with_set_image: bool) -> SamPredictor<TestBackend> {
-        let sam = TEST_SAM.build(Some(TEST_CHECKPOINT));
+        let sam = get_test_sam();
         let mut predictor = SamPredictor::new(sam);
         if with_set_image {
             let image = random_tensor_int([120, 180, 3], 1, 255.);
