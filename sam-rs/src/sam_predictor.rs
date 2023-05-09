@@ -137,7 +137,7 @@ where
         boxes: Option<Tensor<B, 2, Int>>,
         mask_input: Option<Tensor<B, 3>>,
         multimask_output: bool,
-    ) -> (Tensor<B, 3, Bool>, Tensor<B, 1>, Tensor<B, 3>) {
+    ) -> (Tensor<B, 3, Bool>, Tensor<B, 1>, Tensor<B, 3>, Tensor<B, 3>) {
         // assert_eq!(
         //     &point_labels.unwrap().kind(),
         //     &Kind::Int,
@@ -167,17 +167,18 @@ where
         if let Some(mask_input) = mask_input {
             mask_input_torch = Some(mask_input.unsqueeze());
         }
-        let (masks, iou_predictions, low_res_masks) = self.predict_torch(
+        let (masks, iou_predictions, low_res_masks, mask_values) = self.predict_torch(
             coords_torch,
             labels_torch,
             box_torch,
             mask_input_torch,
             multimask_output,
         );
+        let mask_values = mask_values.select(0, 0);
         let masks = masks.select(0, 0);
         let iou_predictions = iou_predictions.select(0, 0);
         let low_res_masks = low_res_masks.select(0, 0);
-        (masks, iou_predictions, low_res_masks)
+        (masks, iou_predictions, low_res_masks, mask_values)
     }
     /// Predict masks for the given input prompts, using the currently set image.
     /// Input prompts are batched torch tensors and are expected to already be
@@ -219,7 +220,7 @@ where
         boxes: Option<Tensor<B, 2>>,
         mask_input: Option<Tensor<B, 4>>,
         multimask_output: bool,
-    ) -> (Tensor<B, 4, Bool>, Tensor<B, 2>, Tensor<B, 4>) {
+    ) -> (Tensor<B, 4, Bool>, Tensor<B, 2>, Tensor<B, 4>, Tensor<B, 4>) {
         assert!(self.is_image_set, "Must set image before predicting.");
         let point = match point_coords {
             Some(point_coords) => Some((point_coords, point_labels.unwrap())),
@@ -235,13 +236,13 @@ where
             dense_embeddings,
             multimask_output,
         );
-        let masks = self.model.postprocess_masks(
+        let mask_values = self.model.postprocess_masks(
             low_res_masks.clone(),
             self.input_size.unwrap(),
             self.original_size.unwrap(),
         );
-        let masks = masks.greater_elem(self.model.mask_threshold);
-        return (masks, iou_predictions, low_res_masks);
+        let masks = mask_values.clone().greater_elem(self.model.mask_threshold);
+        return (masks, iou_predictions, low_res_masks, mask_values);
     }
     /// Returns the image embeddings for the currently set image, with
     /// shape 1xCxHxW, where C is the embedding dimension and (H,W) are
@@ -314,10 +315,11 @@ mod test {
 
         let point_coords = random_tensor_int([1, 2], 1, 255.);
         let point_labels = random_tensor_int([1], 1, 1.);
-        let (masks, iou_predictions, low_res_masks) =
+        let (masks, iou_predictions, low_res_masks, mask_values) =
             predictor.predict(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict");
-        file.almost_equal("masks", masks, None);
+        file.almost_equal("mask_values", mask_values, None);
+        // file.almost_equal("masks", masks, None);
         // file.compare("iou_predictions", iou_predictions);
         // file.compare("low_res_masks", low_res_masks);
     }
@@ -329,10 +331,11 @@ mod test {
         let point_coords = random_tensor([1, 1, 2], 1);
         let point_labels = random_tensor([1, 1], 1);
 
-        let (masks, iou_predictions, low_res_masks) =
+        let (masks, iou_predictions, low_res_masks, mask_values) =
             predictor.predict_torch(Some(point_coords), Some(point_labels), None, None, true);
         let file = Test::open("predictor_predict_torch");
-        file.almost_equal("masks", masks, None);
+        file.almost_equal("mask_values", mask_values, None);
+        // file.almost_equal("masks", masks, None);
         // file.compare("iou_predictions", iou_predictions); // Todo for some reason throwing
         // file.compare("low_res_masks", low_res_masks);
     }

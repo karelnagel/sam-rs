@@ -33,7 +33,7 @@ mod test {
         file.equal("input_point", input_point.clone());
         file.equal("input_label", input_label.clone());
 
-        let (masks, scores, logits) =
+        let (masks, scores, logits, mask_values) =
             predictor.predict(Some(input_point), Some(input_label), None, None, true);
         let (slice, _) = masks.to_slice();
         println!(
@@ -41,7 +41,8 @@ mod test {
             slice.iter().filter(|x| **x).count(),
             slice.len()
         );
-        file.almost_equal("masks", masks, None);
+        file.almost_equal("mask_values", mask_values, None);
+        // file.almost_equal("masks", masks, None);
         file.almost_equal("scores", scores, None);
         file.almost_equal("logits", logits, None);
     }

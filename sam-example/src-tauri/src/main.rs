@@ -65,7 +65,7 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                         let input_point = Tensor::of_slice(coords.clone(), [coords.len()])
                             .reshape_max([usize::MAX, 2]);
                         let input_label = Tensor::of_slice(labels.clone(), [labels.len()]);
-                        let (masks, _, _) = predictor.predict(
+                        let (masks, _, _, _) = predictor.predict(
                             Some(input_point),
                             Some(input_label),
                             None,
