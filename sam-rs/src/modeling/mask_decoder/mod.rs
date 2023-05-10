@@ -244,22 +244,22 @@ mod test {
                 let module = module.call((), Some(kwargs))?;
                 module_to_file(FILE, py, &module)?;
 
-                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
-                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
-                let sparse_prompt = random_python_tensor(py, [16, 2, 64]);
-                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16]);
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16])?;
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16])?;
+                let sparse_prompt = random_python_tensor(py, [16, 2, 64])?;
+                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16])?;
                 let output =
                     module.call1((image_embedding, image_pe, sparse_prompt, dense_prompt, true))?;
                 let output = output.downcast::<PyTuple>()?;
                 let masks = output.get_item(0)?;
                 let iou_pred = output.get_item(1)?;
                 Ok((
-                    image_embedding.into(),
-                    image_pe.into(),
-                    sparse_prompt.into(),
-                    dense_prompt.into(),
-                    masks.into(),
-                    iou_pred.into(),
+                    image_embedding.try_into()?,
+                    image_pe.try_into()?,
+                    sparse_prompt.try_into()?,
+                    dense_prompt.try_into()?,
+                    masks.try_into()?,
+                    iou_pred.try_into()?,
                 ))
             })
         }
@@ -320,10 +320,10 @@ mod test {
                 let module = module.call((), Some(kwargs))?;
                 module_to_file(FILE, py, &module)?;
 
-                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
-                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
-                let sparse_prompt = random_python_tensor(py, [16, 2, 64]);
-                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16]);
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16])?;
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16])?;
+                let sparse_prompt = random_python_tensor(py, [16, 2, 64])?;
+                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16])?;
                 let output = module.call_method1(
                     "predict_masks",
                     (image_embedding, image_pe, sparse_prompt, dense_prompt),
@@ -332,12 +332,12 @@ mod test {
                 let masks = output.get_item(0)?;
                 let iou_pred = output.get_item(1)?;
                 Ok((
-                    image_embedding.into(),
-                    image_pe.into(),
-                    sparse_prompt.into(),
-                    dense_prompt.into(),
-                    masks.into(),
-                    iou_pred.into(),
+                    image_embedding.try_into()?,
+                    image_pe.try_into()?,
+                    sparse_prompt.try_into()?,
+                    dense_prompt.try_into()?,
+                    masks.try_into()?,
+                    iou_pred.try_into()?,
                 ))
             })
         }

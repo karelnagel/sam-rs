@@ -191,12 +191,12 @@ mod test {
                     .import("segment_anything.modeling.image_encoder")?
                     .getattr("window_partition")?;
 
-                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let input = random_python_tensor(py, [2, 256, 16, 16])?;
                 let output = module.call1((input, 16))?;
                 let output = output.downcast::<PyTuple>()?;
                 let size = output.get_item(1)?.downcast::<PyTuple>()?;
                 let size = Size(size.get_item(0)?.extract()?, size.get_item(1)?.extract()?);
-                Ok((input.into(), output.get_item(0)?.into(), size))
+                Ok((input.try_into()?, output.get_item(0)?.try_into()?, size))
             })
         }
         let (input, python, size) = python().unwrap();
@@ -213,9 +213,9 @@ mod test {
                     .import("segment_anything.modeling.image_encoder")?
                     .getattr("window_unpartition")?;
 
-                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let input = random_python_tensor(py, [2, 256, 16, 16])?;
                 let output = module.call1((input, 16, (16, 16), (14, 14)))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();
@@ -239,9 +239,9 @@ mod test {
                     module.call1((80, 8, 4.0, true, layer_norm, gelu, true, true, 14, (16, 16)))?;
                 module_to_file(FILE, py, module).unwrap();
 
-                let input = random_python_tensor(py, [1, 16, 16, 80]);
+                let input = random_python_tensor(py, [1, 16, 16, 80])?;
                 let output = module.call1((input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();

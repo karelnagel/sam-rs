@@ -8,15 +8,15 @@ use crate::{
 pub trait PythonDataKind: std::fmt::Debug + PartialEq + Clone + Element + Sized + Copy {}
 impl PythonDataKind for f32 {}
 impl PythonDataKind for i64 {}
-pub fn random_python_tensor<const D: usize>(py: Python, shape: [usize; D]) -> &PyAny {
-    let torch = py.import("torch").unwrap();
-    let input = torch.call_method1("randn", (shape,)).unwrap();
-    input
+pub fn random_python_tensor<const D: usize>(py: Python, shape: [usize; D]) -> PyResult<&PyAny> {
+    let torch = py.import("torch")?;
+    let input = torch.call_method1("randn", (shape,))?;
+    Ok(input)
 }
 pub fn random_python_tensor_int<const D: usize>(py: Python, shape: [usize; D]) -> PyResult<&PyAny> {
-    let tensor = random_python_tensor(py, shape);
+    let tensor = random_python_tensor(py, shape)?;
     let int = py.import("torch")?.getattr("int")?;
-    let tensor = tensor.getattr("type")?.call1((int,))?;
+    let tensor = tensor.call_method1("type", (int,))?;
     Ok(tensor)
 }
 #[derive(PartialEq, Clone)]
@@ -93,30 +93,22 @@ impl<const D: usize, T: PythonDataKind> PythonData<D, T> {
     }
 }
 
-impl<'a, const D: usize, T: PythonDataKind> From<&'a PyAny> for PythonData<D, T>
+impl<'a, const D: usize, T: PythonDataKind> TryFrom<&'a PyAny> for PythonData<D, T>
 where
     Vec<T>: FromPyObject<'a>,
 {
-    fn from(data: &'a PyAny) -> Self {
+    type Error = PyErr;
+    fn try_from(data: &'a PyAny) -> PyResult<Self> {
         let slice = data
-            .getattr("flatten")
-            .unwrap()
-            .call0()
-            .unwrap()
-            .getattr("tolist")
-            .unwrap()
-            .call0()
-            .unwrap()
-            .extract::<Vec<T>>()
-            .unwrap();
-        let shape = data
-            .getattr("shape")
-            .unwrap()
-            .extract::<Vec<usize>>()
-            .unwrap();
+            .getattr("flatten")?
+            .call0()?
+            .getattr("tolist")?
+            .call0()?
+            .extract::<Vec<T>>()?;
+        let shape = data.getattr("shape")?.extract::<Vec<usize>>()?;
         assert_eq!(D, shape.len(), "Shape length doesn't match");
         let shape = shape.try_into().unwrap();
-        PythonData::new(slice.to_vec(), shape)
+        Ok(PythonData::new(slice.to_vec(), shape))
     }
 }
 

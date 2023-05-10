@@ -94,9 +94,9 @@ mod test {
                     .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
 
-                let input = random_python_tensor(py, [64, 69, 2]);
+                let input = random_python_tensor(py, [64, 69, 2])?;
                 let output = module.call_method1("_pe_encoding", (input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();
@@ -116,7 +116,7 @@ mod test {
                 let module = module.call1((128,))?;
 
                 let output = module.call_method1("forward", ((64, 64),))?;
-                Ok(output.into())
+                Ok(output.try_into()?)
             })
         }
         let python = python().unwrap();
@@ -134,11 +134,11 @@ mod test {
                     .import("segment_anything.modeling.prompt_encoder")?
                     .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
-                let input = random_python_tensor(py, [64, 2, 2]);
+                let input = random_python_tensor(py, [64, 2, 2])?;
                 let output = module
                     .getattr("forward_with_coords")?
                     .call1((input, (1024, 1024)))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();

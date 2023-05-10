@@ -131,18 +131,18 @@ mod test {
                 let module = module.call1((2, 64, 4, 256, relu, 2))?;
                 module_to_file(FILE, py, &module)?;
 
-                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
-                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
-                let point_embedding = random_python_tensor(py, [16, 256, 64]);
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16])?;
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16])?;
+                let point_embedding = random_python_tensor(py, [16, 256, 64])?;
                 let output = module.call1((image_embedding, image_pe, point_embedding))?;
                 let queries = output.get_item(0)?;
                 let keys = output.get_item(1)?;
                 Ok((
-                    image_embedding.into(),
-                    image_pe.into(),
-                    point_embedding.into(),
-                    queries.into(),
-                    keys.into(),
+                    image_embedding.try_into()?,
+                    image_pe.try_into()?,
+                    point_embedding.try_into()?,
+                    queries.try_into()?,
+                    keys.try_into()?,
                 ))
             })
         }

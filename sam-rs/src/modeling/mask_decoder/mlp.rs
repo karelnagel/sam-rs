@@ -77,9 +77,9 @@ mod test {
                 let module = module.call1((256, 256, 256, 4, false))?;
                 module_to_file(FILE, py, &module)?;
 
-                let input = random_python_tensor(py, [1, 256]);
+                let input = random_python_tensor(py, [1, 256])?;
                 let output = module.call1((input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();

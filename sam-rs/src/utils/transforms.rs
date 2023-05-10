@@ -146,12 +146,12 @@ mod test {
         let python: PyResult<(PythonData<3, i64>, PythonData<3, i64>)> = Python::with_gil(|py| {
             let module = python_module(&py)?;
             let uint8 = py.import("torch")?.getattr("uint8")?;
-            let input = random_python_tensor(py, [120, 180, 3])
+            let input = random_python_tensor(py, [120, 180, 3])?
                 .call_method1("type", (uint8,))?
                 .call_method0("numpy")?;
 
             let output = module.call_method1("apply_image", (input,))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
@@ -167,7 +167,7 @@ mod test {
                 .getattr("numpy")?
                 .call0()?;
             let output = module.call_method1("apply_coords", (input, original_size))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
@@ -184,7 +184,7 @@ mod test {
                 .getattr("numpy")?
                 .call0()?;
             let output = module.call_method1("apply_boxes", (input, original_size))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
@@ -196,9 +196,9 @@ mod test {
     fn test_resize_image_torch() {
         let python: PyResult<(PythonData<4>, PythonData<4>)> = Python::with_gil(|py| {
             let module = python_module(&py)?;
-            let input = random_python_tensor(py, [1, 3, 32, 32]);
+            let input = random_python_tensor(py, [1, 3, 32, 32])?;
             let output = module.call_method1("apply_image_torch", (input,))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
@@ -212,7 +212,7 @@ mod test {
             let module = python_module(&py)?;
             let input = random_python_tensor_int(py, [32, 32])?;
             let output = module.call_method1("apply_coords_torch", (input, size))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
@@ -226,7 +226,7 @@ mod test {
             let module = python_module(&py)?;
             let input = random_python_tensor_int(py, [32, 32])?;
             let output = module.call_method1("apply_boxes_torch", (input, size))?;
-            Ok((input.into(), output.into()))
+            Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);

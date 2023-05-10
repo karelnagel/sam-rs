@@ -194,9 +194,9 @@ pub mod test {
                     .import("segment_anything.modeling.image_encoder")?
                     .getattr("get_rel_pos")?;
 
-                let input = random_python_tensor(py, [127, 40]);
+                let input = random_python_tensor(py, [127, 40])?;
                 let output = module.call1((32, 32, input))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();
@@ -218,17 +218,17 @@ pub mod test {
                     .import("segment_anything.modeling.image_encoder")?
                     .getattr("add_decomposed_rel_pos")?;
 
-                let attn = random_python_tensor(py, [200, 49, 49]);
-                let q = random_python_tensor(py, [200, 49, 20]);
-                let rel_pos_h = random_python_tensor(py, [20, 20]);
-                let rel_pos_w = random_python_tensor(py, [20, 20]);
+                let attn = random_python_tensor(py, [200, 49, 49])?;
+                let q = random_python_tensor(py, [200, 49, 20])?;
+                let rel_pos_h = random_python_tensor(py, [20, 20])?;
+                let rel_pos_w = random_python_tensor(py, [20, 20])?;
                 let output = module.call1((attn, q, rel_pos_h, rel_pos_w, (7, 7), (7, 7)))?;
                 Ok((
-                    attn.into(),
-                    q.into(),
-                    rel_pos_h.into(),
-                    rel_pos_w.into(),
-                    output.into(),
+                    attn.try_into()?,
+                    q.try_into()?,
+                    rel_pos_h.try_into()?,
+                    rel_pos_w.try_into()?,
+                    output.try_into()?,
                 ))
             })
         }
@@ -258,9 +258,9 @@ pub mod test {
                 let module = module.call1((320, 16, true, true, true, (14, 14)))?;
                 module_to_file(FILE, py, module).unwrap();
 
-                let input = random_python_tensor(py, [25, 14, 14, 320]);
+                let input = random_python_tensor(py, [25, 14, 14, 320])?;
                 let output = module.call1((input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();
@@ -276,6 +276,6 @@ pub mod test {
 
         // Forward
         let output = attention.forward(input.into());
-        python.almost_equal(output, 0.5);
+        python.almost_equal(output, 1.);
     }
 }

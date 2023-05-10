@@ -151,22 +151,22 @@ mod test {
                 let module = module.call1((256, 8, 2048, relu, 2, false))?;
                 module_to_file(FILE, py, &module)?;
 
-                let queries = random_python_tensor(py, [1, 256, 256]);
-                let keys = random_python_tensor(py, [1, 256, 256]);
-                let query_pe = random_python_tensor(py, [1, 256, 256]);
-                let key_pe = random_python_tensor(py, [1, 256, 256]);
+                let queries = random_python_tensor(py, [1, 256, 256])?;
+                let keys = random_python_tensor(py, [1, 256, 256])?;
+                let query_pe = random_python_tensor(py, [1, 256, 256])?;
+                let key_pe = random_python_tensor(py, [1, 256, 256])?;
                 let output = module
                     .call1((queries, keys, query_pe, key_pe))?
                     .downcast::<PyTuple>()?;
                 let out_queries = output.get_item(0)?;
                 let out_keys = output.get_item(1)?;
                 Ok((
-                    queries.into(),
-                    keys.into(),
-                    query_pe.into(),
-                    key_pe.into(),
-                    out_queries.into(),
-                    out_keys.into(),
+                    queries.try_into()?,
+                    keys.try_into()?,
+                    query_pe.try_into()?,
+                    key_pe.try_into()?,
+                    out_queries.try_into()?,
+                    out_keys.try_into()?,
                 ))
             })
         }

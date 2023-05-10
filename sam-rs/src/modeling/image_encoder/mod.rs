@@ -194,9 +194,9 @@ mod test {
                 let module = module.call((), Some(kwargs))?;
                 module_to_file(FILE, py, &module)?;
 
-                let input = random_python_tensor(py, [1, 3, 4, 4]);
+                let input = random_python_tensor(py, [1, 3, 4, 4])?;
                 let output = module.call1((input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();

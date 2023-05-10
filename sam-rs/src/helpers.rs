@@ -45,7 +45,7 @@ mod test {
             let cv2 = py.import("cv2")?;
             let image = cv2.call_method1("imread", (file,))?;
             let image = cv2.call_method1("cvtColor", (image, cv2.getattr("COLOR_BGR2RGB")?))?;
-            Ok(image.into())
+            Ok(image.try_into()?)
         })
     }
     #[test]

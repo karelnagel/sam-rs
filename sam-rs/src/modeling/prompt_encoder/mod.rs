@@ -324,12 +324,12 @@ mod test {
         Python::with_gil(|py| {
             let module = get_python_module(&py, file)?;
 
-            let points = random_python_tensor(py, [32, 1, 2]);
-            let labels = random_python_tensor(py, [32, 1]);
+            let points = random_python_tensor(py, [32, 1, 2])?;
+            let labels = random_python_tensor(py, [32, 1])?;
             let output = module
                 .getattr("_embed_points")?
                 .call1((points, labels, with_pad))?;
-            Ok((points.into(), labels.into(), output.into()))
+            Ok((points.try_into()?, labels.try_into()?, output.try_into()?))
         })
     }
     #[test]
@@ -360,9 +360,9 @@ mod test {
             Python::with_gil(|py| {
                 let module = get_python_module(&py, FILE)?;
 
-                let boxes = random_python_tensor(py, [32, 4]);
+                let boxes = random_python_tensor(py, [32, 4])?;
                 let output = module.call_method1("_embed_boxes", (boxes,))?;
-                Ok((boxes.into(), output.into()))
+                Ok((boxes.try_into()?, output.try_into()?))
             })
         }
         let (boxes, python) = python().unwrap();
@@ -380,9 +380,9 @@ mod test {
             Python::with_gil(|py| {
                 let module = get_python_module(&py, FILE)?;
 
-                let masks = random_python_tensor(py, [8, 1, 4, 4]);
+                let masks = random_python_tensor(py, [8, 1, 4, 4])?;
                 let output = module.call_method1("_embed_masks", (masks,))?;
-                Ok((masks.into(), output.into()))
+                Ok((masks.try_into()?, output.try_into()?))
             })
         }
         let (masks, python) = python().unwrap();
@@ -399,8 +399,8 @@ mod test {
         fn python() -> PyResult<(PythonData<3>, PythonData<2>, PythonData<3>, PythonData<4>)> {
             Python::with_gil(|py| {
                 let module = get_python_module(&py, FILE)?;
-                let points = random_python_tensor(py, [8, 1, 2]);
-                let labels = random_python_tensor(py, [8, 1]);
+                let points = random_python_tensor(py, [8, 1, 2])?;
+                let labels = random_python_tensor(py, [8, 1])?;
                 let output = module.call_method1(
                     "forward",
                     ((points, labels), None::<&PyAny>, None::<&PyAny>),
@@ -408,7 +408,7 @@ mod test {
                 let output = output.downcast::<PyTuple>()?;
                 let sparse = output.get_item(0)?;
                 let dense = output.get_item(1)?;
-                Ok((points.into(), labels.into(), sparse.into(), dense.into()))
+                Ok((points.try_into()?, labels.try_into()?, sparse.try_into()?, dense.try_into()?))
             })
         }
         let (points, labels, sparse, dense) = python().unwrap();
@@ -426,7 +426,7 @@ mod test {
         fn python() -> PyResult<(PythonData<2>, PythonData<3>, PythonData<4>)> {
             Python::with_gil(|py| {
                 let module = get_python_module(&py, FILE)?;
-                let boxes = random_python_tensor(py, [8, 4]);
+                let boxes = random_python_tensor(py, [8, 4])?;
                 let output =
                     module
                         .getattr("forward")?
@@ -434,7 +434,7 @@ mod test {
                 let output = output.downcast::<PyTuple>()?;
                 let sparse = output.get_item(0)?;
                 let dense = output.get_item(1)?;
-                Ok((boxes.into(), sparse.into(), dense.into()))
+                Ok((boxes.try_into()?, sparse.try_into()?, dense.try_into()?))
             })
         }
         let (boxes, sparse, dense) = python().unwrap();

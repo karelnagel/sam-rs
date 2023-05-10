@@ -53,9 +53,9 @@ mod test {
                     .import("segment_anything.modeling.common")?
                     .getattr("LayerNorm2d")?;
                 let layer_norm = module.call1((256, 0.1))?;
-                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let input = random_python_tensor(py, [2, 256, 16, 16])?;
                 let output = layer_norm.call1((input,))?;
-                Ok((input.into(), output.into()))
+                Ok((input.try_into()?, output.try_into()?))
             })
         }
         let (input, python) = python().unwrap();
