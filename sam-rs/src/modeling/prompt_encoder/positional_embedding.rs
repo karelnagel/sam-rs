@@ -77,43 +77,71 @@ impl PositionEmbeddingRandom {
 
 #[cfg(test)]
 mod test {
+    use pyo3::{PyResult, Python};
+
     use crate::{
+        python::python_data::{random_python_tensor, PythonData},
         sam_predictor::Size,
-        tests::helpers::{random_tensor, Test, TestBackend},
+        tests::helpers::TestBackend,
     };
 
     #[test]
     fn test_position_embedding_pe_encoding() {
+        fn python() -> PyResult<(PythonData<3>, PythonData<3>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
+                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = module.call1((128,))?;
+
+                let input = random_python_tensor(py, [64, 69, 2]);
+                let output = module.getattr("_pe_encoding")?.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
 
-        let input = random_tensor::<TestBackend, 3>([64, 69, 2], 1);
-        let output = pos_embedding._pe_encoding(input.clone());
-        let file = Test::open("position_embedding_random_pe_encoding");
-        file.equal("input", input);
-        file.almost_equal("output", output, None);
+        let output = pos_embedding._pe_encoding::<TestBackend>(input.into());
+        python.almost_equal(output, 0.1);
     }
 
     #[test]
     fn test_position_embedding_forward() {
+        fn python() -> PyResult<PythonData<3>> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
+                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = module.call1((128,))?;
+
+                let output = module.getattr("forward")?.call1(((64, 64),))?;
+                Ok(output.into())
+            })
+        }
+        let python = python().unwrap();
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
 
-        let input = Size(64, 64);
-        let output = pos_embedding.forward::<TestBackend>(input);
-        let file = Test::open("position_embedding_random_forward");
-        file.equal("input", input);
-        file.almost_equal("output", output, None);
+        let output = pos_embedding.forward::<TestBackend>(Size(64, 64));
+        python.almost_equal(output, 1.);
     }
 
     #[test]
     fn test_position_embedding_with_coords() {
+        fn python() -> PyResult<(PythonData<3>, PythonData<3>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
+                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = module.call1((128,))?;
+                let input = random_python_tensor(py, [64, 2, 2]);
+                let output = module
+                    .getattr("forward_with_coords")?
+                    .call1((input, (1024, 1024)))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
-
-        let input = random_tensor::<TestBackend, 3>([64, 2, 2], 1);
-        let image_size = Size(1024, 1024);
-        let output = pos_embedding.forward_with_coords(input.clone(), image_size);
-        let file = Test::open("position_embedding_random_forward_with_coords");
-        file.equal("input", input);
-        file.equal("image_size", image_size);
-        file.almost_equal("output", output, None);
+        let output =
+            pos_embedding.forward_with_coords::<TestBackend>(input.into(), Size(1024, 1024));
+        python.almost_equal(output, None);
     }
 }

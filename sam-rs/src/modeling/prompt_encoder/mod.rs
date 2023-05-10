@@ -282,10 +282,16 @@ where
 #[cfg(test)]
 mod test {
 
+    use pyo3::{types::PyTuple, PyAny, PyResult, Python};
+
     use crate::{
         modeling::common::activation::Activation,
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::helpers::{load_module, TestBackend},
     };
 
     use super::PromptEncoder;
@@ -302,81 +308,141 @@ mod test {
         );
         prompt_encoder
     }
+    fn get_python_module<'a>(py: &'a Python, file: &str) -> PyResult<&'a PyAny> {
+        let gelu = py.import("torch.nn")?.getattr("GELU")?;
+        let module = py
+            .import("segment_anything.modeling.prompt_encoder")?
+            .getattr("PromptEncoder")?;
+        let module = module.call1((128, (32, 32), (512, 512), 8, gelu))?;
+        module_to_file(file, *py, &module)?;
+        Ok(module)
+    }
+    fn python_embed_points(
+        file: &str,
+        with_pad: bool,
+    ) -> PyResult<(PythonData<3>, PythonData<2>, PythonData<3>)> {
+        Python::with_gil(|py| {
+            let module = get_python_module(&py, file)?;
 
+            let points = random_python_tensor(py, [32, 1, 2]);
+            let labels = random_python_tensor(py, [32, 1]);
+            let output = module
+                .getattr("_embed_points")?
+                .call1((points, labels, with_pad))?;
+            Ok((points.into(), labels.into(), output.into()))
+        })
+    }
     #[test]
     fn test_prompt_encoder_embed_points_pad() {
+        const FILE: &str = "prompt_encoder_embed_points_pad";
+        let (points, labels, python) = python_embed_points(FILE, true).unwrap();
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_embed_points_pad", prompt_encoder);
+        prompt_encoder = load_module(FILE, prompt_encoder);
 
-        let points = random_tensor([32, 1, 2], 1);
-        let labels = random_tensor([32, 1], 2);
-        let output = prompt_encoder._embed_points(points.clone(), labels.clone(), true);
-        let file = Test::open("prompt_encoder_embed_points_pad");
-        file.equal("points", points);
-        file.equal("labels", labels);
-        file.equal("output", output);
+        let output = prompt_encoder._embed_points(points.into(), labels.into(), true);
+        python.almost_equal(output, None);
     }
     #[test]
     fn test_prompt_encoder_embed_points_no_pad() {
+        const FILE: &str = "prompt_encoder_embed_points_no_pad";
+        let (points, labels, python) = python_embed_points(FILE, false).unwrap();
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_embed_points_no_pad", prompt_encoder);
+        prompt_encoder = load_module(FILE, prompt_encoder);
 
-        let points = random_tensor([32, 1, 2], 1);
-        let labels = random_tensor([32, 1], 2);
-        let output = prompt_encoder._embed_points(points.clone(), labels.clone(), false);
-        let file = Test::open("prompt_encoder_embed_points_no_pad");
-        file.equal("points", points);
-        file.equal("labels", labels);
-        file.equal("output", output);
+        let output = prompt_encoder._embed_points(points.into(), labels.into(), false);
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_prompt_encoder_embed_boxes() {
-        let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_embed_boxes", prompt_encoder);
+        const FILE: &str = "prompt_encoder_embed_boxes";
+        fn python() -> PyResult<(PythonData<2>, PythonData<3>)> {
+            Python::with_gil(|py| {
+                let module = get_python_module(&py, FILE)?;
 
-        let boxes = random_tensor([32, 4], 1);
-        let output = prompt_encoder._embed_boxes(boxes.clone());
-        let file = Test::open("prompt_encoder_embed_boxes");
-        file.equal("boxes", boxes);
-        file.equal("output", output);
+                let boxes = random_python_tensor(py, [32, 4]);
+                let output = module.getattr("_embed_boxes")?.call1((boxes,))?;
+                Ok((boxes.into(), output.into()))
+            })
+        }
+        let (boxes, python) = python().unwrap();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module(FILE, prompt_encoder);
+
+        let output = prompt_encoder._embed_boxes(boxes.into());
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_prompt_encoder_embed_masks() {
-        let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_embed_masks", prompt_encoder);
+        const FILE: &str = "prompt_encoder_embed_masks";
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let module = get_python_module(&py, FILE)?;
 
-        let masks = random_tensor([8, 1, 4, 4], 1);
-        let output = prompt_encoder._embed_masks(masks.clone());
-        let file = Test::open("prompt_encoder_embed_masks");
-        file.equal("masks", masks);
-        file.almost_equal("output", output, None);
+                let masks = random_python_tensor(py, [8, 1, 4, 4]);
+                let output = module.getattr("_embed_masks")?.call1((masks,))?;
+                Ok((masks.into(), output.into()))
+            })
+        }
+        let (masks, python) = python().unwrap();
+        let mut prompt_encoder = _init();
+        prompt_encoder = load_module(FILE, prompt_encoder);
+
+        let output = prompt_encoder._embed_masks(masks.into());
+        python.almost_equal(output, None);
     }
+
     #[test]
     fn test_prompt_encoder_forward_points() {
+        const FILE: &str = "prompt_encoder_forward_points";
+        fn python() -> PyResult<(PythonData<3>, PythonData<2>, PythonData<3>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let module = get_python_module(&py, FILE)?;
+                let points = random_python_tensor(py, [8, 1, 2]);
+                let labels = random_python_tensor(py, [8, 1]);
+                let output = module.getattr("forward")?.call1((
+                    (points, labels),
+                    None::<&PyAny>,
+                    None::<&PyAny>,
+                ))?;
+                let output = output.downcast::<PyTuple>()?;
+                let sparse = output.get_item(0)?;
+                let dense = output.get_item(1)?;
+                Ok((points.into(), labels.into(), sparse.into(), dense.into()))
+            })
+        }
+        let (points, labels, sparse, dense) = python().unwrap();
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_forward_points", prompt_encoder);
+        prompt_encoder = load_module(FILE, prompt_encoder);
 
-        let points = random_tensor([8, 1, 2], 1);
-        let labels = random_tensor([8, 1], 2);
-        let (sparse, dense) =
-            prompt_encoder.forward(Some((points.clone(), labels.clone())), None, None);
-        let file = Test::open("prompt_encoder_forward_points");
-        file.equal("points", points);
-        file.equal("labels", labels);
-        file.equal("sparse", sparse);
-        file.equal("dense", dense);
+        let (sparse2, dense2) =
+            prompt_encoder.forward(Some((points.into(), labels.into())), None, None);
+        sparse.almost_equal(sparse2, None);
+        dense.almost_equal(dense2, None);
     }
     #[test]
     fn test_prompt_encoder_forward_boxes() {
+        const FILE: &str = "prompt_encoder_forward_boxes";
+        fn python() -> PyResult<(PythonData<2>, PythonData<3>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let module = get_python_module(&py, FILE)?;
+                let boxes = random_python_tensor(py, [8, 4]);
+                let output =
+                    module
+                        .getattr("forward")?
+                        .call1((None::<&PyAny>, boxes, None::<&PyAny>))?;
+                let output = output.downcast::<PyTuple>()?;
+                let sparse = output.get_item(0)?;
+                let dense = output.get_item(1)?;
+                Ok((boxes.into(), sparse.into(), dense.into()))
+            })
+        }
+        let (boxes, sparse, dense) = python().unwrap();
         let mut prompt_encoder = _init();
-        prompt_encoder = load_module("prompt_encoder_forward_boxes", prompt_encoder);
-        let boxes = random_tensor([8, 4], 1);
-        let (sparse, dense) = prompt_encoder.forward(None, Some(boxes.clone()), None);
-        let file = Test::open("prompt_encoder_forward_boxes");
-        file.equal("boxes", boxes);
-        file.equal("sparse", sparse);
-        file.equal("dense", dense);
+        prompt_encoder = load_module(FILE, prompt_encoder);
+        let (sparse2, dense2) = prompt_encoder.forward(None, Some(boxes.into()), None);
+        sparse.almost_equal(sparse2, None);
+        dense.almost_equal(dense2, None);
     }
 }
