@@ -17,22 +17,31 @@ use super::test_value::TestValue;
 pub struct TestFile {
     pub values: HashMap<String, TestValue>,
 }
-pub const TEST_CHECKPOINT: Option<&str> = Some("../sam-convert/sam_test");
-pub const TEST_SAM: SamVersion = SamVersion::SamTest;
-pub fn get_test_sam() -> Sam<TestBackend> {
-    let sam = TEST_SAM.build::<TestBackend>(TEST_CHECKPOINT);
+pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_test";
+pub const TEST_SAM: SamVersion = SamVersion::Test;
+pub fn get_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'a str>>>(
+    version: T,
+    checkpoint: C,
+) -> Sam<TestBackend> {
+    let version = version.into().unwrap_or(TEST_SAM);
+    let checkpoint = checkpoint.into().unwrap_or(TEST_CHECKPOINT);
+    let sam = version.build::<TestBackend>(Some(checkpoint));
     sam
 }
 
-pub fn get_python_test_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
+pub fn get_python_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'static str>>>(
+    py: &'a Python,
+    version: T,
+    checkpoint: C,
+) -> PyResult<&'a PyAny> {
+    let version = version.into().unwrap_or(TEST_SAM);
+    let checkpoint = checkpoint.into().unwrap_or(TEST_CHECKPOINT);
     let module = py
         .import("segment_anything.build_sam")?
         .getattr("sam_model_registry")?
-        .get_item(TEST_SAM.to_str())?;
-    Ok(match TEST_CHECKPOINT {
-        Some(checkpoint) => module.call1((format!("{}.pth", checkpoint),))?,
-        None => module.call0()?,
-    })
+        .get_item(version.to_str())?;
+    let module = module.call1((format!("{}.pth", checkpoint),))?;
+    Ok(module)
 }
 pub const TEST_ALMOST_THRESHOLD: f32 = 0.01;
 pub type TestBackend = TchBackend<f64>;

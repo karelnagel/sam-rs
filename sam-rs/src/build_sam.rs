@@ -15,10 +15,10 @@ use crate::{
 };
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum SamVersion {
-    SamVitH,
-    SamVitL,
-    SamVitB,
-    SamTest,
+    VitH,
+    VitL,
+    VitB,
+    Test,
 }
 impl SamVersion {
     pub fn build<B: Backend>(&self, checkpoint: Option<&str>) -> Sam<B>
@@ -26,26 +26,26 @@ impl SamVersion {
         <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
     {
         match self {
-            Self::SamVitH => build_sam_vit_h(checkpoint),
-            Self::SamVitL => build_sam_vit_l(checkpoint),
-            Self::SamVitB => build_sam_vit_b(checkpoint),
-            Self::SamTest => build_sam_test(checkpoint),
+            Self::VitH => build_sam_vit_h(checkpoint),
+            Self::VitL => build_sam_vit_l(checkpoint),
+            Self::VitB => build_sam_vit_b(checkpoint),
+            Self::Test => build_sam_test(checkpoint),
         }
     }
     pub fn to_str(&self) -> &'static str {
         match self {
-            Self::SamVitH => "vit_h",
-            Self::SamVitL => "vit_l",
-            Self::SamVitB => "vit_b",
-            Self::SamTest => "test",
+            Self::VitH => "vit_h",
+            Self::VitL => "vit_l",
+            Self::VitB => "vit_b",
+            Self::Test => "test",
         }
     }
     pub fn from_str(s: &str) -> Self {
         match s {
-            "vit_h" => Self::SamVitH,
-            "vit_l" => Self::SamVitL,
-            "vit_b" => Self::SamVitB,
-            "test" => Self::SamTest,
+            "vit_h" => Self::VitH,
+            "vit_l" => Self::VitL,
+            "vit_b" => Self::VitB,
+            "test" => Self::Test,
             _ => panic!("Unknown variant: {}", s),
         }
     }
