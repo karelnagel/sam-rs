@@ -6,7 +6,7 @@ use burn::{
 };
 use pyo3::prelude::*;
 use sam_rs::{
-    build_sam::BuildSam,
+    build_sam::SamVersion,
     python::module_to_file::module_to_file,
     tests::helpers::{load_module, TestBackend},
 };
@@ -32,13 +32,7 @@ fn main() {
     let file = args[2].as_str();
     let skip_python = args.len() == 4;
 
-    let sam = match variant {
-        "test" => BuildSam::SamTest,
-        "vit_h" => BuildSam::SamVitH,
-        "vit_b" => BuildSam::SamVitB,
-        "vit_l" => BuildSam::SamVitL,
-        _ => panic!("Unknown variant: {}", variant),
-    };
+    let sam = SamVersion::from_str(variant);
     let start = Instant::now();
     match skip_python {
         true => println!("Skipping python..."),
@@ -51,7 +45,7 @@ fn main() {
     println!("Rust time: {:?}", start.elapsed());
 }
 
-fn convert_sam(sam: BuildSam, file: &str) {
+fn convert_sam(sam: SamVersion, file: &str) {
     let mut sam = sam.build::<TestBackend>(None);
     println!("Loading module in rust...");
     sam = load_module(file, sam);

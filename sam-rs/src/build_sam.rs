@@ -14,13 +14,13 @@ use crate::{
     sam_predictor::Size,
 };
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
-pub enum BuildSam {
+pub enum SamVersion {
     SamVitH,
     SamVitL,
     SamVitB,
     SamTest,
 }
-impl BuildSam {
+impl SamVersion {
     pub fn build<B: Backend>(&self, checkpoint: Option<&str>) -> Sam<B>
     where
         <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
@@ -30,6 +30,23 @@ impl BuildSam {
             Self::SamVitL => build_sam_vit_l(checkpoint),
             Self::SamVitB => build_sam_vit_b(checkpoint),
             Self::SamTest => build_sam_test(checkpoint),
+        }
+    }
+    pub fn to_str(&self) -> &'static str {
+        match self {
+            Self::SamVitH => "vit_h",
+            Self::SamVitL => "vit_l",
+            Self::SamVitB => "vit_b",
+            Self::SamTest => "test",
+        }
+    }
+    pub fn from_str(s: &str) -> Self {
+        match s {
+            "vit_h" => Self::SamVitH,
+            "vit_l" => Self::SamVitL,
+            "vit_b" => Self::SamVitB,
+            "test" => Self::SamTest,
+            _ => panic!("Unknown variant: {}", s),
         }
     }
 }

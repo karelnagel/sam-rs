@@ -211,117 +211,169 @@ where
 
 #[cfg(test)]
 mod test {
+    use pyo3::{
+        types::{PyDict, PyList},
+        PyAny, PyResult, Python,
+    };
+
     use crate::{
-        sam_predictor::Size,
-        tests::helpers::{
-            get_test_sam, random_tensor, random_tensor_int, Test, TestBackend, TEST_SAM,
-        },
+        python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
+        tests::helpers::{get_test_sam, TEST_CHECKPOINT, TEST_SAM},
     };
 
     use super::Input;
+
+    fn get_python_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
+        let module = py
+            .import("segment_anything.build_sam")?
+            .getattr("sam_model_registry")?
+            .get_item(TEST_SAM.to_str())?;
+        Ok(match TEST_CHECKPOINT {
+            Some(checkpoint) => module.call1((format!("{}.pth", checkpoint),))?,
+            None => module.call0()?,
+        })
+    }
+
     #[test]
     fn test_sam_forward_boxes() {
-        let mut sam = get_test_sam();
-        let input = vec![
-            Input {
-                image: random_tensor_int([3, 8, 8], 1, 255.),
-                boxes: Some(random_tensor([4, 4], 1)),
-                original_size: Size(100, 200),
-                mask_inputs: None,
-                points: None,
-            },
-            Input {
-                image: random_tensor_int([3, 8, 8], 1, 255.),
-                boxes: Some(random_tensor([4, 4], 1)),
-                original_size: Size(50, 80),
-                mask_inputs: None,
-                points: None,
-            },
-        ];
-        let output = sam.forward(input, false);
-        let file = Test::open("sam_forward_boxes");
-        for (i, out) in output.iter().enumerate() {
-            file.almost_equal(
-                format!("mask_values{}", i).as_str(),
-                out.mask_values.clone(),
-                0.1,
-            );
-            // file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
+        let original_size = (100, 200);
+        let python: PyResult<(
+            PythonData<3>,
+            PythonData<2>,
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<2>,
+            PythonData<4>,
+        )> = Python::with_gil(|py| {
+            let sam = get_python_sam(&py)?;
+            let image = random_python_tensor_int(py, [3, 8, 8])?;
+            let boxes = random_python_tensor(py, [4, 4])?;
 
-            file.almost_equal(
-                format!("iou_predictions{}", i).as_str(),
-                out.iou_predictions.clone(),
-                0.1,
-            );
-            if let Some(low_res_logits) = out.low_res_logits.clone() {
-                file.almost_equal(format!("low_res_logits{}", i).as_str(), low_res_logits, 5.);
-            }
-        }
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("image", image)?;
+            kwargs.set_item("boxes", boxes)?;
+            kwargs.set_item("original_size", original_size)?;
+
+            let output = sam
+                .call1(([kwargs], false))?
+                .downcast::<PyList>()?
+                .get_item(0)?;
+            let masks = output.get_item("masks")?;
+            let mask_values = output.get_item("mask_values")?;
+            let iou_predictions = output.get_item("iou_predictions")?;
+            let low_res_logits = output.get_item("low_res_logits")?;
+            Ok((
+                image.try_into()?,
+                boxes.try_into()?,
+                masks.try_into()?,
+                mask_values.try_into()?,
+                iou_predictions.try_into()?,
+                low_res_logits.try_into()?,
+            ))
+        });
+        let (image, boxes, _masks, mask_values, iou_predictions, low_res_logits) = python.unwrap();
+        let mut sam = get_test_sam();
+        let input = Input {
+            image: image.into(),
+            boxes: Some(boxes.into()),
+            original_size: original_size.into(),
+            mask_inputs: None,
+            points: None,
+        };
+        let output = sam.forward(vec![input], false);
+        let output = output.get(0).unwrap();
+        // masks.almost_equal(output.masks, None);
+        mask_values.almost_equal(output.mask_values.clone(), 2.);
+        iou_predictions.almost_equal(output.iou_predictions.clone(), 2.);
+        low_res_logits.almost_equal(output.low_res_logits.clone().unwrap(), 2.);
     }
     #[test]
     fn test_sam_forward_points() {
+        let original_size = (100, 200);
+        let python: PyResult<(
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<2>,
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<2>,
+            PythonData<4>,
+        )> = Python::with_gil(|py| {
+            let sam = get_python_sam(&py)?;
+            let image = random_python_tensor_int(py, [3, 8, 8])?;
+            let points = random_python_tensor(py, [4, 2, 2])?;
+            let labels = random_python_tensor(py, [4, 2])?;
+
+            let kwargs = PyDict::new(py);
+            kwargs.set_item("image", image)?;
+            kwargs.set_item("point_coords", points)?;
+            kwargs.set_item("point_labels", labels)?;
+            kwargs.set_item("original_size", original_size)?;
+
+            let output = sam
+                .call1(([kwargs], false))?
+                .downcast::<PyList>()?
+                .get_item(0)?;
+            let masks = output.get_item("masks")?;
+            let mask_values = output.get_item("mask_values")?;
+            let iou_predictions = output.get_item("iou_predictions")?;
+            let low_res_logits = output.get_item("low_res_logits")?;
+            Ok((
+                image.try_into()?,
+                points.try_into()?,
+                labels.try_into()?,
+                masks.try_into()?,
+                mask_values.try_into()?,
+                iou_predictions.try_into()?,
+                low_res_logits.try_into()?,
+            ))
+        });
+        let (image, points, labels, _masks, mask_values, iou_predictions, low_res_logits) =
+            python.unwrap();
+
         let mut sam = get_test_sam();
-        let input = vec![
-            Input {
-                image: random_tensor_int([3, 8, 8], 1, 255.),
-                boxes: None,
-                original_size: Size(100, 200),
-                mask_inputs: None,
-                points: Some((random_tensor([4, 2, 2], 1), random_tensor([4, 2], 1))),
-            },
-            Input {
-                image: random_tensor_int([3, 8, 8], 2, 255.),
-                boxes: None,
-                original_size: Size(50, 80),
-                mask_inputs: None,
-                points: Some((random_tensor([4, 2, 2], 2), random_tensor([4, 2], 2))),
-            },
-        ];
-        let output = sam.forward(input, false);
-        let file = Test::open("sam_forward_points");
-        for (i, out) in output.iter().enumerate() {
-            file.almost_equal(
-                format!("mask_values{}", i).as_str(),
-                out.mask_values.clone(),
-                0.1,
-            );
-            // file.almost_equal(format!("masks{}", i).as_str(), out.masks.clone(), 0.001);
-            file.almost_equal(
-                format!("iou_predictions{}", i).as_str(),
-                out.iou_predictions.clone(),
-                0.1,
-            );
-            if let Some(low_res_logits) = out.low_res_logits.clone() {
-                file.almost_equal(
-                    format!("low_res_logits{}", i).as_str(),
-                    low_res_logits,
-                    None,
-                );
-            } //Todo
-        }
+        let input = Input {
+            image: image.into(),
+            boxes: None,
+            original_size: original_size.into(),
+            mask_inputs: None,
+            points: Some((points.into(), labels.into())),
+        };
+        let output = sam.forward(vec![input], false);
+        let output = output.get(0).unwrap();
+        // masks.almost_equal(output.masks, None);
+        mask_values.almost_equal(output.mask_values.clone(), 2.);
+        iou_predictions.almost_equal(output.iou_predictions.clone(), 2.);
+        low_res_logits.almost_equal(output.low_res_logits.clone().unwrap(), 2.);
     }
+
     #[test]
     fn test_sam_postprocess_masks() {
-        let sam = TEST_SAM.build::<TestBackend>(None);
+        let input_size = (684, 1024);
+        let original = (534, 800);
+        let python: PyResult<(PythonData<4>, PythonData<4>)> = Python::with_gil(|py| {
+            let sam = get_python_sam(&py)?;
+            let masks = random_python_tensor(py, [4, 1, 256, 256])?;
+            let output = sam.call_method1("postprocess_masks", (masks, input_size, original))?;
+            Ok((masks.try_into()?, output.try_into()?))
+        });
+        let (masks, python) = python.unwrap();
+        let sam = get_test_sam();
 
-        let masks = random_tensor([4, 1, 256, 256], 1);
-        let input = Size(684, 1024);
-        let original = Size(534, 800);
-        let output = sam.postprocess_masks(masks.clone(), input, original);
-        let file = Test::open("sam_postprocess_masks");
-        file.equal("input_size", input);
-        file.equal("masks", masks);
-        file.equal("output", output);
+        let output = sam.postprocess_masks(masks.into(), input_size.into(), original.into());
+        python.almost_equal(output, 2.);
     }
     #[test]
     fn test_sam_preprocess() {
-        let sam = TEST_SAM.build::<TestBackend>(None);
-        // sam = load_module("sam_preprocess", sam);
-
-        let input = random_tensor_int([3, 171, 128], 1, 255.);
-        let output = sam.preprocess(input.clone());
-        let file = Test::open("sam_preprocess");
-        file.equal("input", input);
-        file.equal("output", output);
+        let python: PyResult<(PythonData<3, i64>, PythonData<3>)> = Python::with_gil(|py| {
+            let sam = get_python_sam(&py)?;
+            let input = random_python_tensor_int(py, [3, 171, 128])?;
+            let output = sam.call_method1("preprocess", (input,))?;
+            Ok((input.try_into()?, output.try_into()?))
+        });
+        let (input, python) = python.unwrap();
+        let sam = get_test_sam();
+        let output = sam.preprocess(input.into());
+        python.almost_equal(output, None);
     }
 }

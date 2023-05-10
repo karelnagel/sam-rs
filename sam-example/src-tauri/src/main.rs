@@ -5,10 +5,10 @@ use std::sync::Mutex;
 
 use burn::tensor::Tensor;
 use sam_rs::{
-    build_sam::BuildSam,
+    build_sam::SamVersion,
     burn_helpers::TensorHelpers,
     sam_predictor::{ImageFormat, SamPredictor},
-    tests::{helpers::TestBackend},
+    tests::helpers::TestBackend,
 };
 use tauri::Window;
 pub enum Props {
@@ -28,7 +28,7 @@ impl Default for AppState {
 pub struct State(pub Mutex<AppState>);
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
-fn start_model(state: tauri::State<State>, window: Window, model: String, version: BuildSam) {
+fn start_model(state: tauri::State<State>, window: Window, model: String, version: SamVersion) {
     let mut app_state = state.0.lock().unwrap();
     if app_state.sender.is_some() {
         print!("Model already running!");
