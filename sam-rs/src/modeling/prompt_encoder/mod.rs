@@ -361,7 +361,7 @@ mod test {
                 let module = get_python_module(&py, FILE)?;
 
                 let boxes = random_python_tensor(py, [32, 4]);
-                let output = module.getattr("_embed_boxes")?.call1((boxes,))?;
+                let output = module.call_method1("_embed_boxes", (boxes,))?;
                 Ok((boxes.into(), output.into()))
             })
         }
@@ -381,7 +381,7 @@ mod test {
                 let module = get_python_module(&py, FILE)?;
 
                 let masks = random_python_tensor(py, [8, 1, 4, 4]);
-                let output = module.getattr("_embed_masks")?.call1((masks,))?;
+                let output = module.call_method1("_embed_masks", (masks,))?;
                 Ok((masks.into(), output.into()))
             })
         }
@@ -401,11 +401,10 @@ mod test {
                 let module = get_python_module(&py, FILE)?;
                 let points = random_python_tensor(py, [8, 1, 2]);
                 let labels = random_python_tensor(py, [8, 1]);
-                let output = module.getattr("forward")?.call1((
-                    (points, labels),
-                    None::<&PyAny>,
-                    None::<&PyAny>,
-                ))?;
+                let output = module.call_method1(
+                    "forward",
+                    ((points, labels), None::<&PyAny>, None::<&PyAny>),
+                )?;
                 let output = output.downcast::<PyTuple>()?;
                 let sparse = output.get_item(0)?;
                 let dense = output.get_item(1)?;

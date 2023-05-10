@@ -324,12 +324,10 @@ mod test {
                 let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
                 let sparse_prompt = random_python_tensor(py, [16, 2, 64]);
                 let dense_prompt = random_python_tensor(py, [16, 64, 16, 16]);
-                let output = module.getattr("predict_masks")?.call1((
-                    image_embedding,
-                    image_pe,
-                    sparse_prompt,
-                    dense_prompt,
-                ))?;
+                let output = module.call_method1(
+                    "predict_masks",
+                    (image_embedding, image_pe, sparse_prompt, dense_prompt),
+                )?;
                 let output = output.downcast::<PyTuple>()?;
                 let masks = output.get_item(0)?;
                 let iou_pred = output.get_item(1)?;

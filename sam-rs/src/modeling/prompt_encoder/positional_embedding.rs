@@ -95,7 +95,7 @@ mod test {
                 let module = module.call1((128,))?;
 
                 let input = random_python_tensor(py, [64, 69, 2]);
-                let output = module.getattr("_pe_encoding")?.call1((input,))?;
+                let output = module.call_method1("_pe_encoding", (input,))?;
                 Ok((input.into(), output.into()))
             })
         }
@@ -115,7 +115,7 @@ mod test {
                     .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
 
-                let output = module.getattr("forward")?.call1(((64, 64),))?;
+                let output = module.call_method1("forward", ((64, 64),))?;
                 Ok(output.into())
             })
         }
