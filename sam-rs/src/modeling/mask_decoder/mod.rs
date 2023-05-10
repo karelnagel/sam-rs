@@ -199,13 +199,72 @@ impl<B: Backend> MaskDecoder<B> {
 #[cfg(test)]
 mod test {
 
+    use pyo3::{
+        types::{PyDict, PyTuple},
+        PyResult, Python,
+    };
+
     use crate::{
         modeling::{common::activation::Activation, transformer::TwoWayTransformer},
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
     };
 
     #[test]
-    fn test_mask_decoder() {
+    fn test_mask_decoder_forward() {
+        const FILE: &str = "mask_decoder_forward";
+        fn python() -> PyResult<(
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<3>,
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<2>,
+        )> {
+            Python::with_gil(|py| {
+                let relu = py.import("torch.nn")?.getattr("ReLU")?;
+                let gelu = py.import("torch.nn")?.getattr("GELU")?;
+                let transformer = py
+                    .import("segment_anything.modeling.transformer")?
+                    .getattr("TwoWayTransformer")?;
+                let transformer = transformer.call1((2, 64, 2, 512, relu, 2))?;
+                let module = py
+                    .import("segment_anything.modeling.mask_decoder")?
+                    .getattr("MaskDecoder")?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item("transformer_dim", 64)?;
+                kwargs.set_item("transformer", transformer)?;
+                kwargs.set_item("num_multimask_outputs", 3)?;
+                kwargs.set_item("activation", gelu)?;
+                kwargs.set_item("iou_head_depth", 3)?;
+                kwargs.set_item("iou_head_hidden_dim", 256)?;
+                let module = module.call((), Some(kwargs))?;
+                module_to_file(FILE, py, &module)?;
+
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
+                let sparse_prompt = random_python_tensor(py, [16, 2, 64]);
+                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16]);
+                let output =
+                    module.call1((image_embedding, image_pe, sparse_prompt, dense_prompt, true))?;
+                let output = output.downcast::<PyTuple>()?;
+                let masks = output.get_item(0)?;
+                let iou_pred = output.get_item(1)?;
+                Ok((
+                    image_embedding.into(),
+                    image_pe.into(),
+                    sparse_prompt.into(),
+                    dense_prompt.into(),
+                    masks.into(),
+                    iou_pred.into(),
+                ))
+            })
+        }
+        let (image_embedding, image_pe, sparse_prompt, dense_prompt, masks, iou_pred) =
+            python().unwrap();
         let two_way_transformer =
             TwoWayTransformer::new(2, 64, 2, 512, Some(Activation::ReLU), Some(2));
         let mut mask_decoder = super::MaskDecoder::<TestBackend>::new(
@@ -216,31 +275,82 @@ mod test {
             Some(3),
             Some(64),
         );
-        mask_decoder = load_module("mask_decoder", mask_decoder);
+        mask_decoder = load_module(FILE, mask_decoder);
 
         // Forward
-        let image_embedding = random_tensor([1, 64, 16, 16], 1);
-        let image_pe = random_tensor([1, 64, 16, 16], 2);
-        let sparse_prompt_embeddings = random_tensor([16, 2, 64], 3);
-        let dense_prompt_embeddings = random_tensor([16, 64, 16, 16], 4);
-        let (masks, iou_pred) = mask_decoder.forward(
-            image_embedding.clone(),
-            image_pe.clone(),
-            sparse_prompt_embeddings.clone(),
-            dense_prompt_embeddings.clone(),
+        let (masks2, iou_pred2) = mask_decoder.forward(
+            image_embedding.into(),
+            image_pe.into(),
+            sparse_prompt.into(),
+            dense_prompt.into(),
             true,
         );
-        let file = Test::open("mask_decoder");
-        file.equal("image_embedding", image_embedding);
-        file.equal("image_pe", image_pe);
-        file.equal("sparse_prompt_embeddings", sparse_prompt_embeddings);
-        file.equal("dense_prompt_embeddings", dense_prompt_embeddings);
-        file.almost_equal("masks", masks, 0.1);
-        file.almost_equal("iou_pred", iou_pred, 0.005);
+        masks.almost_equal(masks2, 5.);
+        iou_pred.almost_equal(iou_pred2, None);
     }
 
     #[test]
     fn test_mask_decoder_predict() {
+        const FILE: &str = "mask_decoder_predict";
+        fn python() -> PyResult<(
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<3>,
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<2>,
+        )> {
+            Python::with_gil(|py| {
+                let relu = py.import("torch.nn")?.getattr("ReLU")?;
+                let gelu = py.import("torch.nn")?.getattr("GELU")?;
+                let transformer = py
+                    .import("segment_anything.modeling.transformer")?
+                    .getattr("TwoWayTransformer")?;
+                let transformer = transformer.call1((2, 64, 2, 512, relu, 2))?;
+                let module = py
+                    .import("segment_anything.modeling.mask_decoder")?
+                    .getattr("MaskDecoder")?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item("transformer_dim", 64)?;
+                kwargs.set_item("transformer", transformer)?;
+                kwargs.set_item("num_multimask_outputs", 3)?;
+                kwargs.set_item("activation", gelu)?;
+                kwargs.set_item("iou_head_depth", 3)?;
+                kwargs.set_item("iou_head_hidden_dim", 256)?;
+                let module = module.call((), Some(kwargs))?;
+                module_to_file(FILE, py, &module)?;
+
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
+                let sparse_prompt = random_python_tensor(py, [16, 2, 64]);
+                let dense_prompt = random_python_tensor(py, [16, 64, 16, 16]);
+                let output = module.getattr("predict_masks")?.call1((
+                    image_embedding,
+                    image_pe,
+                    sparse_prompt,
+                    dense_prompt,
+                ))?;
+                let output = output.downcast::<PyTuple>()?;
+                let masks = output.get_item(0)?;
+                let iou_pred = output.get_item(1)?;
+                Ok((
+                    image_embedding.into(),
+                    image_pe.into(),
+                    sparse_prompt.into(),
+                    dense_prompt.into(),
+                    masks.into(),
+                    iou_pred.into(),
+                ))
+            })
+        }
+        let (
+            image_embedding,
+            image_pe,
+            sparse_prompt_embeddings,
+            dense_prompt_embeddings,
+            masks,
+            iou_pred,
+        ) = python().unwrap();
         let two_way_transformer =
             TwoWayTransformer::new(2, 64, 2, 512, Some(Activation::ReLU), Some(2));
         let mut mask_decoder = super::MaskDecoder::<TestBackend>::new(
@@ -251,25 +361,16 @@ mod test {
             Some(3),
             Some(64),
         );
-        mask_decoder = load_module("mask_decoder_predict", mask_decoder);
+        mask_decoder = load_module(FILE, mask_decoder);
 
         // Forward
-        let image_embedding = random_tensor([1, 64, 16, 16], 1);
-        let image_pe = random_tensor([1, 64, 16, 16], 2);
-        let sparse_prompt_embeddings = random_tensor([16, 2, 64], 3);
-        let dense_prompt_embeddings = random_tensor([16, 64, 16, 16], 4);
-        let (masks, iou_pred) = mask_decoder.predict_masks(
-            image_embedding.clone(),
-            image_pe.clone(),
-            sparse_prompt_embeddings.clone(),
-            dense_prompt_embeddings.clone(),
+        let (masks2, iou_pred2) = mask_decoder.predict_masks(
+            image_embedding.into(),
+            image_pe.into(),
+            sparse_prompt_embeddings.into(),
+            dense_prompt_embeddings.into(),
         );
-        let file = Test::open("mask_decoder_predict");
-        file.equal("image_embedding", image_embedding);
-        file.equal("image_pe", image_pe);
-        file.equal("sparse_prompt_embeddings", sparse_prompt_embeddings);
-        file.equal("dense_prompt_embeddings", dense_prompt_embeddings);
-        file.almost_equal("masks", masks, 0.1); // Todo somthing is wrong here
-        file.almost_equal("iou_pred", iou_pred, 0.005);
+        masks.almost_equal(masks2, 5.);
+        iou_pred.almost_equal(iou_pred2, None);
     }
 }

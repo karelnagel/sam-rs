@@ -56,18 +56,37 @@ impl<B: Backend> MLP<B> {
 #[cfg(test)]
 mod test {
 
-    use crate::tests::helpers::{load_module, random_tensor, Test, TestBackend};
+    use pyo3::{PyResult, Python};
+
+    use crate::{
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
+    };
 
     #[test]
     fn test_mlp() {
+        const FILE: &str = "mlp";
+        fn python() -> PyResult<(PythonData<2>, PythonData<2>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.mask_decoder")?;
+                let module = common_module.getattr("MLP")?;
+                let module = module.call1((256, 256, 256, 4, false))?;
+                module_to_file(FILE, py, &module)?;
+
+                let input = random_python_tensor(py, [1, 256]);
+                let output = module.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let mut mlp = super::MLP::<TestBackend>::new(256, 256, 256, 4, None);
-        mlp = load_module("mlp", mlp);
+        mlp = load_module(FILE, mlp);
 
         // Forward
-        let input = random_tensor([1, 256], 1);
-        let output = mlp.forward(input.clone());
-        let file = Test::open("mlp");
-        file.equal("input", input);
-        file.almost_equal("output", output, 0.001);
+        let output = mlp.forward(input.into());
+        python.almost_equal(output, None);
     }
 }
