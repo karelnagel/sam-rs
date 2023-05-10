@@ -27,7 +27,11 @@ pub enum ImageFormat {
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Module)]
 pub struct Size(pub usize, pub usize);
-
+impl From<(usize, usize)> for Size {
+    fn from((h, w): (usize, usize)) -> Self {
+        Self(h, w)
+    }
+}
 impl<B: Backend> SamPredictor<B>
 where
     <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,

@@ -113,78 +113,124 @@ impl ResizeLongestSide {
 
 #[cfg(test)]
 mod test {
+    use pyo3::{PyAny, PyResult, Python};
+
     use crate::{
+        python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
         sam_predictor::Size,
-        tests::helpers::{random_tensor, random_tensor_int, Test, TestBackend},
+        tests::helpers::TestBackend,
     };
 
+    fn python_module<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
+        let module = py
+            .import("segment_anything.utils.transforms")?
+            .getattr("ResizeLongestSide")?;
+        let module = module.call1((64,))?;
+        Ok(module)
+    }
     #[test]
     fn test_resize_get_preprocess_shape() {
+        let python: PyResult<Size> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let output = module.call_method1("get_preprocess_shape", (32, 32, 64))?;
+            Ok(output.try_into()?)
+        });
+        let python = python.unwrap();
+
         let resize = super::ResizeLongestSide::new(64);
         let output = resize.get_preprocess_shape(32, 32, 64);
-        let file = Test::open("resize_get_preprocess_shape");
-        file.equal("output", output)
+        assert_eq!(python, output);
     }
     #[test]
     fn test_resize_apply_image() {
+        let python: PyResult<(PythonData<3, i64>, PythonData<3, i64>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let uint8 = py.import("torch")?.getattr("uint8")?;
+            let input = random_python_tensor(py, [120, 180, 3])
+                .call_method1("type", (uint8,))?
+                .call_method0("numpy")?;
+
+            let output = module.call_method1("apply_image", (input,))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let input = random_tensor_int([120, 180, 3], 1, 255.);
-        let _output = resize.apply_image::<TestBackend>(input.clone());
-        let file = Test::open("resize_apply_image");
-        file.equal("input", input);
-        file.almost_equal("output", _output, 0.2);
+        let output = resize.apply_image::<TestBackend>(input.into());
+        python.almost_equal(output, 5.); // Resizing a little different
     }
     #[test]
     fn test_resize_apply_coords() {
+        let original_size = (1200, 1800);
+        let python: PyResult<(PythonData<3>, PythonData<3>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let input = random_python_tensor_int(py, [1, 2, 2])?
+                .getattr("numpy")?
+                .call0()?;
+            let output = module.call_method1("apply_coords", (input, original_size))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let input = random_tensor_int([1, 2, 2], 1, 255.);
-        let original_size = Size(1200, 1800);
-        let output = resize.apply_coords::<TestBackend, 3>(input.clone(), original_size);
-        let file = Test::open("resize_apply_coords");
-        file.equal("input", input);
-        file.almost_equal("output", output, None);
+        let output = resize.apply_coords::<TestBackend, 3>(input.into(), original_size.into());
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_resize_apply_boxes() {
+        let original_size = (1200, 1800);
+        let python: PyResult<(PythonData<2>, PythonData<2>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let input = random_python_tensor_int(py, [1, 4])?
+                .getattr("numpy")?
+                .call0()?;
+            let output = module.call_method1("apply_boxes", (input, original_size))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let boxes = random_tensor_int([1, 4], 1, 255.);
-        let original_size = Size(1200, 1800);
-        let output = resize.apply_boxes::<TestBackend>(boxes.clone(), original_size);
-        let file = Test::open("resize_apply_boxes");
-        file.equal("boxes", boxes);
-        file.almost_equal("output", output, None);
+        let output = resize.apply_boxes::<TestBackend>(input.into(), original_size.into());
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_resize_image_torch() {
+        let python: PyResult<(PythonData<4>, PythonData<4>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let input = random_python_tensor(py, [1, 3, 32, 32]);
+            let output = module.call_method1("apply_image_torch", (input,))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let input = random_tensor::<TestBackend, 4>([1, 3, 32, 32], 1);
-        let output = resize.apply_image_torch(input.clone());
-        let file = Test::open("resize_apply_image_torch");
-        file.equal("input", input);
-        file.equal("output", output);
+        let output = resize.apply_image_torch::<TestBackend>(input.into());
+        python.almost_equal(output, None);
     }
     #[test]
     fn test_resize_coords_torch() {
+        let size = (32, 32);
+        let python: PyResult<(PythonData<2>, PythonData<2>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let input = random_python_tensor_int(py, [32, 32])?;
+            let output = module.call_method1("apply_coords_torch", (input, size))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let coords = random_tensor_int::<TestBackend, 2>([32, 32], 1, 255.);
-        let original_size = Size(32, 32);
-        let output = resize.apply_coords_torch(coords.clone(), original_size);
-        let file = Test::open("resize_apply_coords_torch");
-        file.equal("coords", coords);
-        file.equal("original_size", original_size);
-        file.equal("output", output);
+        let output = resize.apply_coords_torch::<TestBackend, 2>(input.into(), size.into());
+        python.almost_equal(output, None);
     }
     #[test]
     fn test_resize_boxes_torch() {
+        let size = (32, 32);
+        let python: PyResult<(PythonData<2>, PythonData<2>)> = Python::with_gil(|py| {
+            let module = python_module(&py)?;
+            let input = random_python_tensor_int(py, [32, 32])?;
+            let output = module.call_method1("apply_boxes_torch", (input, size))?;
+            Ok((input.into(), output.into()))
+        });
+        let (input, python) = python.unwrap();
         let resize = super::ResizeLongestSide::new(64);
-        let boxes = random_tensor_int::<TestBackend, 2>([32, 32], 1, 255.);
-        let original_size = Size(32, 32);
-        let output = resize.apply_boxes_torch(boxes.clone(), original_size);
-        let file = Test::open("resize_apply_boxes_torch");
-        file.equal("boxes", boxes);
-        file.equal("original_size", original_size);
-        file.equal("output", output);
+        let output = resize.apply_boxes_torch::<TestBackend>(input.into(), size.into());
+        python.almost_equal(output, None);
     }
 }

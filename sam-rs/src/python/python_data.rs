@@ -1,14 +1,23 @@
 use burn::tensor::{backend::Backend, BasicOps, Element, ElementConversion, Tensor, TensorKind};
-use pyo3::{FromPyObject, PyAny, Python};
+use pyo3::{types::PyTuple, FromPyObject, PyAny, PyErr, PyResult, Python};
 
-use crate::{burn_helpers::TensorHelpers, tests::helpers::TEST_ALMOST_THRESHOLD};
+use crate::{
+    burn_helpers::TensorHelpers, sam_predictor::Size, tests::helpers::TEST_ALMOST_THRESHOLD,
+};
 
 pub trait PythonDataKind: std::fmt::Debug + PartialEq + Clone + Element + Sized + Copy {}
 impl PythonDataKind for f32 {}
+impl PythonDataKind for i64 {}
 pub fn random_python_tensor<const D: usize>(py: Python, shape: [usize; D]) -> &PyAny {
     let torch = py.import("torch").unwrap();
     let input = torch.call_method1("randn", (shape,)).unwrap();
     input
+}
+pub fn random_python_tensor_int<const D: usize>(py: Python, shape: [usize; D]) -> PyResult<&PyAny> {
+    let tensor = random_python_tensor(py, shape);
+    let int = py.import("torch")?.getattr("int")?;
+    let tensor = tensor.getattr("type")?.call1((int,))?;
+    Ok(tensor)
 }
 #[derive(PartialEq, Clone)]
 pub struct PythonData<const D: usize, T: PythonDataKind = f32> {
@@ -131,5 +140,16 @@ where
     fn from(data: Tensor<B, D, K>) -> Self {
         let (slice, shape) = data.to_slice();
         PythonData::new(slice, shape)
+    }
+}
+
+impl TryFrom<&PyAny> for Size {
+    type Error = PyErr;
+    fn try_from(data: &PyAny) -> PyResult<Self> {
+        let tuple = data.downcast::<PyTuple>()?;
+        Ok(Size(
+            tuple.get_item(0)?.extract()?,
+            tuple.get_item(1)?.extract()?,
+        ))
     }
 }
