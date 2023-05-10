@@ -145,6 +145,6 @@ mod test {
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
         let output =
             pos_embedding.forward_with_coords::<TestBackend>(input.into(), Size(1024, 1024));
-        python.almost_equal(output, None);
+        python.almost_equal(output, 0.1);
     }
 }

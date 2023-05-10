@@ -213,26 +213,15 @@ where
 mod test {
     use pyo3::{
         types::{PyDict, PyList},
-        PyAny, PyResult, Python,
+        PyResult, Python,
     };
 
     use crate::{
         python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
-        tests::helpers::{get_test_sam, TEST_CHECKPOINT, TEST_SAM},
+        tests::helpers::{get_python_test_sam, get_test_sam},
     };
 
     use super::Input;
-
-    fn get_python_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
-        let module = py
-            .import("segment_anything.build_sam")?
-            .getattr("sam_model_registry")?
-            .get_item(TEST_SAM.to_str())?;
-        Ok(match TEST_CHECKPOINT {
-            Some(checkpoint) => module.call1((format!("{}.pth", checkpoint),))?,
-            None => module.call0()?,
-        })
-    }
 
     #[test]
     fn test_sam_forward_boxes() {
@@ -245,7 +234,7 @@ mod test {
             PythonData<2>,
             PythonData<4>,
         )> = Python::with_gil(|py| {
-            let sam = get_python_sam(&py)?;
+            let sam = get_python_test_sam(&py)?;
             let image = random_python_tensor_int(py, [3, 8, 8])?;
             let boxes = random_python_tensor(py, [4, 4])?;
 
@@ -299,7 +288,7 @@ mod test {
             PythonData<2>,
             PythonData<4>,
         )> = Python::with_gil(|py| {
-            let sam = get_python_sam(&py)?;
+            let sam = get_python_test_sam(&py)?;
             let image = random_python_tensor_int(py, [3, 8, 8])?;
             let points = random_python_tensor(py, [4, 2, 2])?;
             let labels = random_python_tensor(py, [4, 2])?;
@@ -352,7 +341,7 @@ mod test {
         let input_size = (684, 1024);
         let original = (534, 800);
         let python: PyResult<(PythonData<4>, PythonData<4>)> = Python::with_gil(|py| {
-            let sam = get_python_sam(&py)?;
+            let sam = get_python_test_sam(&py)?;
             let masks = random_python_tensor(py, [4, 1, 256, 256])?;
             let output = sam.call_method1("postprocess_masks", (masks, input_size, original))?;
             Ok((masks.try_into()?, output.try_into()?))
@@ -366,7 +355,7 @@ mod test {
     #[test]
     fn test_sam_preprocess() {
         let python: PyResult<(PythonData<3, i64>, PythonData<3>)> = Python::with_gil(|py| {
-            let sam = get_python_sam(&py)?;
+            let sam = get_python_test_sam(&py)?;
             let input = random_python_tensor_int(py, [3, 171, 128])?;
             let output = sam.call_method1("preprocess", (input,))?;
             Ok((input.try_into()?, output.try_into()?))

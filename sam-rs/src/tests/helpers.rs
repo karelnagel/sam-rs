@@ -6,6 +6,7 @@ use burn::{
     tensor::{backend::Backend, Int, Tensor},
 };
 use burn_tch::TchBackend;
+use pyo3::{PyAny, PyResult, Python};
 use serde::{Deserialize, Serialize};
 
 use crate::{build_sam::SamVersion, burn_helpers::TensorHelpers, sam::Sam};
@@ -21,6 +22,17 @@ pub const TEST_SAM: SamVersion = SamVersion::SamTest;
 pub fn get_test_sam() -> Sam<TestBackend> {
     let sam = TEST_SAM.build::<TestBackend>(TEST_CHECKPOINT);
     sam
+}
+
+pub fn get_python_test_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
+    let module = py
+        .import("segment_anything.build_sam")?
+        .getattr("sam_model_registry")?
+        .get_item(TEST_SAM.to_str())?;
+    Ok(match TEST_CHECKPOINT {
+        Some(checkpoint) => module.call1((format!("{}.pth", checkpoint),))?,
+        None => module.call0()?,
+    })
 }
 pub const TEST_ALMOST_THRESHOLD: f32 = 0.01;
 pub type TestBackend = TchBackend<f64>;

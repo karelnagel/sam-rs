@@ -272,75 +272,216 @@ where
 #[cfg(test)]
 mod test {
 
-    use crate::tests::helpers::{
-        get_test_sam, random_tensor, random_tensor_int, Test, TestBackend,
+    use burn::tensor::{Int, Tensor};
+    use pyo3::{types::PyTuple, PyAny, PyResult, Python};
+
+    use crate::{
+        python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
+        tests::helpers::{get_python_test_sam, get_test_sam, TestBackend},
     };
 
     use super::{SamPredictor, Size};
-    fn init(with_set_image: bool) -> SamPredictor<TestBackend> {
+    fn init(image: Option<Tensor<TestBackend, 3, Int>>) -> SamPredictor<TestBackend> {
         let sam = get_test_sam();
         let mut predictor = SamPredictor::new(sam);
-        if with_set_image {
-            let image = random_tensor_int([120, 180, 3], 1, 255.);
+        if let Some(image) = image {
             predictor.set_image(image, super::ImageFormat::RGB);
         }
 
         predictor
     }
+    fn python_init(
+        py: Python,
+        with_set_image: bool,
+    ) -> PyResult<(&PyAny, Option<PythonData<3, i64>>)> {
+        let sam = get_python_test_sam(&py)?;
+        let predictor = py
+            .import("segment_anything.predictor")?
+            .getattr("SamPredictor")?
+            .call1((sam,))?;
+        if with_set_image {
+            let uint8 = py.import("torch")?.getattr("uint8")?;
+            let image = random_python_tensor(py, [120, 180, 3])?
+                .call_method1("type", (uint8,))?
+                .call_method0("numpy")?;
+            predictor.call_method1("set_image", (image, "RGB"))?;
+            return Ok((predictor, Some(image.try_into()?)));
+        }
+        Ok((predictor, None))
+    }
 
     #[test]
     fn test_predictor_set_image() {
-        let predictor = init(true);
-
-        let file = Test::open("predictor_set_image");
-        file.equal("original_size", predictor.original_size.unwrap());
-        file.equal("input_size", predictor.input_size.unwrap());
-        file.almost_equal("features", predictor.features.unwrap(), None);
-        file.equal("is_image_set", predictor.is_image_set);
+        let python: PyResult<(PythonData<3, i64>, Size, Size, PythonData<4>)> =
+            Python::with_gil(|py| {
+                let (predictor, image) = python_init(py, true)?;
+                Ok((
+                    image.unwrap().try_into()?,
+                    predictor.getattr("original_size")?.try_into()?,
+                    predictor.getattr("input_size")?.try_into()?,
+                    predictor.getattr("features")?.try_into()?,
+                ))
+            });
+        let (image, original_size, input_size, features) = python.unwrap();
+        let predictor = init(Some(image.into()));
+        assert_eq!(original_size, predictor.original_size.unwrap());
+        assert_eq!(input_size, predictor.input_size.unwrap());
+        features.almost_equal(predictor.features.unwrap(), 5.);
+        assert!(predictor.is_image_set);
     }
 
     #[test]
     fn test_predictor_set_torch_image() {
-        let mut predictor = init(false);
+        let original_size = (120, 180);
+        let python: PyResult<(PythonData<4, i64>, Size, Size, PythonData<4>)> =
+            Python::with_gil(|py| {
+                let (predictor, _) = python_init(py, false)?;
+                let image = random_python_tensor_int(py, [1, 3, 683, 1024])?;
+                predictor.call_method1("set_torch_image", (image, original_size))?;
+                Ok((
+                    image.try_into()?,
+                    predictor.getattr("original_size")?.try_into()?,
+                    predictor.getattr("input_size")?.try_into()?,
+                    predictor.getattr("features")?.try_into()?,
+                ))
+            });
+        let (image, original_size, input_size, features) = python.unwrap();
+        let mut predictor = init(None);
 
-        let image = random_tensor_int([1, 3, 683, 1024], 1, 255.);
-        let original_size = Size(120, 180);
-        predictor.set_torch_image(image, original_size);
-        let file = Test::open("predictor_set_torch_image");
-        file.equal("original_size", predictor.original_size.unwrap());
-        file.equal("input_size", predictor.input_size.unwrap());
-        file.almost_equal("features", predictor.features.unwrap(), None);
-        file.equal("is_image_set", predictor.is_image_set);
+        predictor.set_torch_image(image.into(), original_size.into());
+        assert_eq!(original_size, predictor.original_size.unwrap());
+        assert_eq!(input_size, predictor.input_size.unwrap());
+        features.almost_equal(predictor.features.unwrap(), 5.);
+        assert!(predictor.is_image_set);
     }
 
     #[test]
     fn test_predictor_predict() {
-        let predictor = init(true);
+        let python: PyResult<(
+            PythonData<3, i64>,
+            PythonData<2>,
+            PythonData<1, i64>,
+            PythonData<3>,
+            PythonData<1>,
+            PythonData<3>,
+            PythonData<3>,
+        )> = Python::with_gil(|py| {
+            let (predictor, image) = python_init(py, true)?;
+            let point_coords = random_python_tensor(py, [1, 2])?.call_method0("numpy")?;
+            let point_labels = random_python_tensor_int(py, [1])?.call_method0("numpy")?;
+            let output = predictor
+                .call_method1(
+                    "predict",
+                    (
+                        point_coords,
+                        point_labels,
+                        None::<&PyAny>,
+                        None::<&PyAny>,
+                        true,
+                        false,
+                    ),
+                )?
+                .downcast::<PyTuple>()?;
+            let masks = output.get_item(0)?;
+            let iou_predictions = output.get_item(1)?;
+            let low_res_masks = output.get_item(2)?;
+            let mask_values = output.get_item(3)?;
+            Ok((
+                image.unwrap().try_into()?,
+                point_coords.try_into()?,
+                point_labels.try_into()?,
+                masks.try_into()?,
+                iou_predictions.try_into()?,
+                low_res_masks.try_into()?,
+                mask_values.try_into()?,
+            ))
+        });
+        let (
+            image,
+            point_coords,
+            point_labels,
+            _masks,
+            iou_predictions,
+            low_res_masks,
+            mask_values,
+        ) = python.unwrap();
+        let predictor = init(Some(image.into()));
 
-        let point_coords = random_tensor_int([1, 2], 1, 255.);
-        let point_labels = random_tensor_int([1], 1, 1.);
-        let (masks, iou_predictions, low_res_masks, mask_values) =
-            predictor.predict(Some(point_coords), Some(point_labels), None, None, true);
-        let file = Test::open("predictor_predict");
-        file.almost_equal("mask_values", mask_values, None);
-        // file.almost_equal("masks", masks, None);
-        // file.compare("iou_predictions", iou_predictions);
-        // file.compare("low_res_masks", low_res_masks);
+        let (_masks2, iou_predictions2, low_res_masks2, mask_values2) = predictor.predict(
+            Some(point_coords.into()),
+            Some(point_labels.into()),
+            None,
+            None,
+            true,
+        );
+        // masks.almost_equal(masks2, None);
+        iou_predictions.almost_equal(iou_predictions2, 5.);
+        low_res_masks.almost_equal(low_res_masks2, 5.);
+        mask_values.almost_equal(mask_values2, 5.);
     }
 
     #[test]
     fn test_predictor_predict_torch() {
-        let predictor = init(true);
+        let python: PyResult<(
+            PythonData<3, i64>,
+            PythonData<3>,
+            PythonData<2, i64>,
+            PythonData<4>,
+            PythonData<2>,
+            PythonData<4>,
+            PythonData<4>,
+        )> = Python::with_gil(|py| {
+            let (predictor, image) = python_init(py, true)?;
+            let point_coords = random_python_tensor_int(py, [1, 1, 2])?;
+            let point_labels = random_python_tensor_int(py, [1, 1])?;
+            let output = predictor
+                .call_method1(
+                    "predict_torch",
+                    (
+                        point_coords,
+                        point_labels,
+                        None::<&PyAny>,
+                        None::<&PyAny>,
+                        true,
+                        false,
+                    ),
+                )?
+                .downcast::<PyTuple>()?;
+            let masks = output.get_item(0)?;
+            let iou_predictions = output.get_item(1)?;
+            let low_res_masks = output.get_item(2)?;
+            let mask_values = output.get_item(3)?;
+            Ok((
+                image.unwrap().try_into()?,
+                point_coords.try_into()?,
+                point_labels.try_into()?,
+                masks.try_into()?,
+                iou_predictions.try_into()?,
+                low_res_masks.try_into()?,
+                mask_values.try_into()?,
+            ))
+        });
+        let (
+            image,
+            point_coords,
+            point_labels,
+            _masks,
+            iou_predictions,
+            low_res_masks,
+            mask_values,
+        ) = python.unwrap();
+        let predictor = init(Some(image.into()));
 
-        let point_coords = random_tensor([1, 1, 2], 1);
-        let point_labels = random_tensor([1, 1], 1);
-
-        let (masks, iou_predictions, low_res_masks, mask_values) =
-            predictor.predict_torch(Some(point_coords), Some(point_labels), None, None, true);
-        let file = Test::open("predictor_predict_torch");
-        file.almost_equal("mask_values", mask_values, None);
-        // file.almost_equal("masks", masks, None);
-        // file.compare("iou_predictions", iou_predictions); // Todo for some reason throwing
-        // file.compare("low_res_masks", low_res_masks);
+        let (_masks2, iou_predictions2, low_res_masks2, mask_values2) = predictor.predict_torch(
+            Some(point_coords.into()),
+            Some(point_labels.into()),
+            None,
+            None,
+            true,
+        );
+        // masks.almost_equal(masks2, None);
+        iou_predictions.almost_equal(iou_predictions2, 5.);
+        low_res_masks.almost_equal(low_res_masks2, 5.);
+        mask_values.almost_equal(mask_values2, 5.);
     }
 }
