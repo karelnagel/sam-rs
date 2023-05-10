@@ -111,19 +111,14 @@ impl<B: Backend> ConvTranspose2d<B> {
 
 #[cfg(test)]
 mod test {
+    use burn::tensor::Tensor;
     use burn_tch::TchBackend;
     use tch::nn::{ConvTransposeConfig, Init, Module};
 
-    use crate::tests::helpers::{random_slice, random_tensor};
+    use crate::burn_helpers::TensorHelpers;
 
     use super::ConvTranspose2dConfig;
     type Backend = TchBackend<f32>;
-
-    fn random_tch_tensor(shape: &[usize], seed: usize) -> tch::Tensor {
-        let slice = random_slice(shape, seed);
-        let shape = shape.iter().map(|&x| x as i64).collect::<Vec<_>>();
-        tch::Tensor::of_slice(&slice).reshape(shape.as_slice())
-    }
 
     #[test]
     fn test_conv_transpose_2d() {
@@ -151,9 +146,11 @@ mod test {
             .init::<Backend>();
 
         let shape: [usize; 4] = [16, i, 16, 16];
-        let seed = 1;
-        let tch_input = random_tch_tensor(&shape, seed);
-        let burn_input = random_tensor(shape, seed);
+
+        let burn_input = Tensor::random(shape.clone(), burn::tensor::Distribution::Standard);
+        let (slice, _) = burn_input.to_slice::<f32>();
+        let tch_input = tch::Tensor::of_slice(&slice)
+            .reshape(&shape.iter().map(|x| *x as i64).collect::<Vec<_>>());
 
         let tch_output = tch_conv.forward(&tch_input);
         let burn_output = burn_conv.forward(burn_input);
