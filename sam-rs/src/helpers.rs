@@ -36,7 +36,7 @@ mod test {
 
     use pyo3::{PyResult, Python};
 
-    use crate::tests::{helpers::TestBackend, new::PythonData};
+    use crate::{python::python_data::PythonData, tests::helpers::TestBackend};
 
     use super::load_image;
 

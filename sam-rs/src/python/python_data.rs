@@ -1,9 +1,7 @@
 use burn::tensor::{backend::Backend, BasicOps, Element, ElementConversion, Tensor, TensorKind};
 use pyo3::{FromPyObject, PyAny, Python};
 
-use crate::burn_helpers::TensorHelpers;
-
-use super::helpers::TEST_ALMOST_THRESHOLD;
+use crate::{burn_helpers::TensorHelpers, tests::helpers::TEST_ALMOST_THRESHOLD};
 
 pub trait PythonDataKind: std::fmt::Debug + PartialEq + Clone + Element + Sized + Copy {}
 impl PythonDataKind for f32 {}

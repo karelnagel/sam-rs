@@ -30,10 +30,8 @@ pub mod test {
     use crate::{
         modeling::common::activation::Activation,
         python::module_to_file::module_to_file,
-        tests::{
-            helpers::{load_module, TestBackend},
-            new::{random_python_tensor, PythonData},
-        },
+        python::python_data::{random_python_tensor, PythonData},
+        tests::helpers::{load_module, TestBackend},
     };
 
     use super::*;

@@ -181,11 +181,9 @@ pub mod test {
 
     use crate::{
         python::module_to_file::module_to_file,
+        python::python_data::{random_python_tensor, PythonData},
         sam_predictor::Size,
-        tests::{
-            helpers::{load_module, random_tensor, Test, TestBackend},
-            new::{random_python_tensor, PythonData},
-        },
+        tests::helpers::{load_module, TestBackend},
     };
 
     #[test]

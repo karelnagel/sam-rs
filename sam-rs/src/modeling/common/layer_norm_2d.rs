@@ -38,9 +38,9 @@ impl<B: Backend> LayerNorm2d<B> {
 mod test {
     use pyo3::{PyResult, Python};
 
-    use crate::tests::{
-        helpers::TestBackend,
-        new::{random_python_tensor, PythonData},
+    use crate::{
+        python::python_data::{random_python_tensor, PythonData},
+        tests::helpers::TestBackend,
     };
 
     use super::*;

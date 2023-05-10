@@ -178,16 +178,16 @@ mod test {
     use crate::{
         modeling::common::activation::Activation,
         python::module_to_file::module_to_file,
+        python::python_data::{random_python_tensor, PythonData},
         sam_predictor::Size,
         tests::{
             helpers::{load_module, TestBackend},
-            new::{random_python_tensor, PythonData},
         },
     };
 
     #[test]
     fn test_window_partition() {
-        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>, Size)> {
             Python::with_gil(|py| {
                 let common_module = py.import("segment_anything.modeling.image_encoder")?;
                 let module = common_module.getattr("window_partition")?;
@@ -195,13 +195,15 @@ mod test {
                 let input = random_python_tensor(py, [2, 256, 16, 16]);
                 let output = module.call1((input, 16))?;
                 let output = output.downcast::<PyTuple>()?;
-
-                Ok((input.into(), output.get_item(0)?.into()))
+                let size = output.get_item(1)?.downcast::<PyTuple>()?;
+                let size = Size(size.get_item(0)?.extract()?, size.get_item(1)?.extract()?);
+                Ok((input.into(), output.get_item(0)?.into(), size))
             })
         }
-        let (input, python) = python().unwrap();
+        let (input, python, size) = python().unwrap();
         let (output, pad_hw) = super::window_partition::<TestBackend>(input.into(), 16);
         python.almost_equal(output, None);
+        assert_eq!(pad_hw, size)
     }
 
     #[test]
