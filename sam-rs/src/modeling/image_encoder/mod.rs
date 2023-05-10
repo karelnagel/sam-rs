@@ -152,15 +152,53 @@ impl<B: Backend> ImageEncoderViT<B> {
 
 #[cfg(test)]
 mod test {
+    use pyo3::{types::PyDict, PyResult, Python};
+
     use super::ImageEncoderViT;
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
     };
 
     #[test]
     fn test_image_encoder() {
-        let act = Activation::GELU;
+        const FILE: &str = "image_encoder";
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("ImageEncoderViT")?;
+                let layer_norm = py.import("torch.nn")?.getattr("LayerNorm")?;
+                let gelu = py.import("torch.nn")?.getattr("GELU")?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item("img_size", 4)?;
+                kwargs.set_item("patch_size", 4)?;
+                kwargs.set_item("in_chans", 3)?;
+                kwargs.set_item("embed_dim", 80)?;
+                kwargs.set_item("depth", 4)?;
+                kwargs.set_item("num_heads", 16)?;
+                kwargs.set_item("mlp_ratio", 4.0)?;
+                kwargs.set_item("out_chans", 32)?;
+                kwargs.set_item("qkv_bias", true)?;
+                kwargs.set_item("norm_layer", layer_norm)?;
+                kwargs.set_item("act_layer", gelu)?;
+                kwargs.set_item("use_abs_pos", true)?;
+                kwargs.set_item("use_rel_pos", true)?;
+                kwargs.set_item("rel_pos_zero_init", true)?;
+                kwargs.set_item("window_size", 14)?;
+                kwargs.set_item("global_attn_indexes", (7, 15, 23, 31))?;
+                let module = module.call((), Some(kwargs))?;
+                module_to_file(FILE, py, &module)?;
+
+                let input = random_python_tensor(py, [1, 3, 4, 4]);
+                let output = module.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let img_size = 4;
         let mut image_encoder = ImageEncoderViT::<TestBackend>::new(
             Some(img_size),
@@ -172,20 +210,17 @@ mod test {
             Some(4.0),
             Some(32),
             Some(true),
-            act,
+            Activation::GELU,
             Some(true),
             Some(true),
             Some(true),
             Some(14),
             Some(vec![7, 15, 23, 31]),
         );
-        image_encoder = load_module("image_encoder", image_encoder);
+        image_encoder = load_module(FILE, image_encoder);
 
         // Forward
-        let input = random_tensor([1, 3, img_size, img_size], 1);
-        let output = image_encoder.forward(input.clone());
-        let file = Test::open("image_encoder");
-        file.equal("input", input);
-        file.almost_equal("output", output, 0.005);
+        let output = image_encoder.forward(input.into());
+        python.almost_equal(output, None);
     }
 }
