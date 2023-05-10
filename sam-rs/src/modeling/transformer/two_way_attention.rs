@@ -121,13 +121,56 @@ impl<B: Backend> TwoWayAttentionBlock<B> {
 
 #[cfg(test)]
 mod test {
+    use pyo3::{types::PyTuple, PyResult, Python};
+
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
     };
 
     #[test]
     fn test_two_way_attention_block() {
+        const FILE: &str = "transformer_two_way_attention_block";
+        fn python() -> PyResult<(
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<3>,
+        )> {
+            Python::with_gil(|py| {
+                let relu = py.import("torch.nn")?.getattr("ReLU")?;
+                let module = py
+                    .import("segment_anything.modeling.transformer")?
+                    .getattr("TwoWayAttentionBlock")?;
+                let module = module.call1((256, 8, 2048, relu, 2, false))?;
+                module_to_file(FILE, py, &module)?;
+
+                let queries = random_python_tensor(py, [1, 256, 256]);
+                let keys = random_python_tensor(py, [1, 256, 256]);
+                let query_pe = random_python_tensor(py, [1, 256, 256]);
+                let key_pe = random_python_tensor(py, [1, 256, 256]);
+                let output = module
+                    .call1((queries, keys, query_pe, key_pe))?
+                    .downcast::<PyTuple>()?;
+                let out_queries = output.get_item(0)?;
+                let out_keys = output.get_item(1)?;
+                Ok((
+                    queries.into(),
+                    keys.into(),
+                    query_pe.into(),
+                    key_pe.into(),
+                    out_queries.into(),
+                    out_keys.into(),
+                ))
+            })
+        }
+        let (queries, keys, query_pe, key_pe, python1, python2) = python().unwrap();
         let mut block = super::TwoWayAttentionBlock::<TestBackend>::new(
             256,
             8,
@@ -136,25 +179,11 @@ mod test {
             Some(2),
             Some(false),
         );
-        block = load_module("transformer_two_way_attention_block", block);
+        block = load_module(FILE, block);
 
-        // Forward
-        let queries = random_tensor([1, 256, 256], 1);
-        let keys = random_tensor([1, 256, 256], 2);
-        let query_pe = random_tensor([1, 256, 256], 3);
-        let key_pe = random_tensor([1, 256, 256], 4);
-        let (out_queries, out_keys) = block.forward(
-            queries.clone(),
-            keys.clone(),
-            query_pe.clone(),
-            key_pe.clone(),
-        );
-        let file = Test::open("transformer_two_way_attention_block");
-        file.equal("queries", queries);
-        file.equal("keys", keys);
-        file.equal("query_pe", query_pe);
-        file.equal("key_pe", key_pe);
-        file.almost_equal("out_queries", out_queries, 0.1);
-        file.almost_equal("out_keys", out_keys, 0.01);
+        let (out_queries, out_keys) =
+            block.forward(queries.into(), keys.into(), query_pe.into(), key_pe.into());
+        python1.almost_equal(out_queries, 0.5);
+        python2.almost_equal(out_keys, 0.1);
     }
 }

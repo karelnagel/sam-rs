@@ -103,12 +103,50 @@ impl<B: Backend> TwoWayTransformer<B> {
 
 #[cfg(test)]
 mod test {
+    use pyo3::{PyResult, Python};
+
     use crate::{
         modeling::common::activation::Activation,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
     };
     #[test]
     fn test_two_way_transformer() {
+        const FILE: &str = "transformer_two_way_transformer";
+        fn python() -> PyResult<(
+            PythonData<4>,
+            PythonData<4>,
+            PythonData<3>,
+            PythonData<3>,
+            PythonData<3>,
+        )> {
+            Python::with_gil(|py| {
+                let relu = py.import("torch.nn")?.getattr("ReLU")?;
+                let module = py
+                    .import("segment_anything.modeling.transformer")?
+                    .getattr("TwoWayTransformer")?;
+                let module = module.call1((2, 64, 4, 256, relu, 2))?;
+                module_to_file(FILE, py, &module)?;
+
+                let image_embedding = random_python_tensor(py, [1, 64, 16, 16]);
+                let image_pe = random_python_tensor(py, [1, 64, 16, 16]);
+                let point_embedding = random_python_tensor(py, [16, 256, 64]);
+                let output = module.call1((image_embedding, image_pe, point_embedding))?;
+                let queries = output.get_item(0)?;
+                let keys = output.get_item(1)?;
+                Ok((
+                    image_embedding.into(),
+                    image_pe.into(),
+                    point_embedding.into(),
+                    queries.into(),
+                    keys.into(),
+                ))
+            })
+        }
+        let (image_embedding, image_pe, point_embedding, queries, keys) = python().unwrap();
         let mut transformer = super::TwoWayTransformer::<TestBackend>::new(
             2,
             64,
@@ -117,22 +155,15 @@ mod test {
             Some(Activation::ReLU),
             Some(2),
         );
-        transformer = load_module("transformer_two_way_transformer", transformer);
+        transformer = load_module(FILE, transformer);
 
         // Forward
-        let image_embedding = random_tensor([1, 64, 16, 16], 1);
-        let image_pe = random_tensor([1, 64, 16, 16], 2);
-        let point_embedding = random_tensor([16, 256, 64], 3);
-        let (queries, keys) = transformer.forward(
-            image_embedding.clone(),
-            image_pe.clone(),
-            point_embedding.clone(),
+        let (queries2, keys2) = transformer.forward(
+            image_embedding.into(),
+            image_pe.into(),
+            point_embedding.into(),
         );
-        let file = Test::open("transformer_two_way_transformer");
-        file.equal("image_embedding", image_embedding);
-        file.equal("image_pe", image_pe);
-        file.almost_equal("point_embedding", point_embedding, None);
-        file.almost_equal("queries", queries, 0.01);
-        file.almost_equal("keys", keys, 0.005);
+        queries.almost_equal(queries2, 5.);
+        keys.almost_equal(keys2, 5.);
     }
 }

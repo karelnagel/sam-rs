@@ -169,8 +169,9 @@ mod test {
         const FILE: &str = "image_encoder";
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("ImageEncoderViT")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("ImageEncoderViT")?;
                 let layer_norm = py.import("torch.nn")?.getattr("LayerNorm")?;
                 let gelu = py.import("torch.nn")?.getattr("GELU")?;
                 let kwargs = PyDict::new(py);

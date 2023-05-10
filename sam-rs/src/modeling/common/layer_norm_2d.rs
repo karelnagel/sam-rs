@@ -49,9 +49,10 @@ mod test {
     fn test_layer_norm_2d() {
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.common")?;
-                let layer_norm_2d = common_module.getattr("LayerNorm2d")?;
-                let layer_norm = layer_norm_2d.call1((256, 0.1))?;
+                let module = py
+                    .import("segment_anything.modeling.common")?
+                    .getattr("LayerNorm2d")?;
+                let layer_norm = module.call1((256, 0.1))?;
                 let input = random_python_tensor(py, [2, 256, 16, 16]);
                 let output = layer_norm.call1((input,))?;
                 Ok((input.into(), output.into()))

@@ -190,8 +190,9 @@ pub mod test {
     fn test_get_rel_pos() {
         fn python() -> PyResult<(PythonData<2>, PythonData<3>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("get_rel_pos")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("get_rel_pos")?;
 
                 let input = random_python_tensor(py, [127, 40]);
                 let output = module.call1((32, 32, input))?;
@@ -213,8 +214,9 @@ pub mod test {
             PythonData<3>,
         )> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("add_decomposed_rel_pos")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("add_decomposed_rel_pos")?;
 
                 let attn = random_python_tensor(py, [200, 49, 49]);
                 let q = random_python_tensor(py, [200, 49, 20]);
@@ -250,8 +252,9 @@ pub mod test {
 
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("Attention")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("Attention")?;
                 let module = module.call1((320, 16, true, true, true, (14, 14)))?;
                 module_to_file(FILE, py, module).unwrap();
 

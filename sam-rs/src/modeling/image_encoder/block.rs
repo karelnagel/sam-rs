@@ -180,17 +180,16 @@ mod test {
         python::module_to_file::module_to_file,
         python::python_data::{random_python_tensor, PythonData},
         sam_predictor::Size,
-        tests::{
-            helpers::{load_module, TestBackend},
-        },
+        tests::helpers::{load_module, TestBackend},
     };
 
     #[test]
     fn test_window_partition() {
         fn python() -> PyResult<(PythonData<4>, PythonData<4>, Size)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("window_partition")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("window_partition")?;
 
                 let input = random_python_tensor(py, [2, 256, 16, 16]);
                 let output = module.call1((input, 16))?;
@@ -210,8 +209,9 @@ mod test {
     fn test_window_unpartition() {
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("window_unpartition")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("window_unpartition")?;
 
                 let input = random_python_tensor(py, [2, 256, 16, 16]);
                 let output = module.call1((input, 16, (16, 16), (14, 14)))?;
@@ -230,8 +230,9 @@ mod test {
 
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("Block")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("Block")?;
                 let gelu = py.import("torch.nn")?.getattr("GELU")?;
                 let layer_norm = py.import("torch.nn")?.getattr("LayerNorm")?;
                 let module =

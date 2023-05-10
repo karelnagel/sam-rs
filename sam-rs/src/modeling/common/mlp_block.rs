@@ -40,10 +40,9 @@ pub mod test {
     fn test_mlp_block() {
         fn python() -> PyResult<(PythonData<2>, PythonData<2>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.common")?;
-                let mlp_block = common_module.getattr("MLPBlock")?;
+                let module = py.import("segment_anything.modeling.common")?.getattr("MLPBlock")?;
 
-                let mlp_block = mlp_block.call1((256, 256))?;
+                let mlp_block = module.call1((256, 256))?;
                 module_to_file("mlp_block", py, &mlp_block)?;
                 let input = random_python_tensor(py, [256, 256]);
                 let output = mlp_block.call1((input,))?;

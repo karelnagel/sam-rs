@@ -61,8 +61,9 @@ mod test {
         const FILE: &str = "patch_embed";
         fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.image_encoder")?;
-                let module = common_module.getattr("PatchEmbed")?;
+                let module = py
+                    .import("segment_anything.modeling.image_encoder")?
+                    .getattr("PatchEmbed")?;
                 let module = module.call1(((16, 16), (16, 16), (0, 0), 3, 320))?;
                 module_to_file(FILE, py, &module)?;
 

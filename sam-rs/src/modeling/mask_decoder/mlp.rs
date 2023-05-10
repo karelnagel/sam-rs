@@ -71,8 +71,9 @@ mod test {
         const FILE: &str = "mlp";
         fn python() -> PyResult<(PythonData<2>, PythonData<2>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.mask_decoder")?;
-                let module = common_module.getattr("MLP")?;
+                let module = py
+                    .import("segment_anything.modeling.mask_decoder")?
+                    .getattr("MLP")?;
                 let module = module.call1((256, 256, 256, 4, false))?;
                 module_to_file(FILE, py, &module)?;
 

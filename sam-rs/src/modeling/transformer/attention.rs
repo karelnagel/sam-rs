@@ -73,22 +73,39 @@ impl<B: Backend> Attention<B> {
 
 #[cfg(test)]
 mod test {
-    use crate::tests::helpers::{load_module, random_tensor, Test, TestBackend};
+    use pyo3::{PyResult, Python};
+
+    use crate::{
+        python::{
+            module_to_file::module_to_file,
+            python_data::{random_python_tensor, PythonData},
+        },
+        tests::helpers::{load_module, TestBackend},
+    };
 
     #[test]
     fn test_attention() {
-        let mut attention = super::Attention::<TestBackend>::new(32, 8, Some(1));
-        attention = load_module("transformer_attention", attention);
+        const FILE: &str = "transformer_attention";
+        fn python() -> PyResult<(PythonData<3>, PythonData<3>, PythonData<3>, PythonData<3>)> {
+            Python::with_gil(|py| {
+                let module = py
+                    .import("segment_anything.modeling.transformer")?
+                    .getattr("Attention")?;
+                let module = module.call1((32, 8, 1))?;
+                module_to_file(FILE, py, &module)?;
 
-        // Forward
-        let q = random_tensor([1, 32, 32], 1);
-        let k = random_tensor([1, 32, 32], 2);
-        let v = random_tensor([1, 32, 32], 3);
-        let output = attention.forward(q.clone(), k.clone(), v.clone());
-        let file = Test::open("transformer_attention");
-        file.equal("q", q);
-        file.equal("k", k);
-        file.equal("v", v);
-        file.almost_equal("output", output, None);
+                let q = random_python_tensor(py, [1, 32, 32]);
+                let k = random_python_tensor(py, [1, 32, 32]);
+                let v = random_python_tensor(py, [1, 32, 32]);
+                let output = module.call1((q, k, v))?;
+                Ok((q.into(), k.into(), v.into(), output.into()))
+            })
+        }
+        let (q, k, v, python) = python().unwrap();
+        let mut attention = super::Attention::<TestBackend>::new(32, 8, Some(1));
+        attention = load_module(FILE, attention);
+
+        let output = attention.forward(q.into(), k.into(), v.into());
+        python.almost_equal(output, 5.);
     }
 }

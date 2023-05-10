@@ -89,8 +89,9 @@ mod test {
     fn test_position_embedding_pe_encoding() {
         fn python() -> PyResult<(PythonData<3>, PythonData<3>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
-                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = py
+                    .import("segment_anything.modeling.prompt_encoder")?
+                    .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
 
                 let input = random_python_tensor(py, [64, 69, 2]);
@@ -109,8 +110,9 @@ mod test {
     fn test_position_embedding_forward() {
         fn python() -> PyResult<PythonData<3>> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
-                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = py
+                    .import("segment_anything.modeling.prompt_encoder")?
+                    .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
 
                 let output = module.getattr("forward")?.call1(((64, 64),))?;
@@ -128,8 +130,9 @@ mod test {
     fn test_position_embedding_with_coords() {
         fn python() -> PyResult<(PythonData<3>, PythonData<3>)> {
             Python::with_gil(|py| {
-                let common_module = py.import("segment_anything.modeling.prompt_encoder")?;
-                let module = common_module.getattr("PositionEmbeddingRandom")?;
+                let module = py
+                    .import("segment_anything.modeling.prompt_encoder")?
+                    .getattr("PositionEmbeddingRandom")?;
                 let module = module.call1((128,))?;
                 let input = random_python_tensor(py, [64, 2, 2]);
                 let output = module
