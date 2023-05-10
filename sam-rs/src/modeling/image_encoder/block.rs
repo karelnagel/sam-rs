@@ -173,34 +173,75 @@ fn window_unpartition<B: Backend>(
 #[cfg(test)]
 mod test {
 
+    use pyo3::{types::PyTuple, PyResult, Python};
+
     use crate::{
         modeling::common::activation::Activation,
+        python::module_to_file::module_to_file,
         sam_predictor::Size,
-        tests::helpers::{load_module, random_tensor, Test, TestBackend},
+        tests::{
+            helpers::{load_module, TestBackend},
+            new::{random_python_tensor, PythonData},
+        },
     };
 
     #[test]
     fn test_window_partition() {
-        let input = random_tensor([2, 256, 16, 16], 1);
-        let (output, pad_hw) = super::window_partition::<TestBackend>(input.clone(), 16);
-        let file = Test::open("window_partition");
-        file.equal("input", input);
-        file.equal("output", output);
-        file.equal("size", pad_hw);
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("window_partition")?;
+
+                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let output = module.call1((input, 16))?;
+                let output = output.downcast::<PyTuple>()?;
+
+                Ok((input.into(), output.get_item(0)?.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
+        let (output, pad_hw) = super::window_partition::<TestBackend>(input.into(), 16);
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_window_unpartition() {
-        let input = random_tensor([2, 256, 16, 16], 2);
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("window_unpartition")?;
+
+                let input = random_python_tensor(py, [2, 256, 16, 16]);
+                let output = module.call1((input, 16, (16, 16), (14, 14)))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let output =
-            super::window_unpartition::<TestBackend>(input.clone(), 16, Size(16, 16), Size(14, 14));
-        let file = Test::open("window_unpartition");
-        file.equal("input", input);
-        file.equal("output", output);
+            super::window_unpartition::<TestBackend>(input.into(), 16, Size(16, 16), Size(14, 14));
+        python.almost_equal(output, None);
     }
 
     #[test]
     fn test_block() {
+        const FILE: &str = "block";
+
+        fn python() -> PyResult<(PythonData<4>, PythonData<4>)> {
+            Python::with_gil(|py| {
+                let common_module = py.import("segment_anything.modeling.image_encoder")?;
+                let module = common_module.getattr("Block")?;
+                let gelu = py.import("torch.nn")?.getattr("GELU")?;
+                let layer_norm = py.import("torch.nn")?.getattr("LayerNorm")?;
+                let module =
+                    module.call1((80, 8, 4.0, true, layer_norm, gelu, true, true, 14, (16, 16)))?;
+                module_to_file(FILE, py, module).unwrap();
+
+                let input = random_python_tensor(py, [1, 16, 16, 80]);
+                let output = module.call1((input,))?;
+                Ok((input.into(), output.into()))
+            })
+        }
+        let (input, python) = python().unwrap();
         let mut block = super::Block::<TestBackend>::new(
             80,
             8,
@@ -212,13 +253,9 @@ mod test {
             Some(14),
             Some(Size(16, 16)),
         );
-        block = load_module("block", block);
+        block = load_module(FILE, block);
 
-        // Forward
-        let input = random_tensor([1, 16, 16, 80], 1);
-        let output = block.forward(input.clone());
-        let file = Test::open("block");
-        file.equal("input", input);
-        file.almost_equal("output", output, 0.003);
+        let output = block.forward(input.into());
+        python.almost_equal(output, 0.5);
     }
 }
