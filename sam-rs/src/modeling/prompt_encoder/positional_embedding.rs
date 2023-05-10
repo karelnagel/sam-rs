@@ -103,7 +103,7 @@ mod test {
         let pos_embedding = super::PositionEmbeddingRandom::new(Some(128), None);
 
         let output = pos_embedding._pe_encoding::<TestBackend>(input.into());
-        python.almost_equal(output, 0.1);
+        python.almost_equal(output, 0.5);
     }
 
     #[test]

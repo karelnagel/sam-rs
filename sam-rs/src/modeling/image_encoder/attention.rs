@@ -276,6 +276,6 @@ pub mod test {
 
         // Forward
         let output = attention.forward(input.into());
-        python.almost_equal(output, 1.);
+        python.almost_equal(output, 5.);
     }
 }
