@@ -37,7 +37,7 @@ mod test {
             let image = cv2.call_method1("cvtColor", (image, cv2.getattr("COLOR_BGR2RGB")?))?;
 
             //Setting image
-            let sam = get_python_sam(&py, version, checkpoint)?;
+            let sam = get_python_sam(&py, version, Some(checkpoint))?;
             let predictor = py
                 .import("segment_anything.predictor")?
                 .call_method1("SamPredictor", (sam,))?;

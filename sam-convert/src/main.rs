@@ -1,4 +1,5 @@
 use std::{env, time::Instant};
+mod recorder;
 
 use burn::{
     module::Module,
@@ -13,7 +14,22 @@ use sam_rs::{
 
 fn python(variant: SamVersion, file: &str) -> PyResult<()> {
     Python::with_gil(|py| {
-        let sam = get_python_sam(&py, variant, file)?;
+        // if test then won't load the weights.
+        let sam = get_python_sam(
+            &py,
+            variant,
+            match variant {
+                SamVersion::Test => None,
+                _ => Some(file),
+            },
+        )?;
+
+        // Saves the module to pth, in test version.
+        if variant == SamVersion::Test {
+            py.import("torch")?
+                .call_method1("save", (sam, format!("{file}.pth")))?;
+        }
+
         module_to_file(file, py, sam)?;
         Ok(())
     })

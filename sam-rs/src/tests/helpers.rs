@@ -23,19 +23,28 @@ pub fn get_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'a str>>>(
     sam
 }
 
-pub fn get_python_sam<'a, 'b, T: Into<Option<SamVersion>>, C: Into<Option<&'b str>>>(
+pub fn get_python_sam<'a>(
     py: &'a Python,
-    version: T,
-    checkpoint: C,
+    version: SamVersion,
+    checkpoint: Option<&str>,
 ) -> PyResult<&'a PyAny> {
-    let version = version.into().unwrap_or(TEST_SAM);
-    let checkpoint = checkpoint.into().unwrap_or(TEST_CHECKPOINT);
-    let module = py
+    let mut module = py
         .import("segment_anything.build_sam")?
         .getattr("sam_model_registry")?
         .get_item(version.to_str())?;
-    let module = module.call1((format!("{}.pth", checkpoint),))?;
+
+    match checkpoint {
+        Some(checkpoint) => {
+            let name = format!("{}.pth", checkpoint);
+            module = module.call1((name,))?;
+        }
+        None => module = module.call0()?,
+    }
+
     Ok(module)
+}
+pub fn get_python_test_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
+    get_python_sam(&py, TEST_SAM, Some(TEST_CHECKPOINT))
 }
 
 pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
@@ -43,7 +52,7 @@ pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
     let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
-    let record = recorder.load(path).unwrap();
+    let record: <D as Module<B>>::Record = recorder.load(path).unwrap();
     module.load_record(record)
 }
 

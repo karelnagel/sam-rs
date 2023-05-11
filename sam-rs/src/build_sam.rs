@@ -13,7 +13,7 @@ use crate::{
     sam::Sam,
     sam_predictor::Size,
 };
-#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 pub enum SamVersion {
     VitH,
     VitL,
