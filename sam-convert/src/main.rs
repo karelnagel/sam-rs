@@ -8,17 +8,12 @@ use pyo3::prelude::*;
 use sam_rs::{
     build_sam::SamVersion,
     python::module_to_file::module_to_file,
-    tests::helpers::{load_module, TestBackend},
+    tests::helpers::{get_python_sam, load_module, TestBackend},
 };
 
-fn python(variant: &str, file: &str) -> PyResult<()> {
+fn python(variant: SamVersion, file: &str) -> PyResult<()> {
     Python::with_gil(|py| {
-        let sam_model_registry = py
-            .import("segment_anything.build_sam")?
-            .getattr("sam_model_registry")?;
-        let sam = sam_model_registry
-            .get_item(variant)?
-            .call1((file.to_string() + ".pth",))?;
+        let sam = get_python_sam(&py, variant, file)?;
         module_to_file(file, py, sam)?;
         Ok(())
     })
@@ -28,20 +23,19 @@ fn main() {
     if args.len() < 3 {
         panic!("Usage: sam-convert <type> <file>");
     }
-    let variant = args[1].as_str();
+    let version = SamVersion::from_str(args[1].as_str());
     let file = args[2].as_str();
     let skip_python = args.len() == 4;
 
-    let sam = SamVersion::from_str(variant);
     let start = Instant::now();
     match skip_python {
         true => println!("Skipping python..."),
         false => {
-            python(variant, file).unwrap();
+            python(version, file).unwrap();
             println!("Python time: {:?}", start.elapsed());
         }
     }
-    convert_sam(sam, file);
+    convert_sam(version, file);
     println!("Rust time: {:?}", start.elapsed());
 }
 

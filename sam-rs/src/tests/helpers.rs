@@ -23,7 +23,7 @@ pub fn get_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'a str>>>(
     sam
 }
 
-pub fn get_python_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'static str>>>(
+pub fn get_python_sam<'a, 'b, T: Into<Option<SamVersion>>, C: Into<Option<&'b str>>>(
     py: &'a Python,
     version: T,
     checkpoint: C,
