@@ -1,4 +1,8 @@
-use std::{env, time::Instant};
+use std::{
+    borrow::{Borrow, BorrowMut},
+    env,
+    time::Instant,
+};
 mod recorder;
 mod update_tensor;
 use burn::{
@@ -49,15 +53,15 @@ fn main() {
         println!("Python time: {:?}", start.elapsed());
 
         println!("Loading module in rust...");
-        sam = load_sam(sam, map);
-
-        println!("Saving module in rust...");
-        let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
-        recorder.record(sam.into_record(), file.into()).unwrap();
-
-        println!("Rust time: {:?}", start.elapsed());
+        sam = load_sam(sam.clone(), map);
 
         Ok(())
     });
+    println!("Saving module in rust...");
+    let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
+    recorder.record(sam.into_record(), file.into()).unwrap();
+
+    println!("Rust time: {:?}", start.elapsed());
+
     res.unwrap();
 }

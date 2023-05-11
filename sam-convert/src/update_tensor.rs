@@ -2022,7 +2022,1407 @@ pub fn update_tensor<B: Backend>(sam: &mut SamRecord<B>, key: &str, value: &PyAn
                 key,
             )
         }
-        _ => panic!("key not found: {}", key),
-        // _ => _print_match_key(&key),
+        "image_encoder.blocks[14].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[14].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[29].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[15].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[16].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[12].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[22].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[30].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[27].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[29].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[13].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[31].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[21].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[31].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[13].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[12].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[15].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].norm1.beta" => set_value(
+            sam.image_encoder.blocks[19].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[28].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].norm1.beta" => set_value(
+            sam.image_encoder.blocks[24].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[24].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[22].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[30].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[17].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[18].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[26].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[25].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[21].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[22].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[27].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[15].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[28].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[24].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[26].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[16].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[17].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].norm2.beta" => set_value(
+            sam.image_encoder.blocks[14].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[28].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[16].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[14].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[22].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[26].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[14].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[13].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[14].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[16].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[26].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[31].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[28].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[23].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[24].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[30].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].norm2.beta" => set_value(
+            sam.image_encoder.blocks[25].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[18].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[31].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[22].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[30].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[12].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[15].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[12].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[14].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[17].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[19].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[19].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[20].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].norm1.beta" => set_value(
+            sam.image_encoder.blocks[25].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[21].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[17].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[28].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[30].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].norm1.beta" => set_value(
+            sam.image_encoder.blocks[21].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[27].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[22].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[28].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[30].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[17].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[15].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[19].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[21].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[21].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[22].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[31].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[23].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[23].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[16].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[25].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[29].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[24].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[21].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].norm2.beta" => set_value(
+            sam.image_encoder.blocks[15].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[25].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[13].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].norm2.beta" => set_value(
+            sam.image_encoder.blocks[31].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[26].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[30].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[24].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[29].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[24].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[23].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[24].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[15].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[22].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[30].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[31].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].norm2.beta" => set_value(
+            sam.image_encoder.blocks[17].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[23].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[27].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[26].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].norm2.beta" => set_value(
+            sam.image_encoder.blocks[24].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[25].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[24].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[23].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[21].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].norm2.beta" => set_value(
+            sam.image_encoder.blocks[23].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[13].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[14].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[22].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[23].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[29].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[18].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[16].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].norm1.beta" => set_value(
+            sam.image_encoder.blocks[28].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[14].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[27].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].norm2.beta" => set_value(
+            sam.image_encoder.blocks[28].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[19].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[25].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[12].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[20].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[18].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[20].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[26].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[17].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[20].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[14].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[21].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].norm1.beta" => set_value(
+            sam.image_encoder.blocks[15].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[18].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[27].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].norm2.beta" => set_value(
+            sam.image_encoder.blocks[30].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[13].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].norm1.beta" => set_value(
+            sam.image_encoder.blocks[20].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[15].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[25].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[30].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[31].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[12].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[18].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[15].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[19].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[29].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].norm2.beta" => set_value(
+            sam.image_encoder.blocks[26].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[25].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[30].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[12].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[13].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[27].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[30].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[17].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[20].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[16].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[24].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].norm1.beta" => set_value(
+            sam.image_encoder.blocks[16].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[13].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[19].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[19].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].norm2.beta" => set_value(
+            sam.image_encoder.blocks[16].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[16].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[16].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].norm2.beta" => set_value(
+            sam.image_encoder.blocks[22].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].norm1.beta" => set_value(
+            sam.image_encoder.blocks[18].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].norm1.beta" => set_value(
+            sam.image_encoder.blocks[23].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[14].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[29].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[24].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[13].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[28].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[12].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[18].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[25].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[12].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].norm2.beta" => set_value(
+            sam.image_encoder.blocks[21].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[20].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].norm2.beta" => set_value(
+            sam.image_encoder.blocks[27].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[23].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].norm1.beta" => set_value(
+            sam.image_encoder.blocks[22].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[19].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[28].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[13].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[17].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[18].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[27].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[25].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].norm2.beta" => set_value(
+            sam.image_encoder.blocks[19].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].norm1.beta" => set_value(
+            sam.image_encoder.blocks[17].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[19].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[20].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[29].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].norm1.beta" => set_value(
+            sam.image_encoder.blocks[13].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[16].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[28].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[12].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[20].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[12].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[31].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[18].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].norm1.beta" => set_value(
+            sam.image_encoder.blocks[12].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[21].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[18].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[27].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[30].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[12].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[24].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[29].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[16].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[21].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].norm1.beta" => set_value(
+            sam.image_encoder.blocks[14].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[15].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[20].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[14].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[16].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[16].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[31].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[28].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[14].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[17].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].norm2.beta" => set_value(
+            sam.image_encoder.blocks[18].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[13].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[13].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[20].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[12].norm2.beta" => set_value(
+            sam.image_encoder.blocks[12].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[20].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].norm1.beta" => set_value(
+            sam.image_encoder.blocks[26].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[19].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[17].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[18].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[27].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[17].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[30].norm1.beta" => set_value(
+            sam.image_encoder.blocks[30].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[27].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[13].norm2.beta" => set_value(
+            sam.image_encoder.blocks[13].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[25].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[22].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[19].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].norm2.beta" => set_value(
+            sam.image_encoder.blocks[20].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[22].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].mlp.lin1.weight" => set_value(
+            sam.image_encoder.blocks[27].mlp.lin1.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[17].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[17].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[20].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[20].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[25].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[26].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[26].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].attn.proj.bias" => set_value_opt(
+            sam.image_encoder.blocks[15].attn.proj.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[15].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].norm1.beta" => set_value(
+            sam.image_encoder.blocks[31].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[31].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[31].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[26].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[15].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[15].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[26].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[26].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[26].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[22].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[22].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[23].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[23].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].mlp.lin2.weight" => set_value(
+            sam.image_encoder.blocks[23].mlp.lin2.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[24].attn.rel_pos_h" => set_value_opt(
+            sam.image_encoder.blocks[24].attn.rel_pos_h.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[29].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[31].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[31].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[29].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].norm1.gamma" => set_value(
+            sam.image_encoder.blocks[28].norm1.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[28].attn.rel_pos_w" => set_value_opt(
+            sam.image_encoder.blocks[28].attn.rel_pos_w.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].attn.proj.weight" => set_value(
+            sam.image_encoder.blocks[21].attn.proj.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].norm2.beta" => set_value(
+            sam.image_encoder.blocks[29].norm2.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[14].norm2.gamma" => set_value(
+            sam.image_encoder.blocks[14].norm2.gamma.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[27].norm1.beta" => set_value(
+            sam.image_encoder.blocks[27].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].norm1.beta" => set_value(
+            sam.image_encoder.blocks[29].norm1.beta.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[29].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[29].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[21].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[21].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[19].attn.qkv.bias" => set_value_opt(
+            sam.image_encoder.blocks[19].attn.qkv.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[23].mlp.lin1.bias" => set_value_opt(
+            sam.image_encoder.blocks[23].mlp.lin1.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[25].mlp.lin2.bias" => set_value_opt(
+            sam.image_encoder.blocks[25].mlp.lin2.bias.borrow_mut(),
+            value,
+            key,
+        ),
+        "image_encoder.blocks[18].attn.qkv.weight" => set_value(
+            sam.image_encoder.blocks[18].attn.qkv.weight.borrow_mut(),
+            value,
+            key,
+        ),
+        // _ => panic!("key not found: {}", key),
+        _ => _print_match_key(&key),
     }
 }
