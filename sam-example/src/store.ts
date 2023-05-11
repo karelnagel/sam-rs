@@ -5,10 +5,10 @@ import { open } from "@tauri-apps/api/dialog";
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 export const SamVersions = {
-  SamVitH: "Vit H",
-  SamVitL: "Vit L",
-  SamVitB: "Vit B",
-  SamTest: "Test version",
+  VitH: "Vit H",
+  VitL: "Vit L",
+  VitB: "Vit B",
+  Test: "Test version",
 };
 export function convertTo3DArray(slice: boolean[], shape: number[]): boolean[][][] {
   const [depth, height, width] = shape;
@@ -60,7 +60,7 @@ export const useStore = create(
   persist<StoreType>(
     (set, get) => ({
       setMasks: (masks) => set({ masks }),
-      version: "SamVitH",
+      version: "VitH",
       setVersion: (version) => set({ version }),
       setModel: async () => {
         let model = await open({

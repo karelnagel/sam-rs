@@ -52,7 +52,7 @@ pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
     let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
-    let record: <D as Module<B>>::Record = recorder.load(path).unwrap();
+    let record = recorder.load(path).unwrap();
     module.load_record(record)
 }
 

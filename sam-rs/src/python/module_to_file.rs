@@ -80,6 +80,7 @@ def module_to_file(file_name: str, model: nn.Module):
     data = {}
     params = model.named_parameters()
     for name, param in params:
+        print(name)
         for item in transposed:
             if item in name and len(param.shape) == 2:
                 param = param.transpose(0, 1)

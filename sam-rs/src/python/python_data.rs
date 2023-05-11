@@ -112,6 +112,17 @@ where
     }
 }
 
+pub fn pyany_to_tensor<'a, B: Backend, const D: usize, K: TensorKind<B> + BasicOps<B>>(
+    data: &'a PyAny,
+) -> Tensor<B, D, K>
+where
+    <K as BasicOps<B>>::Elem: ElementConversion,
+{
+    let data: PythonData<D> = data.try_into().unwrap();
+    let tensor: Tensor<B, D, K> = data.try_into().unwrap();
+    tensor
+}
+
 impl<B: Backend, const D: usize, T: PythonDataKind, K: TensorKind<B> + BasicOps<B>>
     From<PythonData<D, T>> for Tensor<B, D, K>
 where

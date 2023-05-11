@@ -72,8 +72,10 @@ fn start_model(state: tauri::State<State>, window: Window, model: String, versio
                             None,
                             true,
                         );
-                        // let (slice, shape) = masks.to_slice();
-                        // window.emit("masks", (slice, shape)).unwrap();
+                        let shape = masks.dims();
+                        let slice: Vec<bool> = masks.to_data().value.into_iter().collect();
+
+                        window.emit("masks", (slice, shape)).unwrap();
                         println!("Point predicted!");
                     }
                 },
