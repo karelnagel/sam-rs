@@ -3425,6 +3425,7 @@ dependencies = [
  "ndarray",
  "opencv",
  "pyo3",
+ "regex",
  "serde",
  "serde_json",
  "simd-json",

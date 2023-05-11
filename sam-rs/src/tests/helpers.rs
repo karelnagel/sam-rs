@@ -46,7 +46,7 @@ pub fn get_python_sam<'a>(
 }
 
 pub fn get_python_test_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
-    get_python_sam(&py, TEST_SAM, Some(TEST_CHECKPOINT))
+    get_python_sam(&py, TEST_SAM, None)
 }
 
 pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {

@@ -11,6 +11,7 @@ mod test {
     use crate::burn_helpers::TensorHelpers;
     use crate::helpers::load_image;
     use crate::python::python_data::PythonData;
+    use crate::python::recorder::load_module_from_python;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
     use crate::tests::helpers::{get_python_sam, get_sam, TestBackend};
 
@@ -18,8 +19,8 @@ mod test {
     #[test]
     fn test_prediction() {
         let image_path = "../images/dog.jpg";
-        let version = SamVersion::Test;
-        let checkpoint = "../sam-convert/sam_test";
+        let version = SamVersion::VitB;
+        let checkpoint = Some("../sam-convert/sam_vit_b_01ec64");
         let inputs = vec![170, 375];
         let labels = vec![1];
 
@@ -37,7 +38,7 @@ mod test {
             let image = cv2.call_method1("cvtColor", (image, cv2.getattr("COLOR_BGR2RGB")?))?;
 
             //Setting image
-            let sam = get_python_sam(&py, version, Some(checkpoint))?;
+            let sam = get_python_sam(&py, version, checkpoint)?;
             let predictor = py
                 .import("segment_anything.predictor")?
                 .call_method1("SamPredictor", (sam,))?;
@@ -72,7 +73,7 @@ mod test {
             ))
         });
         let (image, _masks, scores, logits, mask_values) = python.unwrap();
-        let sam = get_sam::<TestBackend>(version, Some(checkpoint));
+        let sam = get_sam::<TestBackend>(version, checkpoint);
         let mut predictor = SamPredictor::new(sam);
 
         // Loading image
@@ -91,6 +92,6 @@ mod test {
         image.almost_equal(image2, 5.);
         scores.almost_equal(scores2, 5.);
         logits.almost_equal(logits2, 5.);
-        mask_values.almost_equal(mask_values2, 5.);
+        mask_values.almost_equal(mask_values2, None);
     }
 }
