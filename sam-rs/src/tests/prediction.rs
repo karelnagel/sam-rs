@@ -12,7 +12,7 @@ mod test {
     use crate::helpers::load_image;
     use crate::python::python_data::PythonData;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
-    use crate::tests::helpers::{get_python_sam, get_sam};
+    use crate::tests::helpers::{get_python_sam, get_sam, TestBackend};
 
     #[ignore]
     #[test]
@@ -72,7 +72,7 @@ mod test {
             ))
         });
         let (image, _masks, scores, logits, mask_values) = python.unwrap();
-        let sam = get_sam(version, checkpoint);
+        let sam = get_sam::<TestBackend>(version, Some(checkpoint));
         let mut predictor = SamPredictor::new(sam);
 
         // Loading image

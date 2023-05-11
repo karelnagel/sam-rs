@@ -218,7 +218,7 @@ mod test {
 
     use crate::{
         python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
-        tests::helpers::{get_python_test_sam, get_sam},
+        tests::helpers::{get_python_test_sam, get_test_sam},
     };
 
     use super::Input;
@@ -261,7 +261,7 @@ mod test {
             ))
         });
         let (image, boxes, _masks, mask_values, iou_predictions, low_res_logits) = python.unwrap();
-        let mut sam = get_sam(None, None);
+        let mut sam = get_test_sam();
         let input = Input {
             image: image.into(),
             boxes: Some(boxes.into()),
@@ -320,7 +320,7 @@ mod test {
         let (image, points, labels, _masks, mask_values, iou_predictions, low_res_logits) =
             python.unwrap();
 
-        let mut sam = get_sam(None, None);
+        let mut sam = get_test_sam();
         let input = Input {
             image: image.into(),
             boxes: None,
@@ -347,7 +347,7 @@ mod test {
             Ok((masks.try_into()?, output.try_into()?))
         });
         let (masks, python) = python.unwrap();
-        let sam = get_sam(None, None);
+        let sam = get_test_sam();
 
         let output = sam.postprocess_masks(masks.into(), input_size.into(), original.into());
         python.almost_equal(output, 2.);
@@ -361,7 +361,7 @@ mod test {
             Ok((input.try_into()?, output.try_into()?))
         });
         let (input, python) = python.unwrap();
-        let sam = get_sam(None, None);
+        let sam = get_test_sam();
         let output = sam.preprocess(input.into());
         python.almost_equal(output, None);
     }

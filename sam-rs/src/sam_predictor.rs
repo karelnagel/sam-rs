@@ -277,12 +277,12 @@ mod test {
 
     use crate::{
         python::python_data::{random_python_tensor, random_python_tensor_int, PythonData},
-        tests::helpers::{get_python_test_sam, get_sam, TestBackend},
+        tests::helpers::{get_python_test_sam, get_test_sam, TestBackend},
     };
 
     use super::{SamPredictor, Size};
     fn init(image: Option<Tensor<TestBackend, 3, Int>>) -> SamPredictor<TestBackend> {
-        let sam = get_sam(None, None);
+        let sam = get_test_sam();
         let mut predictor = SamPredictor::new(sam);
         if let Some(image) = image {
             predictor.set_image(image, super::ImageFormat::RGB);

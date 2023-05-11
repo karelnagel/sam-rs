@@ -13,14 +13,15 @@ pub type TestBackend = TchBackend<f64>;
 pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_test";
 pub const TEST_SAM: SamVersion = SamVersion::Test;
 
-pub fn get_sam<'a, T: Into<Option<SamVersion>>, C: Into<Option<&'a str>>>(
-    version: T,
-    checkpoint: C,
-) -> Sam<TestBackend> {
-    let version = version.into().unwrap_or(TEST_SAM);
-    let checkpoint = checkpoint.into().unwrap_or(TEST_CHECKPOINT);
-    let sam = version.build::<TestBackend>(Some(checkpoint));
+pub fn get_sam<B: Backend>(version: SamVersion, checkpoint: Option<&str>) -> Sam<B>
+where
+    <B as burn::tensor::backend::Backend>::FloatElem: From<f32>,
+{
+    let sam = version.build::<B>(checkpoint);
     sam
+}
+pub fn get_test_sam() -> Sam<TestBackend> {
+    get_sam(TEST_SAM, Some(TEST_CHECKPOINT))
 }
 
 pub fn get_python_sam<'a>(
@@ -43,6 +44,7 @@ pub fn get_python_sam<'a>(
 
     Ok(module)
 }
+
 pub fn get_python_test_sam<'a>(py: &'a Python) -> PyResult<&'a PyAny> {
     get_python_sam(&py, TEST_SAM, Some(TEST_CHECKPOINT))
 }
