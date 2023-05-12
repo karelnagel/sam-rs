@@ -11,7 +11,6 @@ mod test {
     use crate::burn_helpers::TensorHelpers;
     use crate::helpers::load_image;
     use crate::python::python_data::PythonData;
-    use crate::python::recorder::load_module_from_python;
     use crate::sam_predictor::{ImageFormat, SamPredictor};
     use crate::tests::helpers::{get_python_sam, get_sam, TestBackend};
 
