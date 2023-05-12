@@ -1,11 +1,43 @@
 use std::collections::HashMap;
 
+use crate::{build_sam::SamVersion, sam::Sam, tests::helpers::get_python_sam};
 use burn::{module::Module, tensor::backend::Backend};
-use pyo3::{types::PyTuple, PyAny, PyResult};
+use pyo3::{types::PyTuple, PyAny, PyResult, Python};
 use regex::Regex;
-use sam_rs::sam::Sam;
 
-use crate::update_tensor::update_tensor;
+use super::update_tensor::update_tensor;
+
+pub fn load_module_from_python<B: Backend>(
+    sam: Sam<B>,
+    version: SamVersion,
+    file: &str,
+) -> PyResult<Sam<B>> {
+    Python::with_gil(|py| {
+        // if test then won't load the weights.
+        let python_sam = get_python_sam(
+            &py,
+            version,
+            match version {
+                SamVersion::Test => None,
+                _ => Some(file),
+            },
+        )?;
+
+        // Saves the module to pth, in test version.
+        if version == SamVersion::Test {
+            py.import("torch")?
+                .call_method1("save", (python_sam, format!("{file}.pth")))?;
+        }
+
+        let map = get_python_map(python_sam).unwrap();
+        println!("Python done");
+
+        println!("Loading module in rust...");
+
+        Ok(load_sam(sam.clone(), map))
+    })
+}
+
 fn key_replacer(key: String) -> String {
     // Replacing "neck.1.", "output_upscaling.1.", "mask_downscaling.1." with neck1.
     let re = Regex::new(r"(neck|output_upscaling|mask_downscaling)\.(\d+)\.").unwrap();

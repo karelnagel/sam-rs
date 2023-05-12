@@ -1,11 +1,11 @@
 use std::borrow::BorrowMut;
 
+use crate::{python::python_data::pyany_to_tensor, sam::SamRecord};
 use burn::{
     module::Param,
     tensor::{backend::Backend, Tensor},
 };
 use pyo3::PyAny;
-use sam_rs::{python::python_data::pyany_to_tensor, sam::SamRecord};
 
 pub fn _print_match_key(key: &str) {
     match key.contains("bias") || key.contains("rel_pos_h") || key.contains("rel_pos_w") {
@@ -3422,7 +3422,7 @@ pub fn update_tensor<B: Backend>(sam: &mut SamRecord<B>, key: &str, value: &PyAn
             value,
             key,
         ),
-        // _ => panic!("key not found: {}", key),
-        _ => _print_match_key(&key),
+        _ => panic!("key not found: {}", key),
+        // _ => _print_match_key(&key),
     }
 }
