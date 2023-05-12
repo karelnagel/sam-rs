@@ -3422,7 +3422,7 @@ pub fn update_tensor<B: Backend>(sam: &mut SamRecord<B>, key: &str, value: &PyAn
             value,
             key,
         ),
-        // _ => panic!("key not found: {}", key),
-        _ => _print_match_key(&key),
+        _ => panic!("key not found: {}", key),
+        // _ => _print_match_key(&key),
     }
 }

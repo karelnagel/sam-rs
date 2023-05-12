@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub trait PythonDataKind: std::fmt::Debug + PartialEq + Clone + Element + Sized + Copy {}
-impl PythonDataKind for f32 {}
+impl PythonDataKind for f64 {}
 impl PythonDataKind for i64 {}
 pub fn random_python_tensor<const D: usize>(py: Python, shape: [usize; D]) -> PyResult<&PyAny> {
     let torch = py.import("torch")?;
@@ -20,7 +20,7 @@ pub fn random_python_tensor_int<const D: usize>(py: Python, shape: [usize; D]) -
     Ok(tensor)
 }
 #[derive(PartialEq, Clone)]
-pub struct PythonData<const D: usize, T: PythonDataKind = f32> {
+pub struct PythonData<const D: usize, T: PythonDataKind = f64> {
     pub slice: Vec<T>,
     pub shape: [usize; D],
 }
