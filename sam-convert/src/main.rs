@@ -1,6 +1,6 @@
 use burn::{
     module::Module,
-    record::{BinGzFileRecorder, DoublePrecisionSettings, Recorder},
+    record::{BinGzFileRecorder, Recorder, FullPrecisionSettings},
 };
 use sam_rs::{
     build_sam::SamVersion, python::recorder::load_module_from_python, tests::helpers::TestBackend,
@@ -23,7 +23,7 @@ fn main() {
     sam = load_module_from_python(sam, version, file).unwrap();
 
     println!("Saving module in rust...");
-    let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
+    let recorder = BinGzFileRecorder::<FullPrecisionSettings>::default();
     recorder.record(sam.into_record(), file.into()).unwrap();
 
     println!("Rust time: {:?}", start.elapsed());

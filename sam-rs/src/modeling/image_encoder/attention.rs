@@ -10,7 +10,7 @@ use crate::{burn_helpers::TensorHelpers, sam_predictor::Size};
 #[derive(Debug, Module)]
 pub struct Attention<B: Backend> {
     num_heads: usize,
-    scale: f64,
+    scale: f32,
     pub qkv: Linear<B>,
     pub proj: Linear<B>,
     use_rel_pos: bool,
@@ -40,7 +40,7 @@ impl<B: Backend> Attention<B> {
         let _rel_pos_zero_init = _rel_pos_zero_init.unwrap_or(true);
 
         let head_dim = dim / num_heads;
-        let scale = (head_dim as f64).powf(-0.5);
+        let scale = (head_dim as f32).powf(-0.5);
         let qkv = LinearConfig::new(dim, 3 * dim).with_bias(qkv_bias).init();
         let proj = LinearConfig::new(dim, dim).init();
         let mut rel_pos_h = None;
@@ -163,13 +163,13 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
     }
     let q_coords = Tensor::arange(0..q_size)
         .unsqueeze()
-        .mul_scalar((k_size as f64 / q_size as f64).max(1.0))
+        .mul_scalar((k_size as f32 / q_size as f32).max(1.0))
         .permute([1, 0]);
     let k_coords = Tensor::arange(0..k_size)
         .unsqueeze()
-        .mul_scalar((q_size as f64 / k_size as f64).max(1.0));
+        .mul_scalar((q_size as f32 / k_size as f32).max(1.0));
     let relative_coords =
-        (q_coords - k_coords) + (k_size as f64 - 1.) * (q_size as f64 / k_size as f64).max(1.0);
+        (q_coords - k_coords) + (k_size as f32 - 1.) * (q_size as f32 / k_size as f32).max(1.0);
     let idk = rel_pos_resized.index_tch(vec![relative_coords]); // Todo 40 out of range
     idk
 }

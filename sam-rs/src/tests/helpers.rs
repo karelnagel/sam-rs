@@ -1,6 +1,6 @@
 use burn::{
     module::Module,
-    record::{DoublePrecisionSettings, PrettyJsonFileRecorderSIMD, Recorder},
+    record::{FullPrecisionSettings, PrettyJsonFileRecorderSIMD, Recorder},
     tensor::backend::Backend,
 };
 use burn_tch::TchBackend;
@@ -9,7 +9,7 @@ use pyo3::{PyAny, PyResult, Python};
 use crate::{build_sam::SamVersion, sam::Sam};
 
 pub const TEST_ALMOST_THRESHOLD: f32 = 0.01;
-pub type TestBackend = TchBackend<f64>;
+pub type TestBackend = TchBackend<f32>;
 pub const TEST_CHECKPOINT: &str = "../sam-convert/sam_test";
 pub const TEST_SAM: SamVersion = SamVersion::Test;
 
@@ -53,13 +53,13 @@ pub fn load_module<B: Backend, D: Module<B>>(name: &str, module: D) -> D {
     let home = home::home_dir().unwrap();
     let path = home.join(format!("Documents/sam-models/{}.json", name));
     dbg!(&path);
-    let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
+    let recorder = PrettyJsonFileRecorderSIMD::<FullPrecisionSettings>::default();
     let record = recorder.load(path).unwrap();
     module.load_record(record)
 }
 
 pub fn save_module<B: Backend, M: Module<B>>(module: &M) {
-    let recorder = PrettyJsonFileRecorderSIMD::<DoublePrecisionSettings>::default();
+    let recorder = PrettyJsonFileRecorderSIMD::<FullPrecisionSettings>::default();
     recorder
         .record(module.clone().into_record(), "test.json".into())
         .unwrap();

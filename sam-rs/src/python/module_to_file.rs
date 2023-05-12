@@ -120,11 +120,11 @@ def module_to_file(file_name: str, model: nn.Module):
 
     json_data = {
         "metadata": {
-            "float": "f64",
-            "int": "i64",
-            "format": "burn_core::record::file::PrettyJsonFileRecorderSIMD<burn_core::record::settings::DoublePrecisionSettings>",
-            "version": "0.7.0",
-            "settings": "DoublePrecisionSettings",
+            "float": "f32",
+            "int": "f32",
+            "format": "burn_core::record::file::PrettyJsonFileRecorderSIMD<burn_core::record::settings::FullPrecisionSettings>",
+            "version": "0.8.0",
+            "settings": "FullPrecisionSettings"
         },
         "item": {**ignored, **data},
     }

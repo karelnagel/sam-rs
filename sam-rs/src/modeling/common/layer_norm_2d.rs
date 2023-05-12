@@ -10,10 +10,10 @@ use burn::{
 pub struct LayerNorm2d<B: Backend> {
     weight: Param<Tensor<B, 1>>,
     bias: Param<Tensor<B, 1>>,
-    eps: f64,
+    eps: f32,
 }
 impl<B: Backend> LayerNorm2d<B> {
-    pub fn new(num_channels: usize, eps: Option<f64>) -> Self {
+    pub fn new(num_channels: usize, eps: Option<f32>) -> Self {
         let eps = eps.unwrap_or(1e-6);
         let weight = Tensor::ones([num_channels]);
         let bias = Tensor::zeros([num_channels]);

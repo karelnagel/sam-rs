@@ -51,8 +51,8 @@ impl PositionEmbeddingRandom {
         let grid = Tensor::ones([h, w]);
         let mut y_embed = grid.cumsum(0) - 0.5;
         let mut x_embed = grid.cumsum(1) - 0.5;
-        y_embed = y_embed / h as f64;
-        x_embed = x_embed / w as f64;
+        y_embed = y_embed / h as f32;
+        x_embed = x_embed / w as f32;
         let pe: Tensor<B, 3> = self._pe_encoding(Tensor::stack(vec![x_embed, y_embed], 2));
         pe.permute([2, 0, 1])
     }
@@ -67,10 +67,10 @@ impl PositionEmbeddingRandom {
         let coords = Tensor::of_slice(slice, shape); // Deep copy
         coords
             .narrow(2, 0, 1)
-            .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f64));
+            .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f32));
         coords
             .narrow(2, 1, 1)
-            .copy_(coords.narrow(2, 1, 1).div_scalar(image_size.0 as f64));
+            .copy_(coords.narrow(2, 1, 1).div_scalar(image_size.0 as f32));
         self._pe_encoding(coords)
     }
 }

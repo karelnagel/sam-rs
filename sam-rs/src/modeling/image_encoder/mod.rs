@@ -48,7 +48,7 @@ impl<B: Backend> ImageEncoderViT<B> {
         embed_dim: Option<usize>,
         depth: Option<usize>,
         num_heads: Option<usize>,
-        mlp_ratio: Option<f64>,
+        mlp_ratio: Option<f32>,
         out_chans: Option<usize>,
         qkv_bias: Option<bool>,
         act_layer: Activation,

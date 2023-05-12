@@ -38,7 +38,7 @@ impl<B: Backend> Block<B> {
     pub fn new(
         dim: usize,
         num_heads: usize,
-        mlp_ratio: Option<f64>,
+        mlp_ratio: Option<f32>,
         qkv_bias: Option<bool>,
         act_layer: Activation,
         use_rel_pos: Option<bool>,
@@ -67,7 +67,7 @@ impl<B: Backend> Block<B> {
         );
         let norm2 = LayerNormConfig::new(dim).init();
 
-        let mlp = MLPBlock::new(dim, (dim as f64 * mlp_ratio) as usize, act_layer);
+        let mlp = MLPBlock::new(dim, (dim as f32 * mlp_ratio) as usize, act_layer);
         Self {
             norm1: norm1.into(),
             attn: attn.into(),

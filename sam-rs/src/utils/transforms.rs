@@ -44,8 +44,8 @@ impl ResizeLongestSide {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
         let coords = coords.clone().to_float();
-        let coords_0 = coords.narrow(D - 1, 0, 1) * (new_w as f64 / old_w as f64);
-        let coords_1 = coords.narrow(D - 1, 1, 1) * (new_h as f64 / old_h as f64);
+        let coords_0 = coords.narrow(D - 1, 0, 1) * (new_w as f32 / old_w as f32);
+        let coords_1 = coords.narrow(D - 1, 1, 1) * (new_h as f32 / old_h as f32);
         Tensor::cat(vec![coords_0, coords_1], D - 1)
     }
 
@@ -104,9 +104,9 @@ impl ResizeLongestSide {
 
     // Compute the output size given input size and target long side length.
     pub fn get_preprocess_shape(&self, oldh: usize, oldw: usize, long_side_length: usize) -> Size {
-        let scale = long_side_length as f64 / oldh.max(oldw) as f64;
-        let newh = (oldh as f64 * scale) + 0.5;
-        let neww = (oldw as f64 * scale) + 0.5;
+        let scale = long_side_length as f32 / oldh.max(oldw) as f32;
+        let newh = (oldh as f32 * scale) + 0.5;
+        let neww = (oldw as f32 * scale) + 0.5;
         Size(newh as usize, neww as usize)
     }
 }

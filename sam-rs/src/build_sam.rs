@@ -1,6 +1,6 @@
 use burn::{
     module::Module,
-    record::{BinGzFileRecorder, DoublePrecisionSettings, Recorder},
+    record::{BinGzFileRecorder, FullPrecisionSettings, Recorder},
     tensor::backend::Backend,
 };
 use serde::{Deserialize, Serialize};
@@ -128,7 +128,7 @@ where
         Some([58.395, 57.12, 57.375]),
     );
     if let Some(checkpoint) = _checkpoint {
-        let recorder = BinGzFileRecorder::<DoublePrecisionSettings>::default();
+        let recorder = BinGzFileRecorder::<FullPrecisionSettings>::default();
         let record = recorder.load(checkpoint.into()).unwrap();
         sam = sam.load_record(record);
     }

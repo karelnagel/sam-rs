@@ -61,7 +61,7 @@ impl<B: Backend> Attention<B> {
         let c_per_head = q.dims()[3];
         let mut attn = q.matmul(k.permute([0, 1, 3, 2]));
         // let mut attn = q.matmul(&k.transpose(2, 3)); // B x N_heads x N_tokens x N_tokens
-        attn = attn / (c_per_head as f64).sqrt();
+        attn = attn / (c_per_head as f32).sqrt();
         attn = softmax(attn, 3);
 
         // # Get output

@@ -17,7 +17,7 @@ pub struct Sam<B: Backend> {
     pub mask_decoder: MaskDecoder<B>,
     pub pixel_mean: [f32; 3],
     pub pixel_std: [f32; 3],
-    pub mask_threshold: f64,
+    pub mask_threshold: f32,
     pub image_format: ImageFormat,
 }
 #[derive(Debug)]
