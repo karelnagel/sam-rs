@@ -2590,6 +2590,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ort"
+version = "1.14.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6daef38f73f79edf2f0cbf420c779dbab67203db3e40e4f557f556dca85ef861"
+dependencies = [
+ "flate2",
+ "half",
+ "lazy_static",
+ "libc",
+ "ndarray",
+ "tar",
+ "thiserror",
+ "tracing",
+ "ureq",
+ "vswhom",
+ "winapi",
+ "zip",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3351,6 +3371,7 @@ dependencies = [
  "burn-ndarray",
  "burn-tch",
  "flume",
+ "ort",
  "sam-rs",
  "serde",
  "serde_json",

@@ -21,6 +21,7 @@ flume = "0.10.14"
 burn = { git = "https://github.com/karelnagel/burn" }
 burn-ndarray = { git = "https://github.com/karelnagel/burn" }
 burn-tch = { git = "https://github.com/karelnagel/burn" }
+ort = "1.14.6"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem
