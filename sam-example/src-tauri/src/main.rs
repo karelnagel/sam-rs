@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod sam;
 use std::sync::Mutex;
-
+mod helpers;
 use sam::State;
 
 use crate::sam::{is_model_active, load_image, predict_point, start_model, stop_model};

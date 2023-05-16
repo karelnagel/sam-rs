@@ -3371,6 +3371,7 @@ dependencies = [
  "burn-ndarray",
  "burn-tch",
  "flume",
+ "ndarray",
  "ort",
  "sam-rs",
  "serde",
