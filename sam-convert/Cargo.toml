@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 sam-rs = { path = "../sam-rs" }
-burn = { git = "https://github.com/karelnagel/burn" }
+burn = { path = "../../burn/burn" }
 pyo3 = { version = "0.18.3", features = ["auto-initialize"] }
 serde = "1.0.163"
 regex = "1.8.1"

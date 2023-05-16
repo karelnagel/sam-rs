@@ -64,13 +64,14 @@ impl PositionEmbeddingRandom {
         image_size: Size,
     ) -> Tensor<B, 3> {
         let (slice, shape) = coords.to_slice::<f32>();
-        let coords = Tensor::of_slice(slice, shape); // Deep copy
-        coords
-            .narrow(2, 0, 1)
-            .copy_(coords.narrow(2, 0, 1).div_scalar(image_size.1 as f32));
-        coords
-            .narrow(2, 1, 1)
-            .copy_(coords.narrow(2, 1, 1).div_scalar(image_size.0 as f32));
+        let mut coords = Tensor::of_slice(slice, shape); // Deep copy
+        let dims = coords.dims();
+        coords = coords
+            .index([0..dims[0], 0..dims[1], 0..1])
+            .div_scalar(image_size.1 as f32)
+            .index([0..dims[0], 0..dims[1], 1..2])
+            .div_scalar(image_size.0 as f32);
+
         self._pe_encoding(coords)
     }
 }

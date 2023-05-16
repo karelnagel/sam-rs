@@ -164,7 +164,7 @@ fn window_unpartition<B: Backend>(
         .permute([0, 1, 3, 2, 4, 5])
         .reshape_max([b, hp, wp, usize::MAX]);
     if hp > h || wp > w {
-        x.narrow(1, 0, h).narrow(2, 0, w)
+        x.clone().index([0..x.dims()[0], 0..h, 0..w])
     } else {
         x
     }

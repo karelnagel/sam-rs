@@ -17,7 +17,7 @@ pub struct Sam<B: Backend> {
     pub mask_decoder: MaskDecoder<B>,
     pub pixel_mean: [f32; 3],
     pub pixel_std: [f32; 3],
-    pub mask_threshold: f32,
+    pub mask_threshold: f64,
     pub image_format: ImageFormat,
 }
 #[derive(Debug)]
@@ -189,8 +189,12 @@ where
     ) -> Tensor<B, 4, Float> {
         let output_size = vec![self.image_encoder.img_size, self.image_encoder.img_size];
         let masks = masks.upsample_bilinear2d::<4>(output_size, false, None, None);
-        let masks: Tensor<B, 4> = masks.narrow(2, 0, input.0);
-        let masks = masks.narrow(3, 0, input.1);
+        let masks: Tensor<B, 4> = masks.clone().index([
+            0..masks.dims()[0],
+            0..masks.dims()[1],
+            0..input.0,
+            0..input.1,
+        ]);
         let masks = masks.upsample_bilinear2d(vec![original.0, original.1], false, None, None);
         masks
     }

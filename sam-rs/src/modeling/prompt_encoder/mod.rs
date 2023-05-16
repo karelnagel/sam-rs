@@ -122,43 +122,43 @@ where
         let mask_zero: Tensor<B, 3, Bool> = labels.clone().equal_elem(0.).unsqueeze_end();
         let mask_one: Tensor<B, 3, Bool> = labels.clone().equal_elem(1.).unsqueeze_end();
 
-        point_embedding = Tensor::zeros_like(&point_embedding)
-            .where_self(mask_minus_one.clone(), point_embedding);
+        // point_embedding = Tensor::zeros_like(&point_embedding)
+        //     .where_self(mask_minus_one.clone(), point_embedding);
 
-        point_embedding = Tensor::where_self(
-            point_embedding.clone()
-                + self
-                    .not_a_point_embed
-                    .clone()
-                    .into_record()
-                    .weight
-                    .val()
-                    .unsqueeze(),
-            mask_minus_one,
-            point_embedding,
-        );
-        point_embedding = Tensor::where_self(
-            point_embedding.clone()
-                + self.point_embeddings[0]
-                    .clone()
-                    .into_record()
-                    .weight
-                    .val()
-                    .unsqueeze(),
-            mask_zero,
-            point_embedding,
-        );
-        point_embedding = Tensor::where_self(
-            point_embedding.clone()
-                + self.point_embeddings[1]
-                    .clone()
-                    .into_record()
-                    .weight
-                    .val()
-                    .unsqueeze(),
-            mask_one,
-            point_embedding,
-        );
+        // point_embedding = Tensor::where_self(
+        //     point_embedding.clone()
+        //         + self
+        //             .not_a_point_embed
+        //             .clone()
+        //             .into_record()
+        //             .weight
+        //             .val()
+        //             .unsqueeze(),
+        //     mask_minus_one,
+        //     point_embedding,
+        // );
+        // point_embedding = Tensor::where_self(
+        //     point_embedding.clone()
+        //         + self.point_embeddings[0]
+        //             .clone()
+        //             .into_record()
+        //             .weight
+        //             .val()
+        //             .unsqueeze(),
+        //     mask_zero,
+        //     point_embedding,
+        // );
+        // point_embedding = Tensor::where_self(
+        //     point_embedding.clone()
+        //         + self.point_embeddings[1]
+        //             .clone()
+        //             .into_record()
+        //             .weight
+        //             .val()
+        //             .unsqueeze(),
+        //     mask_one,
+        //     point_embedding,
+        // );
         point_embedding
     }
 
@@ -170,8 +170,12 @@ where
             .pe_layer
             .forward_with_coords(coords, self.input_image_size);
 
-        let corner_embedding_0 = Tensor::narrow(&corner_embedding, 1, 0, 1);
-        let corner_embedding_1 = Tensor::narrow(&corner_embedding, 1, 1, 1);
+        let corner_embedding_0 = corner_embedding
+            .clone()
+            .index([0..corner_embedding.dims()[0], 0..1]);
+        let corner_embedding_1 = corner_embedding
+            .clone()
+            .index([0..corner_embedding.dims()[0], 0..2]);
 
         let updated_corner_embedding_0 = corner_embedding_0
             + self.point_embeddings[2]
@@ -408,7 +412,12 @@ mod test {
                 let output = output.downcast::<PyTuple>()?;
                 let sparse = output.get_item(0)?;
                 let dense = output.get_item(1)?;
-                Ok((points.try_into()?, labels.try_into()?, sparse.try_into()?, dense.try_into()?))
+                Ok((
+                    points.try_into()?,
+                    labels.try_into()?,
+                    sparse.try_into()?,
+                    dense.try_into()?,
+                ))
             })
         }
         let (points, labels, sparse, dense) = python().unwrap();

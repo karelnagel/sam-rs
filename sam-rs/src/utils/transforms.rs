@@ -44,8 +44,23 @@ impl ResizeLongestSide {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
         let coords = coords.clone().to_float();
-        let coords_0 = coords.narrow(D - 1, 0, 1) * (new_w as f32 / old_w as f32);
-        let coords_1 = coords.narrow(D - 1, 1, 1) * (new_h as f32 / old_h as f32);
+
+        let indexes_0 = (0..D)
+            .map(|i| match i == D - 1 {
+                true => 0..1,
+                false => 0..coords.dims()[i],
+            })
+            .collect::<Vec<_>>();
+        let indexes_1 = (0..D)
+            .map(|i| match i == D - 1 {
+                true => 1..2,
+                false => 0..coords.dims()[i],
+            })
+            .collect::<Vec<_>>();
+        let coords_0 = coords.clone().index::<D>(indexes_0.try_into().unwrap())
+            * (new_w as f32 / old_w as f32);
+        let coords_1 =
+            coords.index::<D>(indexes_1.try_into().unwrap()) * (new_h as f32 / old_h as f32);
         Tensor::cat(vec![coords_0, coords_1], D - 1)
     }
 
@@ -79,15 +94,18 @@ impl ResizeLongestSide {
     ) -> Tensor<B, D, Float> {
         let Size(old_h, old_w) = original_size;
         let Size(new_h, new_w) = self.get_preprocess_shape(old_h, old_w, self.target_length);
-        let coords = coords.clone().to_float();
+        let mut coords = coords.clone().to_float();
+
+        let first_dim = 0..coords.dims()[0];
 
         // Update the first column of coords
-        let coords_0: Tensor<B, 3> = coords.select(1, 0).mul_scalar(new_w as f32 / old_w as f32);
-        Tensor::copy_(&mut coords.select(1, 0), coords_0);
+        coords = coords
+            .mul_scalar(new_w as f32 / old_w as f32);
 
         // Update the second column of coords
-        let coords_1: Tensor<B, 3> = coords.select(1, 1).mul_scalar(new_h as f32 / old_h as f32);
-        coords.select(1, 1).copy_(coords_1);
+        coords = coords
+            .index([first_dim, 0..1])
+            .mul_scalar(new_h as f32 / old_h as f32);
         coords
     }
 

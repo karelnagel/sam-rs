@@ -13,14 +13,18 @@ edition = "2021"
 tauri-build = { version = "1.2", features = [] }
 
 [dependencies]
-tauri = { version = "1.2", features = ["dialog-open", "protocol-all", "shell-open"] }
+tauri = { version = "1.2", features = [
+    "dialog-open",
+    "protocol-all",
+    "shell-open",
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sam-rs = { path = "../../sam-rs" }
 flume = "0.10.14"
-burn = { git = "https://github.com/karelnagel/burn" }
-burn-ndarray = { git = "https://github.com/karelnagel/burn" }
-burn-tch = { git = "https://github.com/karelnagel/burn" }
+burn = { path = "../../../burn/burn" }
+burn-ndarray = { path = "../../../burn/burn-ndarray" }
+burn-tch = { path = "../../../burn/burn-tch" }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

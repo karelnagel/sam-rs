@@ -170,8 +170,8 @@ fn get_rel_pos<B: Backend>(q_size: usize, k_size: usize, rel_pos: Tensor<B, 2>) 
         .mul_scalar((q_size as f32 / k_size as f32).max(1.0));
     let relative_coords =
         (q_coords - k_coords) + (k_size as f32 - 1.) * (q_size as f32 / k_size as f32).max(1.0);
-    let idk = rel_pos_resized.index_tch(vec![relative_coords]); // Todo 40 out of range
-    idk
+    let idk = rel_pos_resized.index_select(relative_coords-1);
+    idk.unsqueeze() 
 }
 
 #[cfg(test)]

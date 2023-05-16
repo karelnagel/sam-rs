@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-burn = { git = "https://github.com/karelnagel/burn" }
-burn-ndarray = { git = "https://github.com/karelnagel/burn" }
-burn-tch = { git = "https://github.com/karelnagel/burn" }
+burn = { path = "../../burn/burn" }
+burn-ndarray = { path = "../../burn/burn-ndarray" }
+burn-tch = { path = "../../burn/burn-tch" }
 home = "0.5.5"
 image = "0.24.6"
 md-5 = "0.10.5"

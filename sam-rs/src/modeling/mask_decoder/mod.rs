@@ -124,11 +124,18 @@ impl<B: Backend> MaskDecoder<B> {
 
         if multimask_output {
             (
-                masks.narrow(1, 1, masks.dims()[1] - 1),
-                iou_pred.narrow(1, 1, iou_pred.dims()[1] - 1),
+                masks
+                    .clone()
+                    .index([0..masks.dims()[0], 1..masks.dims()[1]]),
+                iou_pred
+                    .clone()
+                    .index([0..iou_pred.dims()[0], 1..iou_pred.dims()[1]]),
             )
         } else {
-            (masks.narrow(1, 0, 1), iou_pred.narrow(1, 0, 1))
+            (
+                masks.clone().index([0..masks.dims()[0], 0..1]),
+                iou_pred.clone().index([0..iou_pred.dims()[0], 0..1]),
+            )
         }
     }
 
@@ -157,17 +164,21 @@ impl<B: Backend> MaskDecoder<B> {
         let (b, c, h, w) = (shape[0], shape[1], shape[2], shape[3]);
 
         let (hs, src) = self.transformer.forward(src, pos_src, tokens);
-        let iou_token_out = hs.narrow(1, 0, 1);
+        let iou_token_out = hs.clone().index([0..hs.dims()[0], 0..1]);
         let dims = iou_token_out.dims();
         let iou_token_out = iou_token_out.reshape([dims[0], dims[2]]);
 
-        let mask_tokens_out = hs.narrow(1, 1, self.num_mask_tokens);
+        let mask_tokens_out = hs
+            .clone()
+            .index([0..hs.dims()[0], 1..self.num_mask_tokens + 1]);
 
         let src = src.swap_dims(1, 2).reshape([b, c, h, w]);
         let upscaled_embedding = self.output_upscaling(src);
         let mut hyper_in_list: Vec<Tensor<B, 2>> = vec![];
         for i in 0..self.num_mask_tokens {
-            let input = mask_tokens_out.narrow(1, i, 1);
+            let input = mask_tokens_out
+                .clone()
+                .index([0..mask_tokens_out.dims()[0], i..i + 1]);
             let dims = input.dims();
             let input = input.reshape([dims[0], dims[2]]);
             let item = self.output_hypernetworks_mlps[i as usize].forward(input);

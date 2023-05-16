@@ -178,10 +178,10 @@ where
             mask_input_torch,
             multimask_output,
         );
-        let mask_values = mask_values.select(0, 0);
-        let masks = masks.select(0, 0);
-        let iou_predictions = iou_predictions.select(0, 0);
-        let low_res_masks = low_res_masks.select(0, 0);
+        let mask_values: Tensor<B, 3> = mask_values.index([0..1]).unsqueeze();
+        let masks: Tensor<B, 3, Bool> = masks.index([0..1]).unsqueeze();
+        let iou_predictions: Tensor<B, 1> = iou_predictions.index([0..1]).unsqueeze();
+        let low_res_masks: Tensor<B, 3> = low_res_masks.index([0..1]).unsqueeze();
         (masks, iou_predictions, low_res_masks, mask_values)
     }
     /// Predict masks for the given input prompts, using the currently set image.
